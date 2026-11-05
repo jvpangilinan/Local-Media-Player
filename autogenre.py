@@ -1,0 +1,473 @@
+"""Smart genres: look movies, series and songs up online ONCE, remember every answer in the local database.
+
+* Movies / series -> TMDB (free key needed). The year in the file name confirms the match, so a wrong "Dune" is rare.
+* Songs           -> the file's own genre tag first (no internet), then MusicBrainz (no key) and Last.fm (optional free key)
+                     by ARTIST, which is far more reliable than per-song tags.
+* Nothing is renamed, moved or written into your files. Answers live in the app's database (tables auto_genres + genre_cache);
+  a choice you make by hand always beats an automatic one. Private-library items are never sent anywhere.
+"""
+import difflib
+import json
+import re
+import sqlite3
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from contextlib import closing
+
+UA = "ZENO/1.0 (personal media library; local app)"
+ACCEPT = 0.82                      # confidence needed to apply a movie match without asking
+
+TMDB_MOVIE = {28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime", 99: "Documentary", 18: "Drama",
+              10751: "Family", 14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance",
+              878: "Sci-Fi", 10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western"}
+TMDB_TV = {10759: "Action", 16: "Animation", 35: "Comedy", 80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+           10762: "Kids", 9648: "Mystery", 10763: "News", 10764: "Reality", 10765: "Sci-Fi", 10766: "Soap", 10767: "Talk",
+           10768: "War", 37: "Western"}
+
+# raw tag words -> one of our music genres (first match in this order wins for a given tag)
+MUSIC_MAP = [
+    ("Lo-fi", ("lo-fi", "lofi", "lo fi", "chillhop")),
+    ("K-Pop", ("k-pop", "kpop", "korean pop")),
+    ("J-Pop", ("j-pop", "jpop", "japanese pop", "city pop")),
+    ("OPM", ("opm", "original pilipino", "pinoy", "filipino")),
+    ("Hip-Hop", ("hip hop", "hip-hop", "hiphop", "rap", "trap", "drill", "grime", "boom bap", "gangsta")),
+    ("R&B / Soul", ("r&b", "rnb", "rhythm and blues", "soul", "neo soul", "neo-soul", "funk", "motown")),
+    ("Ambient", ("ambient", "drone", "new age", "downtempo", "chillout", "chill-out", "chill")),
+    ("Metal", ("metal", "metalcore", "deathcore", "djent")),
+    ("Punk", ("punk", "hardcore", "emo", "pop punk", "post-hardcore")),
+    ("Rock", ("rock", "grunge", "shoegaze", "post-rock", "hard rock", "psychedelic")),
+    ("Indie", ("indie", "alternative", "alt-rock", "bedroom pop", "dream pop")),
+    ("Electronic", ("electronic", "electronica", "edm", "house", "techno", "trance", "dubstep", "electro", "drum and bass",
+                    "dnb", "synthwave", "synth-pop", "synthpop", "idm", "garage", "future bass", "dance")),
+    ("Jazz", ("jazz", "bebop", "swing", "bossa nova")),
+    ("Classical", ("classical", "orchestra", "orchestral", "baroque", "opera", "piano", "soundtrack", "score", "film score")),
+    ("Country", ("country", "bluegrass", "americana")),
+    ("Folk", ("folk", "singer-songwriter", "acoustic")),
+    ("Blues", ("blues",)),
+    ("Reggae", ("reggae", "dancehall", "ska", "dub")),
+    ("Latin", ("latin", "reggaeton", "salsa", "bachata", "cumbia", "latino")),
+    ("Gospel", ("gospel", "christian", "worship")),
+    ("Pop", ("pop", "teen pop", "dance-pop", "europop", "art pop")),
+]
+LEGACY_MUSIC = {"Hip-Hop", "Pop", "Rock", "Metal", "Punk", "Electronic", "K-Pop", "J-Pop", "Ambient", "Lo-fi"}   # already covered by the 5 built-in filters
+
+
+class Offline(Exception):
+    """The internet (or the service) could not be reached."""
+
+
+class BadKey(Exception):
+    """The service refused the key."""
+
+
+# ---------------------------------------------------------------- http (swappable so it can be tested without a network)
+def _default_fetch(url, headers=None, timeout=15):
+    req = urllib.request.Request(url, headers=dict({"User-Agent": UA, "Accept": "application/json"}, **(headers or {})))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            raise BadKey("The service refused the key (HTTP %d)." % e.code)
+        if e.code == 404:
+            return {}
+        if e.code in (429, 503):
+            try:
+                wait = min(30, float(e.headers.get("Retry-After") or 3))
+            except ValueError:
+                wait = 3
+            time.sleep(wait)
+            raise Offline("Rate limited, will retry later (HTTP %d)." % e.code)
+        raise Offline("HTTP %d" % e.code)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        raise Offline(str(getattr(e, "reason", e)) or "No internet connection.")
+
+
+fetch = _default_fetch
+
+
+class Throttle:
+    def __init__(self, gap):
+        self.gap, self.last, self.lock = gap, 0.0, threading.Lock()
+
+    def wait(self):
+        with self.lock:
+            d = self.last + self.gap - time.time()
+            if d > 0:
+                time.sleep(d)
+            self.last = time.time()
+
+
+T_TMDB, T_MB, T_LFM = Throttle(0.06), Throttle(1.1), Throttle(0.25)
+
+
+# ---------------------------------------------------------------- text helpers
+def norm(s):
+    s = str(s or "").lower().replace("&", " and ")
+    s = re.sub(r"[^a-z0-9]+", " ", s)
+    s = re.sub(r"\b(the|a|an)\b", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def sim(a, b):
+    a, b = norm(a), norm(b)
+    if not a or not b:
+        return 0.0
+    return 1.0 if a == b else difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _year(s):
+    m = re.match(r"(\d{4})", str(s or ""))
+    return int(m.group(1)) if m else 0
+
+
+# ---------------------------------------------------------------- movies / series (TMDB)
+def _tmdb_call(path, params, key):
+    params = dict(params)
+    headers = {}
+    if key.startswith("eyJ"):                         # the long "read access token"
+        headers["Authorization"] = "Bearer " + key
+    else:
+        params["api_key"] = key
+    T_TMDB.wait()
+    return fetch("https://api.themoviedb.org/3/" + path + "?" + urllib.parse.urlencode(params), headers)
+
+
+def tmdb_candidates(title, year, key, tv=False):
+    """Up to 3 best matches: [{title, year, genres, conf, id, poster}] best first."""
+    params = {"query": title, "include_adult": "false", "language": "en-US"}
+    if year:
+        params["first_air_date_year" if tv else "year"] = year
+    data = _tmdb_call("search/tv" if tv else "search/movie", params, key)
+    gmap, out = (TMDB_TV if tv else TMDB_MOVIE), []
+    for r in (data.get("results") or [])[:8]:
+        name = r.get("name" if tv else "title") or ""
+        orig = r.get("original_name" if tv else "original_title") or ""
+        s = max(sim(title, name), sim(title, orig))
+        ry = _year(r.get("first_air_date" if tv else "release_date"))
+        if year and ry:
+            d = abs(ry - year)
+            conf = s * 0.8 + (0.2 if d == 0 else 0.1 if d == 1 else 0.0)
+        else:
+            conf = s * 0.9
+        pop = float(r.get("popularity") or 0)
+        if not year and s >= 0.95 and pop > 20:
+            conf = min(1.0, conf + 0.05)
+        genres = [gmap[g] for g in (r.get("genre_ids") or []) if g in gmap]
+        out.append({"id": r.get("id"), "title": name, "year": ry, "genres": genres, "conf": round(conf, 3), "pop": pop,
+                    "poster": r.get("poster_path") or ""})
+    out.sort(key=lambda c: (-c["conf"], -c["pop"]))
+    return out[:3]
+
+
+def decide_movie(cands):
+    """-> (status, genres, conf): 'auto' when the best match is trustworthy, 'review' when several are plausible, 'none' otherwise."""
+    if not cands:
+        return "none", [], 0.0
+    best = cands[0]
+    if best["conf"] >= ACCEPT and best["genres"]:
+        # two near-identical scores with different genres means a coin toss: ask instead of guessing
+        if len(cands) > 1 and cands[1]["conf"] >= best["conf"] - 0.03 and cands[1]["genres"] != best["genres"] and not best["year"]:
+            return "review", [], best["conf"]
+        return "auto", best["genres"], best["conf"]
+    if best["conf"] >= 0.5:
+        return "review", [], best["conf"]
+    return "none", [], best["conf"]
+
+
+# ---------------------------------------------------------------- music
+def canon_music(raw):
+    """raw tags [(name, count)] or strings -> up to 2 of our genres, strongest first."""
+    score = {}
+    for item in raw or []:
+        name, cnt = (item if isinstance(item, (tuple, list)) else (item, 1))
+        t = " " + norm(str(name).replace("-", " ").replace("&", "and")) + " "
+        t2 = " " + str(name).lower().replace("-", " ").strip() + " "
+        for genre, words in MUSIC_MAP:
+            hit = False
+            for w in words:
+                w2 = w.replace("-", " ")
+                if (" " + w2 + " ") in t2 or (" " + norm(w2) + " ") in t:
+                    hit = True
+                    break
+            if hit:
+                score[genre] = score.get(genre, 0) + max(1, int(cnt or 1))
+                break
+    if not score:
+        return []
+    top = max(score.values())
+    return [g for g, v in sorted(score.items(), key=lambda kv: -kv[1]) if v >= top * 0.35][:2]
+
+
+def split_tag(tag):
+    """A file's own genre tag ('Hip-Hop/Rap; R&B') -> raw tag list."""
+    return [p.strip() for p in re.split(r"[;/,|\\]+|\s{2,}", str(tag or "")) if p.strip() and not p.strip().isdigit()]
+
+
+def mb_artist_tags(artist):
+    T_MB.wait()
+    q = urllib.parse.urlencode({"query": 'artist:"%s"' % artist.replace('"', " "), "fmt": "json", "limit": 3})
+    data = fetch("https://musicbrainz.org/ws/2/artist/?" + q)
+    for a in data.get("artists") or []:
+        if int(a.get("score") or 0) >= 90 and sim(artist, a.get("name")) >= 0.85:
+            tags = [(t.get("name"), t.get("count", 1)) for t in (a.get("genres") or []) + (a.get("tags") or []) if t.get("name")]
+            if not tags and a.get("id"):
+                T_MB.wait()
+                d2 = fetch("https://musicbrainz.org/ws/2/artist/%s?inc=genres+tags&fmt=json" % a["id"])
+                tags = [(t.get("name"), t.get("count", 1)) for t in (d2.get("genres") or []) + (d2.get("tags") or []) if t.get("name")]
+            return tags
+    return []
+
+
+def lfm_artist_tags(artist, key):
+    if not key:
+        return []
+    T_LFM.wait()
+    q = urllib.parse.urlencode({"method": "artist.gettoptags", "artist": artist, "api_key": key, "format": "json", "autocorrect": 1})
+    data = fetch("https://ws.audioscrobbler.com/2.0/?" + q)
+    tags = (data.get("toptags") or {}).get("tag") or []
+    return [(t.get("name"), int(t.get("count") or 0)) for t in tags if t.get("name") and int(t.get("count") or 0) >= 15]
+
+
+def music_artist_genres(artist, lfm_key=""):
+    tags = []
+    try:
+        tags += mb_artist_tags(artist)
+    except Offline:
+        if not lfm_key:
+            raise
+    if lfm_key:
+        tags += lfm_artist_tags(artist, lfm_key)
+    return canon_music(tags), tags[:12]
+
+
+# ---------------------------------------------------------------- storage
+def init_db(con):
+    con.execute("""CREATE TABLE IF NOT EXISTS auto_genres (
+        kind TEXT NOT NULL, key TEXT NOT NULL, genres TEXT NOT NULL DEFAULT '[]', source TEXT NOT NULL DEFAULT '',
+        conf REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'auto', extra TEXT NOT NULL DEFAULT '', at REAL,
+        PRIMARY KEY (kind, key))""")
+    con.execute("""CREATE TABLE IF NOT EXISTS genre_cache (
+        kind TEXT NOT NULL, qkey TEXT NOT NULL, result TEXT NOT NULL, at REAL, PRIMARY KEY (kind, qkey))""")
+
+
+def load_map(db, kind, statuses=("auto", "manual")):
+    """{key: [genres]} of every applied answer for kind (video | series | track)."""
+    try:
+        with closing(db()) as con:
+            q = ",".join("?" * len(statuses))
+            rows = con.execute("SELECT key, genres FROM auto_genres WHERE kind = ? AND status IN (%s)" % q, (kind, *statuses)).fetchall()
+        return {r["key"]: json.loads(r["genres"] or "[]") for r in rows}
+    except (sqlite3.Error, ValueError):
+        return {}
+
+
+def _put(db, kind, key, genres, source, conf, status, extra=None):
+    with closing(db()) as con, con:
+        old = con.execute("SELECT status FROM auto_genres WHERE kind = ? AND key = ?", (kind, key)).fetchone()
+        if old and old["status"] == "manual" and status != "manual":
+            return                                             # your own choice always wins
+        con.execute("INSERT OR REPLACE INTO auto_genres (kind, key, genres, source, conf, status, extra, at) VALUES (?,?,?,?,?,?,?,?)",
+                    (kind, key, json.dumps(genres), source, float(conf), status, json.dumps(extra) if extra else "", time.time()))
+
+
+def _cache_get(db, kind, qkey):
+    with closing(db()) as con:
+        r = con.execute("SELECT result FROM genre_cache WHERE kind = ? AND qkey = ?", (kind, qkey)).fetchone()
+    return json.loads(r["result"]) if r else None
+
+
+def _cache_put(db, kind, qkey, result):
+    with closing(db()) as con, con:
+        con.execute("INSERT OR REPLACE INTO genre_cache (kind, qkey, result, at) VALUES (?,?,?,?)", (kind, qkey, json.dumps(result), time.time()))
+
+
+def set_manual(db, kind, key, genres):
+    _put(db, kind, key, genres, "you", 1.0, "manual")
+
+
+def review_list(db, limit=200):
+    with closing(db()) as con:
+        rows = con.execute("SELECT kind, key, extra FROM auto_genres WHERE status = 'review' ORDER BY at DESC LIMIT ?", (limit,)).fetchall()
+    out = []
+    for r in rows:
+        try:
+            ex = json.loads(r["extra"] or "{}")
+        except ValueError:
+            ex = {}
+        out.append({"kind": r["kind"], "key": r["key"], "name": ex.get("name", ""), "year": ex.get("year", 0), "cands": ex.get("cands", [])})
+    return out
+
+
+def counts(db):
+    out = {"video": 0, "series": 0, "track": 0, "review": 0}
+    try:
+        with closing(db()) as con:
+            for r in con.execute("SELECT kind, status, COUNT(*) n FROM auto_genres GROUP BY kind, status"):
+                if r["status"] == "review":
+                    out["review"] += r["n"]
+                elif r["status"] in ("auto", "manual") and r["kind"] in out:
+                    out[r["kind"]] += r["n"]
+    except sqlite3.Error:
+        pass
+    return out
+
+
+def reset(db, kind=""):
+    """Forget automatic answers (manual ones stay)."""
+    with closing(db()) as con, con:
+        if kind:
+            con.execute("DELETE FROM auto_genres WHERE status != 'manual' AND kind = ?", (kind,))
+        else:
+            con.execute("DELETE FROM auto_genres WHERE status != 'manual'")
+        con.execute("DELETE FROM genre_cache")
+
+
+# ---------------------------------------------------------------- the background job
+class Engine:
+    def __init__(self, db, log):
+        self.db, self.log = db, log
+        self.lock = threading.Lock()
+        self.stop_ev, self.run_ev = threading.Event(), threading.Event()
+        self.run_ev.set()
+        self.thread = None
+        self.state = self._blank()
+
+    @staticmethod
+    def _blank():
+        return {"running": False, "paused": False, "what": "", "total": 0, "done": 0, "found": 0, "review": 0, "none": 0,
+                "current": "", "error": "", "finished": False}
+
+    def status(self):
+        with self.lock:
+            s = dict(self.state)
+        s["paused"] = not self.run_ev.is_set() and s["running"]
+        return s
+
+    def start(self, what, work, tmdb_key="", lfm_key="", done_cb=None):
+        """what: 'movies' | 'music'. work: movies -> [{id, title, year, tv}], music -> [{rel, artist, tag}]."""
+        with self.lock:
+            if self.state["running"]:
+                return False, "A scan is already running."
+            self.state = self._blank()
+            self.state.update(running=True, what=what, total=len(work))
+        self.stop_ev.clear()
+        self.run_ev.set()
+        self.thread = threading.Thread(target=self._run, args=(what, work, tmdb_key, lfm_key, done_cb), daemon=True)
+        self.thread.start()
+        return True, ""
+
+    def pause(self, on):
+        (self.run_ev.clear if on else self.run_ev.set)()
+
+    def stop(self):
+        self.stop_ev.set()
+        self.run_ev.set()
+
+    def _bump(self, **kw):
+        with self.lock:
+            for k, v in kw.items():
+                if k in ("found", "review", "none", "done"):
+                    self.state[k] += v
+                else:
+                    self.state[k] = v
+
+    def _run(self, what, work, tmdb_key, lfm_key, done_cb):
+        fails = 0
+        try:
+            if what == "movies":
+                for w in work:
+                    if not self._gate():
+                        break
+                    self._bump(current=w["title"])
+                    try:
+                        self._movie(w, tmdb_key)
+                        fails = 0
+                    except Offline as e:
+                        fails += 1
+                        if fails >= 4:
+                            self._bump(error="Can't reach the internet: %s" % e)
+                            break
+                    self._bump(done=1)
+            else:
+                self._music(work, lfm_key)
+        except BadKey as e:
+            self._bump(error=str(e))
+        except Exception as e:                                  # never let the thread die silently
+            self.log.warning("smart genres failed", exc_info=True)
+            self._bump(error="Stopped: %s" % e)
+        finally:
+            self._bump(running=False, finished=True, current="")
+            if done_cb:
+                try:
+                    done_cb()
+                except Exception:
+                    self.log.warning("smart genres: done callback failed", exc_info=True)
+
+    def _gate(self):
+        self.run_ev.wait()
+        return not self.stop_ev.is_set()
+
+    def _movie(self, w, key):
+        title, year, tv = w["title"], int(w.get("year") or 0), bool(w.get("tv"))
+        kind = "series" if tv else "video"
+        qkey = "%s|%s|%d" % ("tv" if tv else "movie", norm(title), year)
+        cands = _cache_get(self.db, "tmdb", qkey)
+        if cands is None:
+            cands = tmdb_candidates(title, year, key, tv)
+            _cache_put(self.db, "tmdb", qkey, cands)
+        status, genres, conf = decide_movie(cands)
+        if status == "auto":
+            _put(self.db, kind, w["id"], genres, "tmdb", conf, "auto")
+            self._bump(found=1)
+        elif status == "review":
+            _put(self.db, kind, w["id"], [], "tmdb", conf, "review", {"name": title, "year": year, "cands": cands})
+            self._bump(review=1)
+        else:
+            _put(self.db, kind, w["id"], [], "tmdb", conf, "none")
+            self._bump(none=1)
+
+    def _music(self, work, lfm_key):
+        by_artist, fails = {}, 0
+        for w in work:                                          # 1) the file's own tag: no internet needed
+            if not self._gate():
+                return
+            g = canon_music(split_tag(w.get("tag")))
+            if g:
+                _put(self.db, "track", w["rel"], g, "tag", 1.0, "auto")
+                self._bump(found=1, done=1)
+            else:
+                by_artist.setdefault(w.get("artist") or "", []).append(w["rel"])
+        for artist, rels in sorted(by_artist.items(), key=lambda kv: -len(kv[1])):   # 2) the rest, by artist (biggest artists first)
+            if not self._gate():
+                return
+            if not artist or norm(artist) in ("unknown", "unknown artist", "various artists", "various"):
+                self._bump(none=len(rels), done=len(rels))
+                continue
+            self._bump(current=artist)
+            res = _cache_get(self.db, "artist", norm(artist))
+            if res is None:
+                try:
+                    genres, raw = music_artist_genres(artist, lfm_key)
+                    fails = 0
+                except Offline as e:
+                    fails += 1
+                    if fails >= 4:
+                        self._bump(error="Can't reach the internet: %s" % e)
+                        return
+                    self._bump(done=len(rels))
+                    continue
+                res = {"genres": genres}
+                _cache_put(self.db, "artist", norm(artist), res)
+            if res["genres"]:
+                for r in rels:
+                    _put(self.db, "track", r, res["genres"], "artist", 0.8, "auto")
+                self._bump(found=len(rels))
+            else:
+                for r in rels:
+                    _put(self.db, "track", r, [], "artist", 0, "none")
+                self._bump(none=len(rels))
+            self._bump(done=len(rels))

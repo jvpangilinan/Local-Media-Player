@@ -1,0 +1,94 @@
+/* ULTRON Movies: auto-sort tags, expanding cards, black-bar player, picture badge, compatibility notice, precision trimmer */
+
+/* ---------- auto-sorted collections ---------- */
+.mv-tag { font-size: .62rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: .22rem .6rem; border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .6); cursor: help; white-space: nowrap; }
+html[data-theme="light"] .mv-tag { border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .55); }
+
+/* ---------- expanding card: poster rests, hover grows into a wide card with a muted preview ---------- */
+.nfx-pop { position: fixed; z-index: 70; border-radius: 10px; overflow: hidden; background: #131318; color: #fff;
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 255, 255, .08);
+    opacity: 0; transform: scale(.56); transition: transform .2s cubic-bezier(.2, .8, .2, 1), opacity .16s ease; will-change: transform; }
+.nfx-pop.on { opacity: 1; transform: scale(1); }
+.nfx-media { position: relative; overflow: hidden; background: #000; }
+.nfx-bd, .nfx-pv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.nfx-pv { opacity: 0; transition: opacity .35s ease; }
+.nfx-pv.on { opacity: 1; }
+.nfx-shade { position: absolute; inset: 0; background: linear-gradient(to top, #131318 2%, rgba(19, 19, 24, 0) 55%); pointer-events: none; }
+.nfx-name { position: absolute; left: 14px; right: 14px; bottom: 10px; font-weight: 800; font-size: 1.05rem; line-height: 1.15;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, .9); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nfx-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .22); }
+.nfx-prog i { display: block; height: 100%; background: var(--accent, #e50914); }
+.nfx-body { padding: 12px 14px 14px; }
+.nfx-btns { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.nfx-play, .nfx-b { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease; }
+.nfx-play { background: #fff; color: #000; border: 0; }
+.nfx-play:hover { transform: scale(1.08); background: rgba(255, 255, 255, .85); }
+.nfx-b { background: rgba(255, 255, 255, .06); color: #fff; border: 2px solid rgba(255, 255, 255, .4); font-size: .8rem; }
+.nfx-b:hover { border-color: #fff; background: rgba(255, 255, 255, .14); }
+.nfx-fill { flex: 1; }
+.nfx-hint { font-size: .6rem; font-weight: 800; letter-spacing: .2em; color: rgba(255, 255, 255, .45); }
+.nfx-meta { font-size: .78rem; color: rgba(255, 255, 255, .7); display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+.nfx-dot { margin: 0 .5em; opacity: .45; }
+
+/* ---------- player: real black bars, never see-through ---------- */
+#player-modal, #player-modal #player { background: #000 !important; }
+#player-modal.sx-glow-on #sx-glow { display: none !important; }
+#player-modal.sx-glow-on #player { background: #000 !important; }
+#player-modal #player { transition: height .22s ease; }
+#player-modal.nfx-prec-open #player { bottom: auto; height: calc(100% - var(--nfx-lower, 0px)); }
+#player-modal.nfx-prec-open #p-hit { bottom: var(--nfx-lower, 0px); }
+
+#nfx-ratio { font: 600 .66rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; color: rgba(255, 255, 255, .6);
+    text-transform: uppercase; margin-left: 14px; align-self: center; white-space: nowrap; }
+#nfx-asp.sx-on, #nfx-prec-btn.sx-on { color: var(--accent, #e50914); }
+
+/* ---------- precision trimmer (A/B filmstrip) ---------- */
+#nfx-prec { position: absolute; left: 0; right: 0; z-index: 12; background: rgba(8, 8, 11, .97); border-top: 1px solid rgba(255, 255, 255, .1);
+    padding: 8px 18px 8px; display: none; flex-direction: column; gap: 7px; color: #fff; }
+#player-modal.nfx-prec-open #nfx-prec { display: flex; }
+#nfx-prec button { background: rgba(255, 255, 255, .08); color: #fff; border: 1px solid rgba(255, 255, 255, .14); border-radius: 5px; padding: 4px 9px;
+    font: 700 .68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .06em; cursor: pointer; white-space: nowrap; }
+#nfx-prec button:hover { background: rgba(255, 255, 255, .18); }
+#nfx-prec button:disabled { opacity: .45; cursor: wait; }
+#nfx-prec button.tg.on { background: var(--accent, #e50914); border-color: transparent; }
+#nfx-prec button.busy { opacity: .6; }
+#nfx-prec .np-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+#nfx-prec .np-title { font: 800 .7rem/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .2em; color: rgba(255, 255, 255, .8); }
+#nfx-prec .np-tcs { display: flex; align-items: baseline; gap: 6px; font: 600 .72rem/1 ui-monospace, Menlo, Consolas, monospace; }
+#nfx-prec .np-tcs span { color: rgba(255, 255, 255, .45); letter-spacing: .14em; font-size: .6rem; }
+#nfx-prec .np-tcs em { font-style: normal; color: #ffd24a; margin-right: 8px; min-width: 70px; }
+#nfx-prec .np-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+#nfx-prec .np-zoom { display: flex; align-items: center; gap: 5px; margin-left: auto; font: 600 .7rem/1 ui-monospace, Menlo, Consolas, monospace; color: rgba(255, 255, 255, .7); }
+#nfx-prec #np-win { min-width: 52px; text-align: center; }
+#nfx-prec #np-x { margin-left: 6px; }
+
+#np-strip { position: relative; height: 66px; background: #050507; border-radius: 4px; overflow: hidden; cursor: crosshair; touch-action: none;
+    border: 1px solid rgba(255, 255, 255, .12); }
+#np-img { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background-size: 100% 100%; background-repeat: no-repeat; opacity: 0; transition: opacity .25s ease; }
+#np-img.on { opacity: .9; }
+#np-ticks { position: absolute; inset: 0; pointer-events: none; }
+#np-ticks i { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, .22); }
+#np-ticks b { position: absolute; top: 2px; left: 4px; font: 600 .58rem/1 ui-monospace, Menlo, Consolas, monospace; color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; white-space: nowrap; }
+#np-rg { position: absolute; top: 0; bottom: 0; background: rgba(255, 210, 74, .22); border-left: 2px solid #ffd24a; border-right: 2px solid #ffd24a; pointer-events: none; }
+.np-h { position: absolute; top: 0; bottom: 0; width: 14px; margin-left: -7px; cursor: ew-resize; z-index: 3; }
+.np-h::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: #ffd24a; }
+.np-h::after { content: attr(data-l); position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font: 800 .55rem/1 ui-monospace, Menlo, Consolas, monospace;
+    background: #ffd24a; color: #000; padding: 2px 4px; border-radius: 3px; letter-spacing: .08em; }
+#np-ph { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ff3b3b; box-shadow: 0 0 8px rgba(255, 59, 59, .8); pointer-events: none; z-index: 4; }
+#np-tip { position: absolute; bottom: 24px; transform: translateX(-50%); display: none; background: rgba(0, 0, 0, .88); color: #fff; padding: 2px 6px; border-radius: 3px;
+    font: 600 .62rem/1.3 ui-monospace, Menlo, Consolas, monospace; pointer-events: none; z-index: 5; }
+
+#np-over { position: relative; height: 12px; background: rgba(255, 255, 255, .08); border-radius: 3px; cursor: pointer; overflow: hidden; }
+#np-orange { position: absolute; top: 0; bottom: 0; background: rgba(255, 210, 74, .55); }
+#np-owin { position: absolute; top: 0; bottom: 0; border: 1px solid #fff; border-radius: 2px; background: rgba(255, 255, 255, .14); min-width: 3px; }
+#np-oph { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff3b3b; }
+
+#nfx-prec .np-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+#nfx-prec #np-tc { font: 600 .74rem/1 ui-monospace, Menlo, Consolas, monospace; color: #fff; min-width: 190px; }
+#nfx-prec .np-step { display: flex; gap: 4px; }
+#nfx-prec .np-tipline { margin-left: auto; font-size: .66rem; color: rgba(255, 255, 255, .4); }
+
+@media (max-width: 900px) { #nfx-prec .np-tipline { display: none; } #nfx-prec .np-zoom { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .nfx-pop, #player-modal #player { transition: none; } }

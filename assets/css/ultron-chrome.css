@@ -1,0 +1,106 @@
+/* =====================================================================================================
+   ULTRON STAR (data-pal="chrome")  -  palette built from the new logo (liquid-metal head on a field of stars).
+   Pick it in Settings > Appearance > Accent palette > ULTRON STAR. Everything is scoped to html[data-pal="chrome"],
+   so the other palettes are untouched.
+   ===================================================================================================== */
+html[data-pal="chrome"] {
+  --pr1: #f4f4f2; --pr2: #b9b9b7; --pr3: #666668;
+  --pr1rgb: 244, 244, 242; --pr2rgb: 185, 185, 183; --pr3rgb: 102, 102, 104;
+  /* banded like polished metal: bright > shadow > bright > steel */
+  --prism: linear-gradient(180deg, #f4f4f2, #d2d2d0);
+}
+
+/* the picker swatch gets the same metallic banding */
+html[data-pal="chrome"] .lm-pal button[data-pal="chrome"] b,
+.lm-pal button[data-pal="chrome"] b { background: linear-gradient(135deg, #f7f7f5, #8e8e8d 45%, #ededeb 62%, #5c5c5e) !important; }
+
+/* pure black + white specks (dark backgrounds only) */
+html[data-pal="chrome"][data-bg="dark"] { --v-bg: #000; --v-panel: #000; }
+html[data-pal="chrome"][data-bg="dark"] { background: #000 !important; }
+html[data-pal="chrome"][data-bg="dark"] body { background: transparent !important; }
+html[data-pal="chrome"][data-bg="dark"] body #music-view { background: transparent !important; }
+html[data-pal="chrome"][data-bg="dark"] body::before { background: none !important; }
+html[data-pal="chrome"] #fl-aurora, html[data-pal="chrome"] #lm-spot { display: none !important; }
+/* stars are drawn by assets/js/ultron-star.js (canvas #ch-stars) */
+@keyframes ch-twinkle { from { opacity: .6; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { html[data-pal="chrome"][data-bg="dark"] body::after { animation: none; } }
+
+/* logo in the rail instead of the "LM" glyph */
+html[data-pal="chrome"] body #sidebar #lm-mark .glyph {
+  background: #000 url('/logo.png') center / cover no-repeat; color: transparent; font-size: 0;
+  width: 2.6rem; height: 2.6rem; border-radius: 50%; transform: none; filter: none; box-shadow: 0 0 0 1px rgba(255,255,255,.28), 0 8px 26px -6px rgba(255,255,255,.35);
+}
+html[data-pal="chrome"] body #sidebar #lm-mark:hover .glyph { transform: scale(1.07); }
+
+/* chrome plates: lit edge + subtle sheen on glass and active controls */
+html[data-pal="chrome"] body #sidebar { border-color: rgba(255,255,255,.18) !important;
+  box-shadow: 0 24px 60px -18px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(255,255,255,.05); }
+
+/* dark text on the bright metal so labels stay readable */
+html[data-pal="chrome"] body #sidebar .sb-item.active, html[data-pal="chrome"] body #sidebar .sb-item.active .ico,
+html[data-pal="chrome"] body #sidebar .sb-tool:hover { color: #0b0b0c !important; }
+
+/* light mode: keep metal, but darker steel so it still shows on white */
+html[data-pal="chrome"][data-theme="light"] { --pr1: #8d8d8f; --pr2: #5f5f62; --pr3: #2f2f33; --pr1rgb: 141,141,143; --pr2rgb: 95,95,98; --pr3rgb: 47,47,51;
+  --prism: linear-gradient(115deg, #d8d8d8 0%, #7f7f81 35%, #c9c9c9 55%, #4a4a4d 100%); }
+html[data-pal="chrome"][data-theme="light"] body::after { display: none; }
+html[data-pal="chrome"][data-theme="light"] body #sidebar .sb-item.active { color: #0b0b0c !important; }
+
+/* =====================================================================================================
+   LIQUID METAL: the reflective look from the logo (hard light/dark bands + a bright specular streak)
+   ===================================================================================================== */
+html[data-pal="chrome"] {
+  --metal: linear-gradient(168deg, #ffffff 0%, #d9d9d7 14%, #7b7b7c 30%, #1c1c1d 42%, #9a9a9a 52%, #ffffff 62%, #8e8e8f 78%, #3a3a3b 90%, #cfcfcd 100%);
+  --metal-h: linear-gradient(180deg, #ffffff 0%, #e4e4e2 30%, #8a8a8b 48%, #2a2a2b 52%, #b9b9b7 70%, #f4f4f2 100%);
+  --spec: linear-gradient(90deg, #555, #fff 40%, #fff 60%, #555);
+}
+
+/* big headings: chrome lettering with a slow specular sweep */
+html[data-pal="chrome"][data-bg="dark"] body :is(#music-view h1, .tm-head h1, #dh-top h1, #dl-view h1, #private-view h1, #lm-mark .word, #dh-top .hc-greet) {
+  background: var(--metal-h), linear-gradient(100deg, transparent 40%, rgba(255,255,255,.95) 50%, transparent 60%) 200% 0 / 250% 100% no-repeat;
+  background-blend-mode: normal;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.25)) drop-shadow(0 0 14px rgba(255,255,255,.18));
+}
+html[data-pal="chrome"][data-bg="dark"] body :is(#music-view h1, .tm-head h1, #dh-top h1, #dl-view h1, #private-view h1)::after { background: var(--spec); box-shadow: 0 0 12px rgba(255,255,255,.5); }
+
+/* buttons stay flat and light (no metal plates): only text, logo and stars are chrome */
+html[data-pal="chrome"] ::selection { background: #e9e9e7; color: #000; }
+
+/* the logo ring in the rail: polished bezel with a moving glint */
+html[data-pal="chrome"] body #sidebar #lm-mark .glyph { position: relative; box-shadow: 0 0 0 2px #cfcfcd, 0 0 0 3px #222, 0 0 22px -2px rgba(255,255,255,.45), inset 0 0 14px rgba(0,0,0,.6); }
+html[data-pal="chrome"] body #sidebar #lm-mark .glyph::after { content: ''; position: absolute; inset: 0; border-radius: 50%;
+  left: 0; right: 0; top: 0; bottom: 0; height: auto; background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%) -120% 0 / 260% 100% no-repeat; animation: ch-glint 6s ease-in-out infinite; }
+@keyframes ch-glint { 0%, 55% { background-position: 160% 0; } 100% { background-position: -120% 0; } }
+
+/* cards and sleeves: thin polished edge that lights up on hover */
+html[data-pal="chrome"][data-bg="dark"] body :is(.video-card, .lm-pal button, [id$="-modal"] > div) { border-color: rgba(255,255,255,.16) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+html[data-pal="chrome"][data-bg="dark"] body .video-card:hover { border-color: rgba(255,255,255,.6) !important; box-shadow: 0 0 26px -8px rgba(255,255,255,.5), inset 0 1px 0 rgba(255,255,255,.4); }
+
+/* sweeping sheen across headings */
+html[data-pal="chrome"][data-bg="dark"] body :is(#music-view h1, .tm-head h1, #dh-top h1, #dl-view h1, #private-view h1, #lm-mark .word, #dh-top .hc-greet) { animation: ch-sweep 7s ease-in-out infinite; }
+@keyframes ch-sweep { 0%, 60% { background-position: 0 0, 200% 0; } 100% { background-position: 0 0, -100% 0; } }
+@media (prefers-reduced-motion: reduce) { html[data-pal="chrome"] * { animation: none !important; } }
+
+/* =====================================================================================================
+   TEXT: chrome lettering everywhere, not just a few titles
+   ===================================================================================================== */
+html[data-pal="chrome"] { --metal-s: linear-gradient(180deg, #ffffff 0%, #ececea 42%, #a4a4a3 56%, #f6f6f4 100%); }
+html[data-pal="chrome"][data-bg="dark"] body :is(.hero-sec h1, #mv-home .mh-t, #mv-home .mh dd, #private-view::before) {
+  background: var(--metal-h); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.2)) drop-shadow(0 0 16px rgba(255,255,255,.15));
+}
+html[data-pal="chrome"][data-bg="dark"] body :is(#home-view, #videos-view, #series-view, #music-view, #time-view, #photos-view, #dl-view, #private-view) :is(h2, h3):not(.no-chrome),
+html[data-pal="chrome"][data-bg="dark"] body .tm-sec-h h2, html[data-pal="chrome"][data-bg="dark"] body #mv-home :is(.mh-s, dt) {
+  background: var(--metal-s); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+/* Vault: silver instead of red */
+html[data-pal="chrome"] body #private-view { --vault: #e6e6e4;
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 12px, transparent 12px 24px), linear-gradient(180deg, rgba(255,255,255,.07), transparent 22rem); }
+html[data-pal="chrome"][data-bg="dark"] body #private-view::before { background: var(--metal-h); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+html[data-pal="chrome"] .vault-door { stroke: #d9d9d7; }
+/* sidebar labels and the colourful music tiles turn silver too */
+html[data-pal="chrome"] body #sidebar .sb-item { color: #c4c4c2 !important; }
+html[data-pal="chrome"] body #sidebar .sb-item:hover { color: #fff !important; }
+html[data-pal="chrome"] body #mv-home [style*="linear-gradient(135deg"] { filter: grayscale(1) contrast(1.15) brightness(1.1); }
+html[data-pal="chrome"] body .fa-star { color: #e9e9e7 !important; }

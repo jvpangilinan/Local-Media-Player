@@ -1,0 +1,12 @@
+# Artist names that must NOT be split into collaborators. One per line.
+# Example: if "Tyler, The Creator" shows up as two artists, it belongs here.
+Tyler, The Creator
+Earth, Wind & Fire
+Simon & Garfunkel
+Hall & Oates
+Mumford & Sons
+Florence + the Machine
+Kool & the Gang
+Years & Years
+Brooks & Dunn
+AC/DC

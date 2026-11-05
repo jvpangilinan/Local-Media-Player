@@ -1,0 +1,109 @@
+/* ULTRON square tiles (Cinema).
+   Movies, series and collections use the Music tab's tile: a square cover with a thin border,
+   a bold title and a small uppercase line underneath. Loaded last so it wins over the older card styles.
+   Only public-library cards use it; the private library keeps its own poster cards. */
+
+/* ---------- the tile itself ---------- */
+html body .vcard.utile, html body .ubh-coll.utile {
+  display: block; flex: none; width: 15.6rem; position: relative; cursor: pointer; outline: 0;
+  background: none !important; border-radius: 0 !important; box-shadow: none !important;
+  filter: none !important; transform: none !important; padding: 0; margin: 0;
+  transition: transform .25s cubic-bezier(.2, .85, .25, 1), opacity .3s;
+}
+html body .vgrid .vcard.utile, html body .ubh-grid .vcard.utile, html body .ubh-gridc .ubh-coll.utile { width: 100%; min-width: 0; }
+html body .vcard.utile:hover, html body .ubh-coll.utile:hover, html body .ubh-coll.utile:focus-visible { transform: translateY(-3px) !important; z-index: 8; }
+/* the old film-reel strip, crop marks and sheen belonged to the poster cards */
+html body .vcard.utile::before, html body .vcard.utile:not(.ubh-picked)::after,
+html body .ubh-coll.utile::before, html body .ubh-coll.utile::after { content: none !important; }
+html body .hscroll:hover .vcard.utile:not(:hover) { opacity: 1; }
+
+/* ---------- square cover ---------- */
+html body .utile .ut-cover {
+  position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 2px;
+  background: linear-gradient(135deg, #3a3a3a, #1c1c1c); box-shadow: 0 0 0 1px var(--v-line, rgba(255, 255, 255, .14));
+  transition: box-shadow .2s;
+}
+html body .utile:hover .ut-cover, html body .ubh-coll.utile:focus-visible .ut-cover { box-shadow: 0 0 0 2px var(--pr1, #fff); }
+html body .utile .ut-cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0 !important; }
+html body .utile .ut-mos { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: var(--v-line, rgba(255, 255, 255, .14)); }
+html body .utile .ut-mos img { width: 100%; height: 100%; object-fit: cover; min-width: 0; min-height: 0; display: block; }
+html body .utile .ut-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, .35); font-size: 1.6rem; }
+
+/* ---------- title + small uppercase line (same fonts as the Music tiles) ---------- */
+html body .utile .ut-title {
+  margin-top: .65rem; font-family: var(--v-display, inherit); font-weight: 700; font-size: .98rem; letter-spacing: .02em; line-height: 1.2;
+  text-transform: none; color: var(--v-ink, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html body .utile .ut-sub {
+  margin-top: .2rem; font-family: var(--v-mono, ui-monospace, monospace); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--v-mute, rgba(255, 255, 255, .5)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html body .utile:hover .ut-title, html body .ubh-coll.utile:focus-visible .ut-title { color: var(--pr1, inherit); }
+
+/* ---------- little things on the cover ---------- */
+html body .utile .ut-new { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .15rem .4rem; border-radius: 2px; background: var(--pr1, #e50914); color: var(--v-on, #fff);
+  font: 800 .6rem/1 var(--v-mono, ui-monospace, monospace); letter-spacing: .12em; transition: opacity .2s; }
+html body .utile:hover .ut-new { opacity: 0; }
+html body .utile .ut-kind { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .2rem .45rem; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff;
+  font: 700 .58rem/1 var(--v-mono, ui-monospace, monospace); letter-spacing: .12em; text-transform: uppercase; }
+/* watched progress: one thin line along the bottom edge */
+html body .utile .ut-prog, html body .utile .ut-cover > .absolute.bottom-0 { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .25); }
+html body .utile .ut-prog i, html body .utile .ut-cover > .absolute.bottom-0 > div { display: block; height: 100%; background: var(--pr1, #e50914); }
+
+/* hover extras: play button (bottom right), rename pencil (top right), your rating (bottom left) */
+html body .utile .ut-play { position: absolute; z-index: 7; right: .5rem; bottom: .5rem; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 2px; background: var(--pr1, #fff); color: var(--v-on, #000); box-shadow: none; cursor: pointer; font-size: .9rem;
+  opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+html body .utile .ut-play i { margin-left: 2px; }
+html body .utile:hover .ut-play, html body .utile:focus-visible .ut-play { opacity: 1; transform: none; }
+html body .utile .ut-edit { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .7rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
+html body .utile .ut-edit:hover { background: #fff; color: #000; }
+html body .utile:hover .ut-edit { opacity: 1; }
+html body .utile .ut-stars { position: absolute; z-index: 7; left: .5rem; bottom: .8rem; display: flex; gap: .15rem; font-size: .72rem; opacity: 0; transition: opacity .2s; text-shadow: 0 1px 4px #000; }
+html body .utile:hover .ut-stars { opacity: 1; }
+
+/* ---------- collection page: watch-order number sits on the cover corner ---------- */
+html body #video-view .ubh-ord .ubh-n { top: .35rem; left: .35rem; }
+
+/* ---------- loading placeholders are square too ---------- */
+html body .skeleton.vcard.aspect-square { aspect-ratio: 1 / 1; width: 100%; border-radius: 2px !important; }
+
+/* ---------- select mode keeps working on the tiles ---------- */
+body.ubh-selecting #ubh-body .vcard.utile .ut-play, body.ubh-selecting #ubh-body .vcard.utile .ut-edit, body.ubh-selecting #ubh-body .vcard.utile .ut-stars { display: none !important; }
+html body #video-view .vcard.utile.ubh-picked { outline: 0 !important; }
+html body #video-view .vcard.utile.ubh-picked .ut-cover { box-shadow: 0 0 0 3px var(--pr1, #fff); }
+
+@media (prefers-reduced-motion: reduce) {
+  html body .vcard.utile, html body .ubh-coll.utile, html body .utile .ut-play { transition: none; }
+  html body .vcard.utile:hover, html body .ubh-coll.utile:hover { transform: none !important; }
+}
+
+/* ---------- custom thumbnail button (picture icon) + its little menu ---------- */
+html body .utile .ut-img { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
+html body .utile .ut-edit + .ut-img { right: 2.5rem; }
+html body .utile:hover .ut-img, html body .utile .ut-img:focus-visible { opacity: 1; }
+html body .utile .ut-img:hover { background: #fff; color: #000; }
+html body .utile.ut-custom .ut-img { color: var(--pr1, #fff); }
+html body .utile.ut-custom .ut-img:hover { color: #000; }
+html body .utile .ut-cover > img.ut-mine { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+body.ubh-selecting #ubh-body .vcard.utile .ut-img { display: none !important; }
+.ut-menu { position: fixed; z-index: 400; min-width: 12.5rem; padding: .3rem; background: var(--v-panel, #121116); border: 1px solid var(--v-line2, rgba(255, 255, 255, .2)); border-radius: 2px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .6); display: flex; flex-direction: column; }
+.ut-menu button { display: flex; align-items: center; gap: .6rem; padding: .55rem .7rem; border: 0; background: none; color: var(--v-ink, #eee); text-align: left; cursor: pointer;
+  font: 600 .72rem/1.2 var(--v-mono, ui-monospace, monospace); letter-spacing: .06em; text-transform: uppercase; }
+.ut-menu button:hover:not(:disabled) { background: var(--v-fill, rgba(255, 255, 255, .1)); color: var(--pr1, #fff); }
+.ut-menu button:disabled { opacity: .35; cursor: default; }
+.ut-menu i { width: 1rem; text-align: center; }
+
+/* ---------- favorites: a heart on the cover (always shown once hearted, otherwise on hover) ---------- */
+html body .utile .ut-fav { position: absolute; z-index: 7; top: .45rem; left: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: rgba(255, 255, 255, .8); font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s, color .2s; }
+html body .utile:hover .ut-fav, html body .utile .ut-fav:focus-visible, html body .utile .ut-fav.on { opacity: 1; }
+html body .utile .ut-fav.on { color: var(--pr1, #ff4d6d); }
+html body .utile .ut-fav:hover { background: #fff; color: #000; }
+html body .utile .ut-fav.on:hover { color: var(--pr1, #ff4d6d); }
+/* the NEW tag steps aside so the two never overlap */
+html body .utile.ut-faved .ut-new, html body .utile:hover .ut-new { left: 2.6rem; opacity: 1; }
+body.ubh-selecting #ubh-body .vcard.utile .ut-fav { display: none !important; }
