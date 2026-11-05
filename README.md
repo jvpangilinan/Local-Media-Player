@@ -14,6 +14,20 @@ Everything runs locally and works **offline**: Tailwind CSS, Font Awesome and th
 - **Backup / restore**, weekly auto-backup, your data survives new versions
 - Disk-friendly: low-priority background work, so it plays nicely with torrent clients
 
+## Screenshots
+
+| Home | Cinema |
+|---|---|
+| ![Home](screenshots/home.jpg) | ![Cinema](screenshots/cinema.jpg) |
+
+| Music | Time |
+|---|---|
+| ![Music](screenshots/music.jpg) | ![Time](screenshots/time.jpg) |
+
+| Downloads | Photos lock |
+|---|---|
+| ![Downloads](screenshots/downloads.jpg) | ![Photos lock](screenshots/photos-lock.jpg) |
+
 ## Requirements
 
 - Windows 10/11 (64-bit) and Python 3.12
