@@ -394,6 +394,9 @@ def init_db():
         # favourite photos, kept apart from every scan so a rescan never forgets a heart (scope = public | private)
         con.execute("""CREATE TABLE IF NOT EXISTS photo_favs (
             scope TEXT NOT NULL, rel TEXT NOT NULL, at REAL NOT NULL, PRIMARY KEY (scope, rel))""")
+        # photo width/height, so opening the gallery does not open every image again after a restart (key = scope:rel)
+        con.execute("""CREATE TABLE IF NOT EXISTS photo_dims (
+            key TEXT PRIMARY KEY, mtime REAL NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL)""")
         # albums made by hand ("Make into album"): kept apart from `tracks`, so a rescan never forgets them and the files' tags stay untouched
         con.execute("""CREATE TABLE IF NOT EXISTS album_overrides (
             rel_path TEXT PRIMARY KEY, album TEXT NOT NULL, album_artist TEXT NOT NULL DEFAULT '',
@@ -491,11 +494,6 @@ def walk_entries(root, exts, side_exts=None, side=None):
             if ext in exts:
                 yield Path(e.path), e
         stack.extend(reversed(subdirs))              # keep the listing order when popping
-
-
-def walk(root, exts):
-    for p, _ in walk_entries(root, exts):
-        yield p
 
 
 def natkey(s):
@@ -3701,14 +3699,38 @@ def subtitle(vid, idx):
 
 
 # ----------------------------------------------------------------------------- private photo gallery
-PHOTO_DIMS = {}              # (path, mtime) -> (width, height)
+PHOTO_DIMS = {}              # "public:rel" / "private:rel" -> (mtime, width, height); mirrors the photo_dims table
+PHOTO_DIMS_LOADED = []       # non-empty once the table has been read
 PHOTO_LOCK = threading.Lock()
 
 
+def photo_dims_load():
+    if PHOTO_DIMS_LOADED:
+        return
+    try:
+        with closing(db()) as con:
+            for r in con.execute("SELECT key, mtime, w, h FROM photo_dims"):
+                PHOTO_DIMS[r["key"]] = (r["mtime"], r["w"], r["h"])
+    except sqlite3.Error:
+        log.warning("photo_dims_load: sqlite3.Error ignored", exc_info=True)
+    PHOTO_DIMS_LOADED.append(True)
+
+
+def photo_dims_save(new, gone):
+    """Write newly measured sizes, and forget photos that are no longer there."""
+    if not new and not gone:
+        return
+    try:
+        with closing(db()) as con, con:
+            con.executemany("INSERT OR REPLACE INTO photo_dims (key, mtime, w, h) VALUES (?,?,?,?)",
+                            [(k,) + PHOTO_DIMS[k] for k in new])
+            con.executemany("DELETE FROM photo_dims WHERE key = ?", [(k,) for k in gone])
+    except sqlite3.Error:
+        log.warning("photo_dims_save: sqlite3.Error ignored", exc_info=True)
+
+
 def photo_size(p, mtime):
-    key = (str(p), mtime)
-    if key in PHOTO_DIMS:
-        return PHOTO_DIMS[key]
+    """(width, height) of an image file, read from the file itself (slow: opens the image)."""
     w = h = 0
     if PILImage is not None:
         try:
@@ -3729,8 +3751,7 @@ def photo_size(p, mtime):
                 w, h = w * 8, h * 8
         except Exception:
             log.warning("photo_size: Exception ignored", exc_info=True)
-    PHOTO_DIMS[key] = (w or 4, h or 3)
-    return PHOTO_DIMS[key]
+    return (w or 4, h or 3)
 
 
 def scan_photos(public=False):
@@ -3739,9 +3760,15 @@ def scan_photos(public=False):
     root = CFG["photo_dir"] if public else CFG["private_dir"]
     if not root.is_dir():
         return []
-    video_stems = set() if public else {(str(p.parent).lower(), p.stem.lower()) for p in walk(root, VIDEO_EXTS)}
-    out = []
-    for p, entry in walk_entries(root, PHOTO_EXTS):
+    photo_dims_load()
+    scope = "public:" if public else "private:"
+    found = list(walk_entries(root, PHOTO_EXTS if public else PHOTO_EXTS | VIDEO_EXTS))     # one walk of the folder
+    video_stems = set() if public else {(str(p.parent).lower(), p.stem.lower())
+                                        for p, _ in found if p.suffix.lower() in VIDEO_EXTS}
+    out, new, seen = [], [], set()
+    for p, entry in found:
+        if p.suffix.lower() not in PHOTO_EXTS:
+            continue
         parts = p.relative_to(root).parts
         stem = p.stem.lower()
         if not public and not (len(parts) > 1 and parts[0].lower() == PHOTO_FOLDER.lower()):
@@ -3753,13 +3780,25 @@ def scan_photos(public=False):
         except OSError:
             log.debug("scan_photos: OSError ignored", exc_info=True)
             continue
-        w, h = photo_size(p, mtime)
         rel = "/".join(parts)
+        key = scope + rel
+        seen.add(key)
+        known = PHOTO_DIMS.get(key)
+        if known and known[0] == mtime:
+            w, h = known[1], known[2]
+        else:
+            w, h = photo_size(p, mtime)
+            PHOTO_DIMS[key] = (mtime, w, h)
+            new.append(key)
         pid = item_id(("pphoto/" if public else "photo/") + rel)
         inner = parts[1:] if (not public and parts[0].lower() == PHOTO_FOLDER.lower()) else parts
         out.append({"id": pid, "path": p, "name": pretty(p.stem), "mtime": mtime, "w": w, "h": h, "rel": rel,
                     "folder": parts[-2] if len(parts) > 1 else "",
                     "album": inner[0] if len(inner) > 1 else ""})      # album = the first subfolder of the gallery
+    gone = [k for k in PHOTO_DIMS if k.startswith(scope) and k not in seen]
+    for k in gone:
+        del PHOTO_DIMS[k]
+    photo_dims_save(new, gone)
     out.sort(key=lambda x: -x["mtime"])
     return out
 
@@ -3798,14 +3837,23 @@ def set_photo_fav(scope):
     return jsonify({"ok": True, "id": ph["id"], "fav": on})
 
 
+PHOTO_RESCAN_GAP = 3         # seconds: an unknown or vanished photo re-scans the folder at most this often
+
+
 def find_photo(pid, public=False):
-    """Look a photo up by id. The folder is re-scanned at most every few seconds (the grid asks for hundreds at once)."""
+    """Look a photo up by id, from the list the last scan made (the grid asks for hundreds at once).
+    The folder is scanned again only when the list was invalidated (a move / rename / edit here), or when the id is
+    unknown or its file has gone, and then at most every few seconds, so a page asking for many stale ids cannot
+    make the app walk the whole folder for each one."""
     cache = PUB_PHOTO_CACHE if public else PHOTO_CACHE
     with PHOTO_LOCK:
-        if time.time() - cache["t"] > 5 or pid not in cache["map"]:
+        ph = cache["map"].get(pid)
+        stale = cache["t"] == 0 or ph is None or not ph["path"].is_file()
+        if stale and (cache["t"] == 0 or time.time() - cache["t"] > PHOTO_RESCAN_GAP):
             cache["map"] = {x["id"]: x for x in scan_photos(public)}
             cache["t"] = time.time()
-        return cache["map"].get(pid)
+            ph = cache["map"].get(pid)
+        return ph if ph is not None and ph["path"].is_file() else None
 
 
 def photo_thumb(ph):
