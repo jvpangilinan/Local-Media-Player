@@ -87,10 +87,24 @@
     paintVols();
 
     // new genre folder / new files dropped in by hand: the page refreshes itself when the backend re-indexed
-    var libVer = null;
+    var libVer = null, offlineSeen = '';
+    var LIB_NAMES = { videos: 'Videos', private: 'Private', music: 'Music' };
+    function noteOffline(list) {        // a media drive was unplugged (or came back): say so once per change
+        if (typeof toast !== 'function') return;
+        list = list || [];
+        var key = list.map(function (o) { return o.lib; }).join(',');
+        if (key === offlineSeen) return;
+        var back = offlineSeen && !key;
+        offlineSeen = key;
+        if (back) { toast('Your media drive is connected again.', 4000); return; }
+        if (!key) return;
+        var parts = list.map(function (o) { return (LIB_NAMES[o.lib] || o.lib) + (o.path ? ' (' + o.path + ')' : ''); });
+        toast('Drive not connected: ' + parts.join(', ') + '. Those videos and songs come back when it is plugged in.', 9000);
+    }
     setInterval(function () {
         if (document.hidden || playingId) return;
         api('/api/videos/version').then(function (d) {
+            noteOffline(d.offline);
             if (libVer !== null && d.v !== libVer && !d.scanning) { loadVideos('public'); if (token) loadVideos('private'); }
             if (!d.scanning) libVer = d.v;
         }).catch(function () {});

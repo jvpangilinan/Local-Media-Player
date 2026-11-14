@@ -514,6 +514,44 @@ STARTUP_SCAN.set()
 SCAN_STATE = {"running": False, "again": False}
 SCAN_GUARD = threading.Lock()
 SCAN_VER = {"v": 0}                 # bumps every time the video library was re-indexed (the page polls it)
+OFFLINE = {}                        # library -> folder, for media folders that were not there at the last scan (drive unplugged)
+
+
+def folder_online(root):
+    """True when a media folder can be read. False when it (or its whole drive) is gone, e.g. an unplugged HDD."""
+    try:
+        return Path(root).is_dir()
+    except OSError:
+        return False
+
+
+def drive_present(path):
+    """True when the drive (or network share) a path lives on is connected, whether or not the folder itself exists."""
+    anchor = Path(path).anchor
+    if not anchor:
+        return True
+    try:
+        return os.path.exists(anchor)
+    except OSError:
+        return False
+
+
+def set_offline(name, root, online):
+    """Remember (and log once) that a media folder went away or came back."""
+    was = name in OFFLINE
+    if online:
+        OFFLINE.pop(name, None)
+        if was:
+            log.info("%s folder is back: %s", name, root)
+    else:
+        OFFLINE[name] = str(root)
+        if not was:
+            log.warning("%s folder is not available (drive not connected?): %s. Its library is kept and comes back with it.", name, root)
+
+
+def offline_json():
+    """Offline media folders for the page. The private folder's location is never sent, only that it is offline."""
+    return [{"lib": n, "path": "" if n == "private" else p} for n, p in sorted(OFFLINE.items())]
 
 
 def probe_duration(path):
@@ -598,7 +636,13 @@ def _scan_videos():
     """Public videos live in media/videos, private ones in media/private (hidden until unlocked)."""
     found = {}
     side = {}                                                       # image files per folder, noted during the same walk
+    offline = set()                                                 # False = public root, True = private root
     for root, private in ((CFG["video_dir"], False), (CFG["private_dir"], True)):
+        online = folder_online(root)
+        set_offline("private" if private else "videos", root, online)
+        if not online:                                              # unplugged drive: do not treat every video as deleted
+            offline.add(private)
+            continue
         for p, entry in walk_entries(root, VIDEO_EXTS, SIDE_IMAGE_EXTS, side):
             parts = p.relative_to(root).parts
             rel = "/".join(parts)
@@ -644,12 +688,13 @@ def _scan_videos():
             if y:
                 v["year"] = y
     now = time.time()
+    is_off = lambda rel: (rel or "").startswith("private/") in offline     # a row whose folder is offline: leave it alone
     # moved outside the app? carry views / ratings / progress / title over to the file's new place
     try:
         with closing(db()) as con:
             known = {r["id"]: r for r in con.execute("SELECT id, rel_path, mtime, size, duration FROM videos")}
         new = [v for v in found.values() if v["id"] not in known]
-        orphans = [r for r in known.values() if r["id"] not in found and (r["size"] or 0) > 0]
+        orphans = [r for r in known.values() if r["id"] not in found and (r["size"] or 0) > 0 and not is_off(r["rel_path"])]
         if new and orphans:
             pairs = relink_orphans(new, orphans)
             if pairs:
@@ -661,7 +706,7 @@ def _scan_videos():
         con.executemany("INSERT OR IGNORE INTO videos (id, rel_path, added_at) VALUES (?,?,?)",
                         [(v["id"], v["rel"], now) for v in found.values() if v["id"] not in cur])
         con.executemany("UPDATE videos SET missing = 1 WHERE id = ?",         # stats are kept for files that disappear
-                        [(i,) for i, r in cur.items() if i not in found and not r["missing"]])
+                        [(i,) for i, r in cur.items() if i not in found and not r["missing"] and not is_off(r["rel_path"])])
         con.executemany("UPDATE videos SET missing = 0, rel_path = ?, mtime = ?, size = ? WHERE id = ?",
                         [(v["rel"], v["mtime"], v["size"], v["id"]) for v in found.values()
                          if v["id"] not in cur or cur[v["id"]]["missing"] or cur[v["id"]]["rel_path"] != v["rel"]
@@ -734,6 +779,7 @@ def scan_music():
     STATUS["music_scanning"] = True
     try:
         root = CFG["music_dir"]
+        set_offline("music", root, folder_online(root))
         with closing(db()) as con:
             cached = {r["rel_path"]: r for r in con.execute("SELECT * FROM tracks")}
         tracks, to_save, seen = {}, [], set()
@@ -760,7 +806,7 @@ def scan_music():
         try:
             with closing(db()) as con, con:
                 con.executemany(TRACK_SQL, to_save)
-                if root.is_dir():            # don't wipe the index just because a drive is unplugged
+                if folder_online(root):      # don't wipe the index just because a drive is unplugged
                     con.executemany("DELETE FROM tracks WHERE rel_path = ?", [(r,) for r in set(cached) - seen])
         except sqlite3.Error:
             log.warning("scan_music: sqlite3.Error ignored", exc_info=True)
@@ -5114,9 +5160,14 @@ def folder_watcher():
     (or ten) causes a single rescan, not dozens."""
     background_io(True)
     last, dirty = None, False
+    music_on = folder_online(CFG["music_dir"])
     while True:
         time.sleep(30)
         try:
+            now_on = folder_online(CFG["music_dir"])               # music drive plugged in or pulled out: re-index music once
+            if now_on != music_on and not STATUS["music_scanning"]:
+                music_on = now_on
+                threading.Thread(target=lambda: (background_io(True), scan_music()), daemon=True).start()
             cur = _folder_signature()
             if last is None:
                 pass
@@ -5132,12 +5183,12 @@ def folder_watcher():
 
 @app.get("/api/videos/version")
 def api_videos_version():
-    return jsonify({"v": SCAN_VER["v"], "scanning": bool(SCAN_STATE["running"])})
+    return jsonify({"v": SCAN_VER["v"], "scanning": bool(SCAN_STATE["running"]), "offline": offline_json()})
 
 
 @app.get("/api/scan/status")
 def api_scan_status():
-    return jsonify({"scanning": bool(SCAN_STATE["running"])})
+    return jsonify({"scanning": bool(SCAN_STATE["running"]), "offline": offline_json()})
 
 
 @app.post("/api/rescan")
@@ -5145,7 +5196,7 @@ def api_rescan():
     n_videos = scan_videos()
     n_tracks = scan_music() if not STATUS["music_scanning"] else len(LIB["tracks"])
     threading.Thread(target=pregenerate_posters, daemon=True).start()
-    return jsonify({"videos": n_videos, "tracks": n_tracks})
+    return jsonify({"videos": n_videos, "tracks": n_tracks, "offline": offline_json()})
 
 
 
@@ -6838,12 +6889,18 @@ def main():
     for key in FOLDER_KEYS.values():
         raw = str(saved.get(key) or "").strip()
         if raw:
+            path = Path(raw).expanduser()
             try:
-                path = Path(raw).expanduser()
                 path.mkdir(parents=True, exist_ok=True)
                 CFG[key] = path
             except OSError:
-                print(f"Saved folder {raw} is not available, using the default.")
+                if not drive_present(path):               # drive unplugged: keep the folder, the library waits for it
+                    CFG[key] = path
+                    print(f"Saved folder {raw} is on a drive that is not connected. It is used again as soon as the drive is back.")
+                    log.warning("saved folder %s (%s): drive not connected, kept", raw, key)
+                else:
+                    print(f"Saved folder {raw} is not available, using the default.")
+                    log.warning("saved folder %s (%s) not available, using the default", raw, key, exc_info=True)
     if args.videos:
         CFG["video_dir"] = Path(args.videos).expanduser()
     if args.music:
@@ -6851,8 +6908,13 @@ def main():
     if args.private:
         CFG["private_dir"] = Path(args.private).expanduser()
 
-    for d in (DATA_DIR, POSTER_DIR, BACKDROP_DIR, TILE_DIR, CUSTOM_TILE_DIR, THUMB_DIR, CFG["video_dir"], CFG["music_dir"], CFG["private_dir"], CFG["private_dir"] / PHOTO_FOLDER, CFG["photo_dir"]):
+    for d in (DATA_DIR, POSTER_DIR, BACKDROP_DIR, TILE_DIR, CUSTOM_TILE_DIR, THUMB_DIR):
         d.mkdir(parents=True, exist_ok=True)
+    for d in (CFG["video_dir"], CFG["music_dir"], CFG["private_dir"], CFG["private_dir"] / PHOTO_FOLDER, CFG["photo_dir"]):
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except OSError:                                   # media on a drive that is not connected: the scans wait for it
+            log.warning("media folder %s not available at start-up", d)
     shutil.rmtree(DL_DIR, ignore_errors=True)         # leftovers of an interrupted download
     init_db()
     migrate_music_cache()
