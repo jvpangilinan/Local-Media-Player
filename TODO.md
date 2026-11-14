@@ -31,7 +31,7 @@
    - Done (views): Home, Cinema, Photos, Series and All Videos went through `winners` + `usage`: 43 dead declarations removed (old dashboard / album-tile rules in base.css and time.css). Snapshot (now 120 states incl. Series and All Videos): no change. !important overall: 864 -> 645.
    - Kept on purpose: base.css `.ph-head` / `.ph-act` style the private photo gallery (#private-photos), which the tooling cannot open while locked.
    - Left: about 40 view !important guard against inline styles JS sets on cards/rows through variables; most of the rest face JS-built widgets (#sx-rl, browse-hub tabs) whose nesting the tool cannot see. Diminishing returns: next real step is merging base.css + darkroom-6.css into one theme file, or teaching the tool which elements JS styles inline.
-   - Spotted, not changed yet: the sidebar search icon sits left of centre (minimalist.css `.sb-search { justify-content: flex-start }`), and minimalist's `* { text-shadow: none !important }` cancels every text-shadow in the app (e.g. zeno-fix's player flash).
+   - Done: the sidebar search icon is centred again (base.css no longer forces `.sb-search { justify-content: flex-start !important }`), and the global `* { text-shadow: none !important }` is gone, so the 12 text-shadows in booth / flair / movies / player / tiles apply again (Plain mode still removes them). Not snapshot-checked: Playwright was not installed.
 3. JS load: mostly solved by the bundler (21 requests -> 3). Minifying and lazy-loading tab-only scripts would still save parse time; needs a build step (esbuild), not worth it yet.
 4. Idle work (checked, low value): most of the 15 timers only start while something is playing, ringing or open, and the rest are light (1 s polls). Not worth the risk. The always-on clock timer was the one worth fixing, and is.
 
@@ -40,7 +40,7 @@
 6. The `except Exception: pass` spots are fine: Windows priority calls, tray label, window restore and logging shutdown are best-effort on purpose. (Page-settings restore now logs.)
 7. 32 JS function names are defined in more than one file (say, esc, clamp, paint...). Most are private helpers inside their own wrapper and harmless. Check that paintSettings (app.js, mpv-player.js, photos-lock.js) and openMenu / closeMenu (app.js, tiles.js) do not overwrite each other globally.
 8. (done) Search-palette thumbnails now lazy.
-9. Tests: `python tests/test_backup.py` covers backup / restore (runs on a temp copy, never your data). Lock and sort logic still have none.
+9. Tests: `python tests/test_backup.py` covers backup / restore (runs on a temp copy, never your data). Lock: `tests/test_private_lock.py` (setup, unlock, lockout, one session, expiry, change, Photos lock, no private items in the public list). Sort: `tests/test_moviesort.py` (title cleaning, episodes, franchises). The idle auto-lock runs in the page JS and has no test.
 
 ## Checked and clean
 - No duplicate Python functions, no duplicate method+route pairs, no unlinked CSS/JS files.

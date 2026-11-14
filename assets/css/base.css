@@ -231,12 +231,11 @@
 
         h1, h2, h3, .font-black { font-weight: 600 !important; letter-spacing: -.02em; }
         .font-bold { font-weight: 500; }
-        * { text-shadow: none !important; }
         .shadow-2xl, .shadow-xl, .shadow-lg, .drop-shadow-lg { box-shadow: none !important; filter: none; }
 
         /* ---- left over from the old menu panel, still shaping the rail (search button spacing, tool row) ---- */
 
-        .sb-search { margin: 0 0 1.4rem !important; font-size: .95rem !important; justify-content: flex-start !important; }
+        .sb-search { margin: 0 0 1.4rem !important; font-size: .95rem !important; }
         .sb-tools { flex-wrap: wrap; justify-content: flex-start; }
 
         /* ---- home: greeting, resume, new. Everything else is one keystroke away ---- */
