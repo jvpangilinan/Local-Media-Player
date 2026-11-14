@@ -130,6 +130,11 @@
       case 'rate': rated[a.id] = a.stars; post('/api/videos/' + encodeURIComponent(a.id) + '/rating', { stars: a.stars }).then(function () { toast(a.stars ? 'Rated ' + a.stars + ' stars' : 'Rating cleared'); }).catch(function () {}); return;
       case 'queue_jump': if (typeof jumpTo === 'function' && typeof nowId !== 'undefined' && nowId) jumpTo(a); return;
       case 'sleep': setSleep(a); return;
+      case 'pc_mute':                                        // the sound moved to the phone (or came back)
+        if (typeof playingId !== 'undefined' && playingId) { player.muted = !!a; if (!a) privAutoMuted = false; }
+        else if (typeof audio !== 'undefined') { audio.muted = !!a; try { paintAudioVol(); } catch (e) {} }
+        if (typeof toast === 'function') toast(a ? 'Sound is on your phone' : 'Sound is back on the PC');
+        return;
     }
     if (video) {
       switch (c.cmd) {

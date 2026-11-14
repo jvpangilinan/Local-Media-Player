@@ -7036,6 +7036,12 @@ def remote_track_exists(tid):
         return str(tid or "") in LIB["tracks"]
 
 
+def remote_track_path(tid):
+    with LIB_LOCK:
+        tr = LIB["tracks"].get(str(tid or ""))
+    return tr["path"] if tr else None
+
+
 def remote_library():
     """Continue watching for the phone: public videos you stopped part-way, newest first. Never private ones."""
     with closing(db()) as con:
@@ -7124,7 +7130,7 @@ def main():
     threading.Thread(target=weekly_auto_backup, daemon=True).start()
     remote.init(DATA_DIR, RES_DIR, app, library=remote_library, is_public=remote_is_public, video_path=remote_video_path,
                 probe=remote_probe, ffmpeg=lambda: ff_tools()[0], ranged=ranged_file_response, popen=remote_popen,
-                track_exists=remote_track_exists)
+                track_exists=remote_track_exists, track_path=remote_track_path)
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
     port = free_port()

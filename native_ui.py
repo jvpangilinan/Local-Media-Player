@@ -3243,6 +3243,9 @@ class Player(QMainWindow):
                     self.toast.say(self.chapters[int(arg)][1], 1300)
             elif cmd == "sleep":
                 self.set_sleep(arg)
+            elif cmd == "pc_mute":
+                self._set_prop("mute", bool(arg))
+                self.toast.say("Sound is on your phone" if arg else "Sound is back on the PC", 1500)
             elif cmd == "close":
                 self.close()
             self._remote_at = 0.0                          # report the new state right away

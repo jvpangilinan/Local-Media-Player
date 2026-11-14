@@ -41,6 +41,7 @@ H = {                     # app.py fills these in (see init); defaults keep the 
     "ranged": None,                   # ranged_file_response(path)
     "popen": None,                    # Popen at the app's background priority
     "track_exists": lambda tid: False,
+    "track_path": lambda tid: None,   # file of a song (music is never private)
 }
 
 _lock = threading.Lock()
@@ -356,7 +357,20 @@ def lan_state():
     st, at = _status[src]
     if time.time() - at > 6:
         st = {"kind": "none"}
-    return jsonify({"paired": True, "now": _mask(st)})
+    st = _mask(st)
+    st["age"] = round(max(0.0, time.time() - at), 3)        # how old "pos" is: the phone's sound follows the PC to the tenth of a second
+    return jsonify({"paired": True, "now": st})
+
+
+@LAN.route("/app.apk", methods=["GET", "HEAD"])
+def lan_apk():
+    """The Android app (android/, built into assets/ULTRON-Remote.apk), for phones that want more than the web page."""
+    _need_pair()
+    p = _res_dir / "assets" / "ULTRON-Remote.apk"
+    if not p.is_file():
+        abort(404)
+    return send_file(p, mimetype="application/vnd.android.package-archive", as_attachment=True,
+                     download_name="ULTRON-Remote.apk", max_age=0)
 
 
 @LAN.get("/library")
@@ -499,6 +513,55 @@ def lan_stream(vid):
     return Response(body(), mimetype="video/mp4", headers={"Cache-Control": "no-store", "X-Stream-Mode": mode})
 
 
+# ---- sound on the phone (the picture stays on the PC): the soundtrack of a video, or a song file
+@LAN.get("/audio/<vid>")
+def lan_audio(vid):
+    _need_pair()
+    path = H["video_path"](vid) if H["is_public"](vid) else None
+    if not path:
+        abort(404)
+    try:
+        t = max(0.0, float(request.args.get("t") or 0))
+        a = max(0, min(31, int(request.args.get("a") or 0)))
+    except ValueError:
+        abort(400)
+    ff = H["ffmpeg"]()
+    if not ff or H["popen"] is None:
+        if Path(path).suffix.lower() in DIRECT_EXT:          # no ffmpeg: the phone plays the file's own sound (and seeks itself)
+            return H["ranged"](path)
+        return jsonify({"error": "Sound on the phone needs ffmpeg for this file."}), 409
+    cmd = [str(ff), "-hide_banner", "-loglevel", "error", "-ss", "%.3f" % t, "-i", str(path), "-vn", "-sn", "-dn",
+           "-map", "0:a:%d?" % a, "-c:a", "aac", "-ac", "2", "-b:a", "160k", "-f", "adts", "pipe:1"]
+    _kill_stream()
+    proc = H["popen"](cmd)
+    with _stream_lock:
+        _stream["proc"] = proc
+
+    def body():
+        try:
+            while True:
+                chunk = proc.stdout.read(32 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+    return Response(body(), mimetype="audio/aac", headers={"Cache-Control": "no-store"})
+
+
+@LAN.get("/song/<tid>")
+def lan_song(tid):
+    _need_pair()
+    p = H["track_path"](tid)
+    if not p:
+        abort(404)
+    return send_file(p, conditional=True, max_age=0)
+
+
 # ---- commands
 def _f(v, lo, hi):
     try:
@@ -527,6 +590,8 @@ def _check(cmd, arg):
     """Validated argument for a command (400 / 404 on anything unexpected)."""
     if cmd in ("toggle", "mute", "next", "prev", "close", "shuffle_music", "fullscreen", "surprise"):
         return None
+    if cmd == "pc_mute":
+        return bool(arg)
     if cmd in ("seek_rel", "seek_abs"):
         return _f(arg, -1e6, 1e6)
     if cmd == "vol":
@@ -575,7 +640,7 @@ def _check(cmd, arg):
 
 
 CMDS = {"toggle", "seek_rel", "seek_abs", "vol", "mute", "next", "prev", "close", "play_video", "shuffle_music", "fullscreen",
-        "sub", "audio", "speed", "sub_delay", "chapter", "sleep", "rate", "heart", "play_music", "queue_jump", "surprise"}
+        "sub", "audio", "speed", "sub_delay", "chapter", "sleep", "rate", "heart", "play_music", "queue_jump", "surprise", "pc_mute"}
 
 
 @LAN.post("/cmd")

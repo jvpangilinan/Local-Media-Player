@@ -92,7 +92,8 @@ assert r.status_code == 200
 cookie = r.headers.get("Set-Cookie", "")
 assert "HttpOnly" in cookie and "SameSite=Strict" in cookie
 assert pc.get("/api/remote/info").json["phones"] == 1
-assert phone.get("/state").json == {"paired": True, "now": {"kind": "none"}}
+st0 = phone.get("/state").json
+assert st0["paired"] is True and st0["now"]["kind"] == "none", st0
 
 # 4. Commands need the X-Remote header and a known command; arguments are checked.
 assert phone.post("/cmd", json={"cmd": "toggle"}).status_code == 403
@@ -154,6 +155,11 @@ assert cm(".mp4", {"vcodec": "hevc", "audio": [{"codec": "ac3"}]}) == "remux"
 assert cm(".avi", {"vcodec": "mpeg4", "audio": [{"codec": "mp3"}]}) == "convert"
 assert cm(".mkv", {}) == "convert" and cm(".mp4", {}) == "direct"
 
+# 6c2. Sound on the phone: soundtrack / song routes refuse private and unknown ids; no ffmpeg + mp4 = the file itself.
+assert phone.get(f"/audio/{priv}").status_code == 404 and phone.get("/song/nope").status_code == 404
+r = phone.get(f"/audio/{pub}", headers={"Range": "bytes=0-3"})
+assert r.status_code == 206 and r.data == b"xxxx", r.status_code
+
 # 6d. New commands are validated.
 ok = lambda c, a=None: phone.post("/cmd", json={"cmd": c, "arg": a}, headers=X).status_code
 assert ok("sub", "off") == 200 and ok("sub", 2) == 200 and ok("sub", "x") == 400
@@ -162,9 +168,11 @@ assert ok("sleep", "eov") == 200 and ok("sleep", 30) == 200 and ok("sleep", None
 assert ok("rate", {"id": priv, "stars": 3}) == 404 and ok("rate", {"id": pub, "stars": 6}) == 400 and ok("rate", {"id": pub, "stars": 4}) == 200
 assert ok("heart", "nope") == 404 and ok("play_music", {"kind": "evil"}) == 400 and ok("play_music", {"kind": "album", "id": "a|b", "start": 2}) == 200
 assert ok("surprise") == 200 and ok("queue_jump", 3) == 200
+assert ok("pc_mute", True) == 200 and ok("pc_mute", 0) == 200
 cmds = pc.get("/api/remote/poll?src=page").json["cmds"]
 by = {c["cmd"]: c["arg"] for c in cmds}
 assert by["speed"] == 4.0 and by["rate"] == {"id": pub, "stars": 4} and by["play_music"]["kind"] == "album", cmds
+assert [x["arg"] for x in cmds if x["cmd"] == "pc_mute"] == [True, False], cmds
 
 # 6e. Private status: track labels, chapters and ids are masked too.
 pc.post("/api/remote/status", json={"src": "page", "kind": "video", "private": True, "title": "Secret Film", "vid": priv, "series_id": "s1",
@@ -173,6 +181,7 @@ pc.post("/api/remote/status", json={"src": "page", "kind": "video", "private": T
 body = phone.get("/state").get_data(as_text=True)
 assert "Secret" not in body, body
 st = phone.get("/state").json["now"]
+assert 0 <= st["age"] < 5, st
 assert st["vid"] is None and st["series_id"] is None and st["chapters"] == [] and st["subs"][0]["label"] == "ENG", st
 
 # 7. Routing: while the native window reports a video, it gets the commands; starting something stays on the page.

@@ -216,6 +216,12 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #pp video::cue { background: rgba(0,0,0,.55); font-size: 1em; }
 
+  .in-app #b-appfs { display: none; }
+  .earbar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(255,195,113,.1); border: 1px solid rgba(255,195,113,.35); color: var(--a1); font-size: 13.5px; font-weight: 650; }
+  .earbar svg { width: 20px; height: 20px; }
+  .earbar span { flex: 1; min-width: 0; }
+  .earbar button { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.08); color: var(--ink); font-size: 12.5px; font-weight: 700; }
+  #b-getapp { color: var(--a1); }
   #toast { position: fixed; left: 50%; bottom: calc(var(--tab-h) + var(--safe-b) + 16px); transform: translate(-50%, 20px); opacity: 0; z-index: 90; background: #24212b; border: 1px solid var(--line);
            padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; transition: .25s; pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
   #toast.on { opacity: 1; transform: translate(-50%, 0); }
@@ -251,12 +257,15 @@
   <symbol id="i-dice" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7.5 15a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z"/></symbol>
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M3 3h7v2H6.4l4.3 4.3-1.4 1.4L5 6.4V10H3zm11 0h7v7h-2V6.4l-4.3 4.3-1.4-1.4L17.6 5H14zM9.3 13.3l1.4 1.4L6.4 19H10v2H3v-7h2v3.6zm5.4 0 4.3 4.3V14h2v7h-7v-2h3.6l-4.3-4.3z"/></symbol>
+  <symbol id="i-ear" viewBox="0 0 24 24"><path d="M12 3a8 8 0 0 0-8 8v6.5A2.5 2.5 0 0 0 6.5 20H9v-7H6v-2a6 6 0 0 1 12 0v2h-3v7h2.5a2.5 2.5 0 0 0 2.5-2.5V11a8 8 0 0 0-8-8z"/></symbol>
   <symbol id="i-chap" viewBox="0 0 24 24"><path d="M4 4h4v16H4zm6 4h4v12h-4zm6-2h4v14h-4z"/></symbol>
 </svg>
 
 <header>
   <div class="brand"><i id="dot"></i>ULTRON REMOTE</div>
   <div style="display:flex;gap:4px">
+    <a class="hbtn hidden" id="b-getapp" href="/app.apk" aria-label="Get the Android app"><svg><use href="#i-phone"/></svg></a>
+    <button class="hbtn hidden" id="b-menu" aria-label="Menu"><svg><use href="#i-list"/></svg></button>
     <button class="hbtn" id="b-appfs" aria-label="Full screen"><svg><use href="#i-expand"/></svg></button>
   </div>
 </header>
@@ -299,6 +308,7 @@
           <input id="vol" type="range" min="0" max="100" value="80" aria-label="Volume">
           <button id="b-fs" aria-label="Fullscreen on the PC"><svg><use href="#i-fs"/></svg></button>
         </div>
+        <div class="earbar hidden" id="earbar"><svg><use href="#i-ear"/></svg><span id="ear-txt">Sound on this phone</span><button id="ear-adj">Sync</button><button id="ear-off">Back to PC</button></div>
         <div class="chips" id="np-chips"></div>
         <div class="row2" id="np-row"></div>
       </div>
@@ -388,6 +398,8 @@
   var now = { kind: 'none' }, lastNowAt = 0, dragging = false, volTouch = 0, pollT = null, libAt = 0, tab = 'now';
   var LIB = { cards: null, series: [], movies: [], cont: [], likes: new Set(), playlists: [], albums: [] };
   var stripCache = {};
+  var APP = !!window.UltronApp;                          // running inside the Android app (android/): it adds what a page cannot do
+  if (APP) document.documentElement.classList.add('in-app');
 
   // ---------------------------------------------------------------- helpers
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -537,6 +549,7 @@
     if (vid && (now.subs || []).length) c.push(['subs', 'cc', 'Subtitles', (now.subs || []).some(function (t) { return t.on; })]);
     if (vid && now.can_audio && (now.audios || []).length > 1) c.push(['audio', 'audio', 'Audio', false]);
     if (vid) c.push(['speed', 'speed', (now.speed && Math.abs(now.speed - 1) > .01 ? now.speed + '×' : 'Speed'), now.speed && Math.abs(now.speed - 1) > .01]);
+    if ((vid && now.vid) || now.kind === 'music') c.unshift(['ear', 'ear', SND.on ? 'Sound on phone' : 'Sound to phone', SND.on]);
     c.push(['sleep', 'moon', now.sleep ? (now.sleep.mode === 'eov' ? 'After this' : Math.ceil(now.sleep.left / 60) + ' min') : 'Sleep', !!now.sleep]);
     if (vid && (now.chapters || []).length) c.push(['chap', 'chap', 'Chapters', false]);
     if (vid && (now.subs || []).some(function (t) { return t.on; }) && now.can_chapters) c.push(['delay', 'cc', 'Sub sync', false]);
@@ -558,6 +571,7 @@
   $('np-chips').onclick = function (e) {
     var b = e.target.closest('[data-c]'); if (!b) return; buzz();
     var k = b.dataset.c;
+    if (k === 'ear') { if (SND.on) soundOff(); else soundOn(); return; }
     if (k === 'subs') options('Subtitles', [{ label: 'Off', on: !(now.subs || []).some(function (t) { return t.on; }), value: 'off' }].concat((now.subs || []).map(function (t) { return { label: t.label, on: t.on, value: t.id }; })), function (v) { cmd('sub', v); });
     if (k === 'audio') options('Audio', (now.audios || []).map(function (t) { return { label: t.label, on: t.on, value: t.id }; }), function (v) { cmd('audio', v); });
     if (k === 'speed') options('Speed', [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(function (r) { return { label: r === 1 ? 'Normal' : r + '×', on: Math.abs((now.speed || 1) - r) < .01, value: r }; }), function (v) { cmd('speed', v); });
@@ -628,9 +642,9 @@
       if (r.status === 401) { showPair(); return; }
       return r.json().then(function (d) {
         $('dot').classList.add('on');
-        now = d.now || { kind: 'none' }; lastNowAt = Date.now(); paint();
+        now = d.now || { kind: 'none' }; lastNowAt = Date.now() - (now.age || 0) * 1000; paint(); soundSync();
         if (Date.now() - libAt > 20000) loadCont();
-        pollT = setTimeout(poll, document.hidden ? 5000 : 1000);
+        pollT = setTimeout(poll, SND.on ? 500 : document.hidden ? 5000 : 1000);
       });
     }).catch(function () { $('dot').classList.remove('on'); pollT = setTimeout(poll, 3000); });
   }
@@ -685,6 +699,82 @@
   }
   var dragT = 0;
   scrubber($('bar'), function () { return now.dur || 0; }, function () { return now.vid; }, function (t) { now.pos = t; lastNowAt = Date.now(); buzz(); cmd('seek_abs', t); }, $('pv'));
+
+  // ---------------------------------------------------------------- sound on the phone (picture stays on the PC)
+  // The phone plays the same sound and follows the PC's clock: small drift is fixed by playing a hair faster / slower,
+  // a big jump (seek, pause, next track) restarts it at the right second. "Sync" nudges for Bluetooth delay (remembered).
+  var SND = { on: false, el: new Audio(), key: '', base: 0, lead: 0.8, started: 0, piped: false,
+              offset: parseFloat(localStorage.getItem('zr-offset') || '0') || 0 };
+  SND.el.preload = 'auto';
+  function sndKey() { return now.kind === 'video' && now.vid ? 'v:' + now.vid : now.kind === 'music' && now.tid ? 't:' + now.tid : ''; }
+  function sndTarget() { return curPos() + SND.offset; }
+  function sndNow() { return SND.base + (SND.el.currentTime || 0); }
+  function sndStart(key, t) {
+    SND.key = key;
+    if (key.charAt(0) === 'v') {                       // the soundtrack of a video, cut on the PC from second t
+      SND.piped = true; SND.base = t + SND.lead;
+      SND.el.src = '/audio/' + encodeURIComponent(key.slice(2)) + '?t=' + SND.base.toFixed(2);
+      SND.started = Date.now();
+    } else {                                           // a song: the file itself, the phone seeks
+      SND.piped = false; SND.base = 0;
+      SND.el.src = '/song/' + encodeURIComponent(key.slice(2));
+      SND.el.addEventListener('loadedmetadata', function once() { SND.el.removeEventListener('loadedmetadata', once); try { SND.el.currentTime = sndTarget(); } catch (e) {} });
+    }
+    if (!now.paused) SND.el.play().catch(function () {});
+  }
+  SND.el.addEventListener('playing', function () {      // learn how long a piped start takes, so the next restart lands closer
+    if (SND.piped && SND.started) { var late = sndTarget() - sndNow(); SND.lead = Math.max(0.2, Math.min(3, SND.lead + late)); SND.started = 0; }
+  });
+  SND.el.addEventListener('error', function () { if (SND.on && SND.el.getAttribute('src')) { toast('The phone cannot play this sound'); soundOff(); } });
+  function soundSync() {
+    if (!SND.on) return;
+    var key = sndKey();
+    if (!key) { SND.el.pause(); if (now.kind === 'video' && now.private) { toast('Private videos keep their sound on the PC'); soundOff(); } return; }
+    if (key !== SND.key) { sndStart(key, sndTarget()); return; }
+    if (now.paused) { if (!SND.el.paused) SND.el.pause(); return; }
+    if (SND.el.paused && SND.el.readyState >= 2) SND.el.play().catch(function () {});
+    if (SND.el.readyState < 2) return;
+    var drift = sndNow() - sndTarget(), sp = now.speed || 1;
+    if (Math.abs(drift) > 1.2) {                           // jumped (seek, pause, buffering): start again at the right second
+      if (SND.piped) sndStart(key, sndTarget()); else SND.el.currentTime = sndTarget();
+      SND.el.playbackRate = sp;
+    } else if (Math.abs(drift) > 0.04) SND.el.playbackRate = sp * Math.max(0.94, Math.min(1.06, 1 - drift * 0.6));
+    else SND.el.playbackRate = sp;
+  }
+  setInterval(soundSync, 400);
+  function paintEar() {
+    $('earbar').classList.toggle('hidden', !SND.on);
+    $('ear-txt').textContent = 'Sound on this phone' + (SND.offset ? ' (' + (SND.offset > 0 ? '+' : '') + SND.offset.toFixed(1) + ' s)' : '');
+    $('np-chips').dataset.k = '';
+  }
+  function soundOn() {
+    var key = sndKey();
+    if (!key) { toast(now.private ? 'Private videos keep their sound on the PC' : 'Play something on the PC first'); return; }
+    SND.on = true; SND.key = '';
+    sndStart(key, sndTarget());                        // started inside this tap: phones only allow sound after a tap
+    cmd('pc_mute', true);
+    if (APP && UltronApp.localAudio) UltronApp.localAudio(true);   // volume buttons are the phone's now
+    paintEar(); paint(); toast('Sound moved to your phone. Earphones in!');
+  }
+  function soundOff() {
+    if (!SND.on) return;
+    SND.on = false; SND.key = ''; SND.el.pause(); SND.el.removeAttribute('src'); SND.el.load();
+    cmd('pc_mute', false);
+    if (APP && UltronApp.localAudio) UltronApp.localAudio(false);
+    paintEar(); paint();
+  }
+  window.__snd = SND;
+  $('ear-off').onclick = function () { buzz(); soundOff(); toast('Sound is back on the PC'); };
+  $('ear-adj').onclick = function () {
+    var d = sheet('Sound sync', '<div class="muted" style="font-size:14px">Lips and sound not matching? Bluetooth earphones are often a little late. Nudge until it feels right; the phone remembers.</div>' +
+      '<div class="stepper"><button data-o="-0.1">\u2212</button><b id="ear-o" style="min-width:90px;text-align:center"></b><button data-o="0.1">+</button></div>' +
+      '<div class="muted" style="font-size:12.5px;text-align:center">\u2212 if the sound comes late, + if it comes early</div>');
+    function show() { d.querySelector('#ear-o').textContent = (SND.offset > 0 ? '+' : '') + SND.offset.toFixed(1) + ' s'; }
+    show();
+    [].forEach.call(d.querySelectorAll('[data-o]'), function (b) { b.onclick = function () {
+      buzz(); SND.offset = Math.round((SND.offset + parseFloat(b.dataset.o)) * 10) / 10; localStorage.setItem('zr-offset', SND.offset); show(); paintEar();
+    }; });
+  };
 
   // ---------------------------------------------------------------- watch
   var wKind = 'movies', wSort = 'recent';
@@ -851,8 +941,10 @@
   function msg(t, ms) { var m = $('pp-msg'); m.textContent = t; m.classList.remove('hidden'); clearTimeout(msg.t); if (ms) msg.t = setTimeout(function () { m.classList.add('hidden'); }, ms); }
   function openPlayer(vid, title, at) {
     closeSheet();
+    if (SND.on) soundOff();
     P = { vid: vid, mode: 'direct', offset: 0, dur: 0, audio: 0, audios: [], subs: [], sub: -1, cues: {}, saveT: 0, hideT: 0, triedConvert: false };
     $('pp').classList.remove('hidden', 'idle'); $('pp-title').textContent = title || ''; $('pp-spin').classList.remove('hidden');
+    if (APP) UltronApp.local(true);                      // screen stays on, volume buttons are the phone's again
     $('pp-msg').classList.add('hidden');
     Promise.all([getJ('/streaminfo/' + encodeURIComponent(vid)), getJ('/x/api/videos/' + encodeURIComponent(vid) + '/info')]).then(function (r) {
       var si = r[0], info = r[1];
@@ -953,6 +1045,7 @@
     return out;
   }
   function goFullscreen(force) {
+    if (APP) { UltronApp.immersive(true); return; }      // the app hides the system bars and turns to landscape itself
     var el = $('pp');
     try {
       var p = (el.requestFullscreen || el.webkitRequestFullscreen || function () { return Promise.reject(); }).call(el);
@@ -965,6 +1058,7 @@
     saveProgress();
     P.vid = null; V.pause(); V.removeAttribute('src'); V.load();
     $('pp').classList.add('hidden');
+    if (APP) { UltronApp.immersive(false); UltronApp.local(false); }
     try { if (document.fullscreenElement) document.exitFullscreen(); screen.orientation.unlock(); } catch (e) {}
     setTimeout(loadCont, 600);
   }
@@ -981,6 +1075,22 @@
   };
   document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); else if (P.vid) saveProgress(); });
   window.addEventListener('pagehide', function () { if (P.vid) saveProgress(); });
+
+  // Android back button (the app asks this first): close the top-most thing, true = something was closed
+  window.ultronBack = function () {
+    if (document.querySelector('.sheet')) { closeSheet(); return true; }
+    if (!$('pp').classList.contains('hidden')) { closePlayer(); return true; }
+    var pages = document.querySelectorAll('.page'); if (pages.length) { pages[pages.length - 1].remove(); return true; }
+    if (tab !== 'now' && !$('app').classList.contains('hidden')) { go('now'); return true; }
+    return false;
+  };
+  if (APP) {
+    $('b-menu').classList.remove('hidden');
+    $('b-menu').onclick = function () { buzz(); options('ULTRON Remote ' + UltronApp.version(), [{ label: 'Switch to another PC', on: false, value: 'pc' }], function (v) { if (v === 'pc') UltronApp.changePc(); }); };
+  } else if (/Android/i.test(navigator.userAgent)) {
+    fetch('/app.apk', { method: 'HEAD', credentials: 'same-origin' }).then(function (r) { if (r.ok) $('b-getapp').classList.remove('hidden'); }).catch(function () {});
+    $('b-getapp').addEventListener('click', function () { toast('Downloading the app. Open it to install (allow this source once).'); });
+  }
 
   function start() { $('pair').classList.add('hidden'); $('app').classList.remove('hidden'); $('tabs').classList.remove('hidden'); poll(); loadCont(); renderCont(); }
 
