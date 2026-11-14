@@ -16,6 +16,7 @@ py -3.12 app.py --videos "D:\Videos" --music "E:\Music"
 py -3.12 tests/test_backup.py                    # tests are plain scripts with asserts, no pytest
 for f in tests/test_*.py; do py -3.12 "$f" || echo "FAIL $f"; done   # all tests (bash)
 build_exe.bat                                    # PyInstaller one-file build -> ULTRON.exe
+sh tools/build_exe.sh                            # same build from bash (.bat files can't run from Claude Code's shell); close ULTRON.exe first
 android\build_apk.bat                            # phone app -> assets\ULTRON-Remote.apk (needs Android Studio)
 ```
 
