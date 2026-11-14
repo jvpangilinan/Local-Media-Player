@@ -45,7 +45,7 @@ It holds SQLite (WAL, synchronous=NORMAL), `settings.json`, posters, thumbnails 
 
 **Private library.** It's password-locked, and the unlock is held only in memory with an idle auto-lock. Private content must never appear in the main search (Ctrl+K), and `private-search.js` must never show public items. The trimmer and clips are disabled for private videos.
 
-**Background work is throttled on purpose.** At most 2 ffmpeg/ffprobe processes and 1 clip export run at a time, all at low CPU and disk priority. Files written in the last 2 minutes or with partial-download extensions are skipped. The folder watcher polls every 30 s and rescans only after the folders go quiet. Keep these limits when you touch the scanner or thumbnail code.
+**Background work is throttled on purpose.** At most 2 ffmpeg/ffprobe processes and 1 clip export run at a time, all at low CPU and disk priority. Files written in the last 2 minutes or with partial-download extensions are skipped. The folder watcher polls (every 30 s while the page is open, every 5 min when hidden or playing) and rescans only after the folders go quiet. It polls on purpose: change notifications hold folders open and block safely removing a USB drive. Keep these limits when you touch the scanner or thumbnail code.
 
 ## Known debt (from TODO.md)
 

@@ -5122,19 +5122,24 @@ def weekly_auto_backup():
         log.warning("weekly backup skipped", exc_info=True)
 
 
-def _folder_signature():
-    """Cheap fingerprint of the video folders: folder names, how many video files have finished being written, and the
-    names of the poster / series-art images (the scan is what finds those, so adding one must trigger a rescan).
-    Files still downloading are not counted, so a torrent in progress does not keep re-triggering rescans; the signature
-    changes once when each file settles. (os.scandir gives file times without extra disk calls on Windows.)"""
-    sig, now = [], time.time()
-    for root in (CFG["video_dir"], CFG["private_dir"]):
-        if not root.is_dir():
+def _tree_signature(roots, exts, side_exts=()):
+    """Cheap fingerprint of media folders: which roots are reachable, the folder names, the names of the media files that
+    have finished being written (so a rename counts as a change), and the names of poster / series-art images (the scan
+    is what finds those, so adding one must trigger a rescan).
+    Files still being written are left out, so a torrent in progress does not keep re-triggering rescans; the signature
+    changes once when each file settles. Returns (signature, unsettled): unsettled is True while some file is still being
+    written, so the watcher keeps checking often until it lands. (os.scandir gives file times without extra disk calls
+    on Windows.)"""
+    sig, now, unsettled = [], time.time(), False
+    for root in roots:
+        online = folder_online(root)
+        sig.append((str(root), online))
+        if not online:
             continue
         stack = [str(root)]
         while stack:
             d = stack.pop()
-            n, imgs = 0, []
+            names, imgs = [], []
             try:
                 with os.scandir(d) as it:
                     for e in it:
@@ -5144,45 +5149,84 @@ def _folder_signature():
                             stack.append(e.path)
                             continue
                         ext = Path(e.name).suffix.lower()
-                        if ext in VIDEO_EXTS and now - e.stat().st_mtime >= SETTLE_SECS:
-                            n += 1
-                        elif ext in SIDE_IMAGE_EXTS:
+                        if ext in exts:
+                            if now - e.stat().st_mtime >= SETTLE_SECS:
+                                names.append(e.name)
+                            else:
+                                unsettled = True
+                        elif ext in side_exts:
                             imgs.append(e.name.lower())
             except OSError:
                 continue
-            sig.append((d, n, hash(frozenset(imgs))))
-    return hash(tuple(sorted(sig)))
+            sig.append((d, hash(frozenset(names)), hash(frozenset(imgs))))
+    return hash(tuple(sorted(sig, key=repr))), unsettled
+
+
+def _folder_signature():
+    """Fingerprint of the video and private folders (see _tree_signature)."""
+    return _tree_signature((CFG["video_dir"], CFG["private_dir"]), VIDEO_EXTS, SIDE_IMAGE_EXTS)[0]
+
+
+WATCH_FAST, WATCH_SLOW = 30, 300      # seconds between folder checks: while the page is open / while idle or playing
+WATCH = {"seen": 0.0}                 # when the page last asked for the library version
+WATCH_WAKE = threading.Event()        # set to make the watcher check right away (the page came back after a long idle)
+
+
+def page_seen():
+    """The library page is open and visible (it polls /api/videos/version every 8 s, but not while a video plays)."""
+    now = time.time()
+    if now - WATCH["seen"] > 2 * WATCH_FAST:
+        WATCH_WAKE.set()
+    WATCH["seen"] = now
+
+
+def _rescan_music_bg():
+    background_io(True)
+    try:
+        scan_music()
+    except Exception:
+        log.exception("background scan_music failed")
 
 
 def folder_watcher():
-    """New genre folder or new video dropped in by hand? Re-index by itself, no Rescan press needed.
-    Checks every 30 s and rescans only after the folders have been quiet for one full check, so one torrent finishing
-    (or ten) causes a single rescan, not dozens."""
+    """New genre folder, new video or song, or a rename done by hand? Re-index by itself, no Rescan press needed.
+    Rescans only after the folders have been quiet for one full check, so one torrent finishing (or ten) causes a single
+    rescan, not dozens. Checks every 30 s while the library page is open (or a file is still landing) and every 5 min
+    while the window is hidden or a video is playing, so an idle app does not keep reading the media drive. Polling on
+    purpose: change notifications hold the folders open, and Windows then refuses to safely remove a USB drive."""
     background_io(True)
-    last, dirty = None, False
-    music_on = folder_online(CFG["music_dir"])
+    trees = {
+        "videos": (lambda: _tree_signature((CFG["video_dir"], CFG["private_dir"]), VIDEO_EXTS, SIDE_IMAGE_EXTS),
+                   lambda: SCAN_STATE["running"], schedule_scan),
+        "music": (lambda: _tree_signature((CFG["music_dir"],), MUSIC_EXTS),
+                  lambda: STATUS["music_scanning"],
+                  lambda: threading.Thread(target=_rescan_music_bg, daemon=True).start()),
+    }
+    state = {k: {"last": None, "dirty": False, "unsettled": False} for k in trees}
     while True:
-        time.sleep(30)
-        try:
-            now_on = folder_online(CFG["music_dir"])               # music drive plugged in or pulled out: re-index music once
-            if now_on != music_on and not STATUS["music_scanning"]:
-                music_on = now_on
-                threading.Thread(target=lambda: (background_io(True), scan_music()), daemon=True).start()
-            cur = _folder_signature()
-            if last is None:
-                pass
-            elif cur != last:
-                dirty = True                                  # still changing: wait for the next check
-            elif dirty and not SCAN_STATE["running"]:
-                dirty = False
-                schedule_scan()
-            last = cur
-        except Exception:
-            log.warning("folder_watcher: ignored", exc_info=True)
+        busy = any(s["dirty"] or s["unsettled"] for s in state.values())
+        active = time.time() - WATCH["seen"] < 2 * WATCH_FAST
+        WATCH_WAKE.wait(WATCH_FAST if (active or busy) else WATCH_SLOW)
+        WATCH_WAKE.clear()
+        for name, (signature, running, rescan) in trees.items():
+            s = state[name]
+            try:
+                cur, s["unsettled"] = signature()
+                if s["last"] is None:
+                    pass
+                elif cur != s["last"]:
+                    s["dirty"] = True                         # still changing: wait for the next check
+                elif s["dirty"] and not running():
+                    s["dirty"] = False
+                    rescan()
+                s["last"] = cur
+            except Exception:
+                log.warning("folder_watcher (%s): ignored", name, exc_info=True)
 
 
 @app.get("/api/videos/version")
 def api_videos_version():
+    page_seen()
     return jsonify({"v": SCAN_VER["v"], "scanning": bool(SCAN_STATE["running"]), "offline": offline_json()})
 
 
