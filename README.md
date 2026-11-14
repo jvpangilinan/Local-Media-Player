@@ -8,6 +8,11 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 ## V6: your phone is the remote (and a second screen)
 
+<table>
+<tr><td align="center"><img src="docs/screenshots/remote-now.png" width="200" alt="Now: what the PC is playing"><br><sub>Now: what the PC is playing</sub></td><td align="center"><img src="docs/screenshots/remote-phone-sound.png" width="200" alt="Sound on the phone, picture on the PC"><br><sub>Sound on the phone, picture on the PC</sub></td><td align="center"><img src="docs/screenshots/remote-watch.png" width="200" alt="Watch: the whole library"><br><sub>Watch: the whole library</sub></td></tr>
+<tr><td align="center"><img src="docs/screenshots/remote-series.png" width="200" alt="Series page"><br><sub>Series page</sub></td><td align="center"><img src="docs/screenshots/remote-music.png" width="200" alt="Music"><br><sub>Music</sub></td><td align="center"><img src="docs/screenshots/remote-surprise.png" width="200" alt="Surprise me"><br><sub>Surprise me</sub></td></tr>
+</table>
+
 - **Settings > Phone remote.** Switch it on, scan the QR code with your phone camera, done. It opens in the phone's browser, nothing to install (Add to Home screen gives it an icon; the expand button top right hides the browser bar).
 - **Now:** what is playing on the PC with its poster, a scrub bar with preview pictures while you drag, play / pause, 10 s skips, volume, next / previous, fullscreen on the PC, star rating (videos) or heart (songs), and chips for **Subtitles, Audio track, Speed, Sleep timer (15-90 min or after this one), Chapters, Subtitle sync**. Under it: the next episodes of the series, or the songs coming up. Nothing playing: a big "pick up where you left off" card (on the PC or on the phone), **Surprise me** (the phone picks a movie you have not seen, you choose where to watch it or roll again) and **Shuffle**. Less used things (audio language, chapters, subtitle timing, rating, fullscreen, stop) sit under **More**; the phone's back button closes whatever is on top.
 - **Watch:** every movie and series with posters (Recently added, A-Z, Not watched, Top rated), series pages with seasons and episode progress. Every movie and episode has **Play on PC** and **Watch on phone**.
