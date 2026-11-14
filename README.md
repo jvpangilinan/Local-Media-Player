@@ -8,6 +8,10 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 ## V6: your phone is the remote (and a second screen)
 
+<p align="center"><img src="docs/screenshots/remote-pc.gif" width="760" alt="The phone starting a movie on the PC, changing speed and taking the sound"><br><sub>Tap on the phone, the PC follows: start a movie, change the speed, move the sound to the phone, stop.</sub></p>
+
+<p align="center"><img src="docs/screenshots/remote-tour.gif" width="260" alt="A tour of the phone app"><br><sub>The phone app: Surprise me, series, watching on the phone, music, search.</sub></p>
+
 <table>
 <tr><td align="center"><img src="docs/screenshots/remote-now.png" width="200" alt="Now: what the PC is playing"><br><sub>Now: what the PC is playing</sub></td><td align="center"><img src="docs/screenshots/remote-phone-sound.png" width="200" alt="Sound on the phone, picture on the PC"><br><sub>Sound on the phone, picture on the PC</sub></td><td align="center"><img src="docs/screenshots/remote-watch.png" width="200" alt="Watch: the whole library"><br><sub>Watch: the whole library</sub></td></tr>
 <tr><td align="center"><img src="docs/screenshots/remote-series.png" width="200" alt="Series page"><br><sub>Series page</sub></td><td align="center"><img src="docs/screenshots/remote-music.png" width="200" alt="Music"><br><sub>Music</sub></td><td align="center"><img src="docs/screenshots/remote-surprise.png" width="200" alt="Surprise me"><br><sub>Surprise me</sub></td></tr>
