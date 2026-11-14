@@ -807,7 +807,8 @@
             if (nativeBroken || prefs.native_player === false || !(window.pywebview && pywebview.api && pywebview.api.play_native)) return false;
             try { heroStop(); } catch (e) {}                                     // the home-screen preview must not keep playing behind the native window
             try {
-                if (await pywebview.api.play_native(String(id), token || '')) {
+                const front = !!window.__remoteFront; window.__remoteFront = false;   // started from the phone remote (remote-link.js)
+                if (await pywebview.api.play_native(String(id), token || '', front)) {
                     pauseMusicForVideo();
                     try { post('/api/player/stop', {}); } catch (e) {}              // and the old in-window picture (libmpv child window) must be gone
                     return true;

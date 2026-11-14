@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QFileDi
                                QPushButton, QVBoxLayout, QWidget)
 
 import mpv_backend
-from native_player import APP_DIR, EXIT_FAIL, EXIT_OK, FROZEN, fmt_time, log
+from native_player import APP_DIR, EXIT_FAIL, EXIT_OK, FROZEN, fmt_time, force_foreground, log
 
 ACCENT = QColor("#e11d2e")
 PANEL = QColor(14, 14, 18, 222)
@@ -3207,6 +3207,9 @@ class Player(QMainWindow):
                 self.toggle_mute()
             elif cmd in ("next", "prev"):
                 self.on_media(cmd)
+            elif cmd == "fullscreen":
+                self.toggle_fullscreen()
+                force_foreground(int(self.winId()))
             elif cmd == "close":
                 self.close()
             self._remote_at = 0.0                          # report the new state right away
@@ -3280,6 +3283,9 @@ def main(args, api):
             win.showMaximized()
     win.dark_titlebar()
     win.register_media_keys()
+    if str(getattr(args, "front", "0")) == "1":            # started from the phone: nobody is at the PC to click it forward
+        for ms in (150, 900):
+            QTimer.singleShot(ms, lambda: (win.raise_(), win.activateWindow(), force_foreground(int(win.winId()))))
     shot = os.environ.get("ULTRON_SELFTEST")
     if shot and os.environ.get("ULTRON_SELFTEST_KEEPUI"):
         win.last_move = time.time() + 1e6                       # developer self-test: keep the controls on screen

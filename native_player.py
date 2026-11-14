@@ -27,6 +27,33 @@ LOG_FILE = APP_DIR / "native_player.log"
 EXIT_OK, EXIT_BAD, EXIT_FAIL = 0, 2, 3
 
 
+def force_foreground(hwnd):
+    """Put a window in front and give it the keyboard, even when this process is not the active one.
+    Plain SetForegroundWindow is refused for background processes (the taskbar button only flashes), so borrow the
+    input queue of the window that is in front for a moment, and also bump the window through the top-most band."""
+    if os.name != "nt" or not hwnd:
+        return
+    try:
+        import ctypes
+        u, k = ctypes.windll.user32, ctypes.windll.kernel32
+        u.ShowWindow(hwnd, 9 if u.IsIconic(hwnd) else 5)          # SW_RESTORE / SW_SHOW
+        fg = u.GetForegroundWindow()
+        me, other = k.GetCurrentThreadId(), u.GetWindowThreadProcessId(fg, None) if fg else 0
+        attached = bool(other and other != me and u.AttachThreadInput(me, other, True))
+        try:
+            u.BringWindowToTop(hwnd)
+            u.SetForegroundWindow(hwnd)
+            u.SetFocus(hwnd)
+        finally:
+            if attached:
+                u.AttachThreadInput(me, other, False)
+        flags = 0x0001 | 0x0002 | 0x0040                         # SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW
+        u.SetWindowPos(hwnd, -1, 0, 0, 0, 0, flags)               # HWND_TOPMOST ...
+        u.SetWindowPos(hwnd, -2, 0, 0, 0, 0, flags)               # ... and back, so it is in front but not stuck on top
+    except Exception:
+        pass
+
+
 def log(*parts):
     """Append to native_player.log next to the app (best effort; logging must never stop the player)."""
     try:
@@ -85,6 +112,7 @@ def run(argv):
     ap.add_argument("--vid", required=True, help="id of the video to play")
     ap.add_argument("--token", default="", help="private-area token (private videos only)")
     ap.add_argument("--fullscreen", default="0")
+    ap.add_argument("--front", default="0", help="1 = take the foreground (started from the phone remote)")
     ap.add_argument("--mpvdir", default="", help="folders (separated by ;) that may hold libmpv-2.dll")
     try:
         a = ap.parse_args(argv)

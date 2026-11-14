@@ -6226,8 +6226,8 @@ def _foreground():
         u = ctypes.windll.user32
         hwnd = u.FindWindowW(None, APP_TITLE)
         if hwnd:
-            u.ShowWindow(hwnd, 9)                     # SW_RESTORE
-            u.SetForegroundWindow(hwnd)
+            from native_player import force_foreground       # plain SetForegroundWindow is refused while the app is in the background
+            force_foreground(hwnd)
     except Exception:
         log.warning("_foreground: Exception ignored", exc_info=True)
 
@@ -6608,7 +6608,7 @@ def quit_app_now():
 NATIVE = {"proc": None}
 
 
-def native_play(vid, token=""):
+def native_play(vid, token="", front=False):
     """Start the native player process for a video. False = not possible here (the page then uses the web player)."""
     if WINDOW is None or not APP_URL or not get_prefs().get("native_player", True):
         return False
@@ -6631,7 +6631,7 @@ def native_play(vid, token=""):
         except Exception:
             log.warning("could not stop the previous native player", exc_info=True)
     args = ["--player", "--base", APP_URL.rstrip("/"), "--vid", str(vid), "--token", token or "",
-            "--fullscreen", "1" if FULLSCREEN else "0", "--mpvdir", ";".join(str(d) for d in mpv_dirs())]
+            "--fullscreen", "1" if (FULLSCREEN or front) else "0", "--front", "1" if front else "0", "--mpvdir", ";".join(str(d) for d in mpv_dirs())]
     cmd = [sys.executable] + args if FROZEN else [sys.executable, str(Path(__file__).resolve())] + args
     try:
         proc = subprocess.Popen(cmd, cwd=str(APP_DIR), creationflags=NO_WINDOW, stdin=subprocess.DEVNULL)
@@ -6669,8 +6669,9 @@ class Api:
     def toggle_fullscreen(self):
         return set_fullscreen(not FULLSCREEN)
 
-    def play_native(self, vid, token=""):
-        return native_play(str(vid), str(token or ""))
+    def play_native(self, vid, token="", front=False):
+        """front = started from the phone remote: open fullscreen and take the foreground."""
+        return native_play(str(vid), str(token or ""), bool(front))
 
     def set_fullscreen(self, on):
         return set_fullscreen(on)

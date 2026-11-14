@@ -69,7 +69,14 @@
   function run(c) {
     var a = c.arg, video = typeof playingId !== 'undefined' && playingId;
     switch (c.cmd) {
-      case 'play_video': if (a) playVideo(String(a)); return;
+      case 'play_video':
+        if (!a) return;
+        window.__remoteFront = true;                       // the native player opens fullscreen and in front (app.js playNative)
+        Promise.resolve(playVideo(String(a))).then(function () {
+          window.__remoteFront = false;
+          if (typeof playingId !== 'undefined' && playingId) front(true);   // built-in player: bring the app forward, fullscreen
+        });
+        return;
       case 'shuffle_music': playSource(allSrc(), true); return;
     }
     if (video) {
@@ -82,6 +89,7 @@
         case 'next': stepEpisode(1); break;
         case 'prev': stepEpisode(-1); break;
         case 'close': closePlayer(); break;
+        case 'fullscreen': front(!isFS); break;
       }
     } else if (typeof nowId !== 'undefined' && nowId) {
       switch (c.cmd) {
@@ -94,6 +102,10 @@
         case 'prev': prevTrack(); break;
       }
     }
+  }
+  function front(fs) {
+    post('/api/instance/show', {}).catch(function () {});          // the window comes forward even while you are on another app
+    try { setFS(fs); } catch (e) {}
   }
   function loop() {
     if (looping) return;

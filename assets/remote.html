@@ -121,6 +121,7 @@
       <div class="vol">
         <button id="b-mute" aria-label="Mute"><svg viewBox="0 0 24 24" id="i-vol"><path d="M4 9v6h4l5 5V4L8 9zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
         <input id="vol" type="range" min="0" max="100" value="80" aria-label="Volume">
+        <button id="b-fs" aria-label="Fullscreen on the PC"><svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg></button>
       </div>
     </div>
     <div id="idle" class="hidden"><b>Nothing is playing</b>Pick something below, or shuffle your music.</div>
@@ -189,6 +190,7 @@
     $('i-vol').innerHTML = now.muted || now.vol === 0 ? ICON_MUTE : ICON_VOL;
     $('b-next').disabled = now.kind === 'video' && !now.has_next;     // music always has a next; prev restarts a song or video
     $('b-close').classList.toggle('hidden', now.kind !== 'video');
+    $('b-fs').classList.toggle('hidden', now.kind !== 'video');
     if (!dragging) setBar(now.dur ? now.pos / now.dur : 0, now.pos);
     $('t-dur').textContent = fmt(now.dur);
     if (Date.now() - volTouch > 2500 && typeof now.vol === 'number') { $('vol').value = Math.round(now.vol * 100); paintVol(); }
@@ -239,6 +241,7 @@
   $('b-mute').onclick = function () { now.muted = !now.muted; paint(); cmd('mute'); };
   $('b-shuffle').onclick = function () { cmd('shuffle_music'); toast('Shuffling your music'); };
   $('b-close').onclick = function () { cmd('close'); toast('Stopped'); };
+  $('b-fs').onclick = function () { cmd('fullscreen'); toast('Fullscreen on the PC'); };
   function paintVol() { $('vol').style.setProperty('--p', $('vol').value + '%'); }
   var volT = null;
   $('vol').addEventListener('input', function () {

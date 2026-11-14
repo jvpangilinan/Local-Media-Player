@@ -307,7 +307,7 @@ def lan_poster(vid):
     return send_file(p, mimetype="image/jpeg", max_age=3600)
 
 
-CMDS = {"toggle", "seek_rel", "seek_abs", "vol", "mute", "next", "prev", "close", "play_video", "shuffle_music"}
+CMDS = {"toggle", "seek_rel", "seek_abs", "vol", "mute", "next", "prev", "close", "play_video", "shuffle_music", "fullscreen"}
 
 
 @LAN.post("/cmd")

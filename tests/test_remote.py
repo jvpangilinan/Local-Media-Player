@@ -93,8 +93,9 @@ assert phone.post("/cmd", json={"cmd": "play_video", "arg": priv}, headers=X).st
 assert phone.post("/cmd", json={"cmd": "play_video", "arg": "nope"}, headers=X).status_code == 404
 assert phone.post("/cmd", json={"cmd": "play_video", "arg": pub}, headers=X).status_code == 200
 assert phone.post("/cmd", json={"cmd": "vol", "arg": 7}, headers=X).status_code == 200                # clamped to 1.0
+assert phone.post("/cmd", json={"cmd": "fullscreen"}, headers=X).status_code == 200
 d = pc.get("/api/remote/poll?src=page").json
-assert d["on"] and d["cmds"] == [{"cmd": "play_video", "arg": pub}, {"cmd": "vol", "arg": 1.0}], d
+assert d["on"] and d["cmds"] == [{"cmd": "play_video", "arg": pub}, {"cmd": "vol", "arg": 1.0}, {"cmd": "fullscreen", "arg": None}], d
 
 # 5. Private titles never reach the phone, whatever the player reports.
 pc.post("/api/remote/status", json={"src": "page", "kind": "video", "private": True, "title": "Secret Film", "sub": "S", "id": priv,
