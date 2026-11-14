@@ -104,7 +104,8 @@ public class MainActivity extends Activity {
         String base = "http://" + u.getHost() + ":" + u.getPort();
         Net.prefs(this).edit().putString("base", base).apply();
         String frag = u.getEncodedFragment();
-        openPage(base + "/" + (frag != null ? "#" + frag : ""));
+        // a fresh query string, so an already open page really reloads (same URL + new #pin would only change the hash)
+        openPage(base + "/?p=" + System.currentTimeMillis() + (frag != null ? "#" + frag : ""));
         return true;
     }
 
@@ -203,7 +204,7 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() { back(); }               // Android 12 and older
 
     @Override public boolean onKeyDown(int code, KeyEvent e) {
-        if ((code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN) && !local && !onSetup && RemoteService.pcPlaying) {
+        if ((code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN) && !local && !onSetup && RemoteService.connected) {
             startService(new Intent(this, RemoteService.class).setAction(RemoteService.ACTION_VOL).putExtra("d", code == KeyEvent.KEYCODE_VOLUME_UP ? 1 : -1));
             return true;                                              // the PC's volume, not the phone's
         }

@@ -160,6 +160,9 @@
         case 'next': nextTrack(); break;
         case 'prev': prevTrack(); break;
       }
+    } else if (c.cmd === 'vol') {                              // nothing playing: the volume for whatever plays next
+      try { setVol(a); } catch (e) {}
+      if (typeof audio !== 'undefined') { audio.volume = a; audio.muted = false; var mv = document.getElementById('vol'); if (mv) mv.value = Math.round(a * 100); try { paintAudioVol(); } catch (e) {} }
     }
   }
   function front(fs) {
