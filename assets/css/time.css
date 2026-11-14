@@ -3,9 +3,9 @@
 #corner-clock.on{display:block}
 .hc { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(1.4rem, 3vw, 3rem); margin: .2rem 0 .6rem; }
 .rx { display: block; filter: drop-shadow(0 16px 34px rgba(0,0,0,.5)); }
-.hc .rx { width: clamp(12.5rem, 19vw, 17rem); height: auto; flex: none; }
+.hc .rx { flex: none; }
 
-.hc-greet { display: flex; align-items: center; gap: .7rem; line-height: 1.05; }
+.hc-greet { display: flex; }
 .hc-greet i { font-size: .78em; }
 .hc-date { margin-top: .55rem; font-weight: 500; }
 #corner-clock { top: .85rem !important; right: 1.4rem; width: 3.3rem; height: 3.3rem; font-size: 0; }

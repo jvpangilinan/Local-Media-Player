@@ -145,14 +145,13 @@
 
         /* ================= home dashboard ================= */
 
-        .stat-tile { position: relative; overflow: hidden; text-align: left; padding: 1rem 1.1rem; transition: transform .2s ease, border-color .2s, background .2s; cursor: pointer; }
-        .stat-tile:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.55); background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03)); }
+        .stat-tile { position: relative; overflow: hidden; text-align: left; padding: 1rem 1.1rem; cursor: pointer; }
+
         .stat-tile .big { font-size: 1.9rem; font-weight: 900; line-height: 1; }
         .stat-tile .bgico { position: absolute; right: -.4rem; bottom: -.7rem; font-size: 3.6rem; opacity: .07; transform: rotate(-12deg); }
-        .qa-btn { display: inline-flex; align-items: center; gap: .55rem; padding: .6rem 1.1rem; font-size: .875rem; transition: background .2s, transform .15s; }
-        .qa-btn:hover { background: rgba(255,255,255,.16); transform: translateY(-1px); }
+        .qa-btn { display: inline-flex; align-items: center; gap: .55rem; padding: .6rem 1.1rem; }
+        .qa-btn:hover { transform: translateY(-1px); }
 
-        .qa-btn.primary:hover { background: #f6121d; }
         .dash-hero-bg { transition: transform 6s ease; } .dash-hero:hover .dash-hero-bg { transform: scale(1.06); }
         .dash-top { display: grid; gap: 1.25rem; }
 
@@ -247,7 +246,6 @@
         #dh-top h1 { font-size: clamp(2.4rem, 4.4vw, 3.8rem) !important; }
         #dh-top .tracking-\[0\.25em\] { letter-spacing: .08em; text-transform: none; font-size: .95rem; font-weight: 400; color: var(--mute); }
         .dash-hero { ring: 0; }
-        .dash-hero .tracking-\[0\.25em\] { letter-spacing: .06em; text-transform: none; font-size: .9rem; font-weight: 400; color: var(--ink); }
 
         section, [id$="-row"] { margin-bottom: 3rem; }
 
@@ -325,15 +323,15 @@
         .ph-title b { color: var(--ink); }
         .ph-back { background: none !important; border: 0; color: var(--mute); font-size: .9rem; padding: .1rem 0; transition: color .2s; }
         .ph-back:hover { color: var(--ink); }
-        #ph-albums { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); padding-top: .6rem; }
+        #ph-albums { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
         @media (min-width: 900px) { #ph-albums { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); } }
         .al { background: none !important; border: 0; padding: 0; text-align: left; cursor: pointer; color: var(--ink); }
-        .al-cover { display: block; aspect-ratio: 1; overflow: hidden; background: #151517; position: relative; transition: opacity .25s; }
+        .al-cover { aspect-ratio: 1; background: #151517; transition: opacity .25s; }
         .al-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .al-cover.empty { background: transparent; box-shadow: inset 0 0 0 1px var(--hair); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 1.5rem; }
+        .al-cover.empty { background: transparent; align-items: center; justify-content: center; color: var(--faint); font-size: 1.5rem; }
         #ph-albums .al, #ph-albums:hover .al { opacity: 1; }
-        .al-name { display: block; margin-top: .7rem; font-size: .95rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .al-n { display: block; margin-top: .1rem; font-size: .85rem; color: var(--mute); }
+        .al-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .al-n { display: block; margin-top: .1rem; }
         /* ---- hearts ---- */
         .lb-btn[hidden] { display: none; }
         #lb-fav.on { color: #fff; }
@@ -425,10 +423,9 @@ html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { backgroun
 #home-view h1, #series-view h1, #videos-view h1, #dl-view h1 { font-weight: 800 !important; letter-spacing: -.025em !important; }
 #home-view h2, #video-view h2, #series-view h2, #videos-view h2, #private-view h2, #dl-view h2 { font-size: .82rem !important; font-weight: 700 !important; letter-spacing: .22em !important; text-transform: uppercase; color: rgba(255,255,255,.6) !important; }
 
-.ph-act { border: 1px solid var(--mu-hair) !important; border-radius: 9999px; padding: .42rem 1.05rem !important; background: rgba(255,255,255,.06) !important; font-weight: 600; }
+.ph-act { border: 1px solid var(--mu-hair) !important; border-radius: 9999px; padding: .42rem 1.05rem; background: rgba(255,255,255,.06) !important; font-weight: 600; }
 .ph-act:hover, .ph-act.on { background: rgba(255,255,255,.16) !important; }
 
-.al-cover { border-radius: 1.25rem !important; }
 #settings-modal > div, #lock-modal > div { border-radius: 1.5rem !important; border: 1px solid var(--mu-hair); }
 
 /* the "LM" tile in the sidebar is the logo (logo.png) in every palette */

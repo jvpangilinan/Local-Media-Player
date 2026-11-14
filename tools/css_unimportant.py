@@ -5,6 +5,7 @@
     py -3.12 tools/css_unimportant.py report --matches M.json                 # 3. what could go, what has to stay
     py -3.12 tools/css_unimportant.py apply  --matches M.json                 # 4. rewrite the stylesheets in place
     py -3.12 tools/css_unimportant.py why [SELECTOR-TEXT] --matches M.json    # why each remaining !important stays
+  --skip-rule "SEL|SEL"   (usage) leave rules with exactly that selector text alone (checked by hand)
   --let-win ".text-accent"   (report/apply) allow exactly one kind of visible change: places where that rule now wins.
   --inline-free "#sidebar" --inline-except "#logo-img:display"   (report/apply/why) treat that subtree as never styled
       inline by JS. Only after checking the JS by hand; M.json must contain matches for "#sidebar" and "#sidebar *".
@@ -35,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import css_dead as cd
 
 ROOT = cd.ROOT
+CSS_DIR = ROOT / "assets" / "css"
 ALL = None                                              # candidate set meaning "could be any element"
 LET_WIN = ""                                            # --let-win: flips that make this rule win are wanted
 INLINE_FREE = set()                                     # DOM keys checked by hand: JS never styles them inline
@@ -462,6 +464,28 @@ def main():
         for ex in (sys.argv[sys.argv.index("--inline-except") + 1].split(",") if "--inline-except" in sys.argv else []):
             k, prop = ex.rsplit(":", 1); INLINE_EXCEPT.add(("d:" + k, prop))
         print(f"inline-free: {len(INLINE_FREE)} elements under {root}, exceptions {sorted(INLINE_EXCEPT)}")
+    if cmd == "apply-cuts":                              # apply several --emit files in one pass (positions stay valid)
+        import json, collections
+        cuts = collections.defaultdict(list)
+        for fn in sys.argv[2:]:
+            for name, a, b, rstart, n in json.loads(Path(fn).read_text()): cuts[name].append((a, b, rstart, n))
+        for name, cs in cuts.items():
+            f = CSS_DIR / name; s = f.read_text(encoding="utf-8")
+            per_rule = collections.Counter(c[2] for c in set(cs))
+            spans = set()
+            for a, b, rstart, n in set(cs):
+                if per_rule[rstart] == n:                    # every declaration of the rule goes: drop the whole rule
+                    spans.add((rstart, s.index("}", s.index("{", rstart)) + 1))
+                else:
+                    spans.add((a, b))
+            last = None
+            for a, b in sorted(spans, reverse=True):
+                if last is not None and b > last: continue   # inside a span already cut
+                s = s[:a] + s[b:]; last = a
+            s = re.sub(r"\{\s*\}", "{ }", s); s = re.sub(r"[ \t]+\n", "\n", s); s = re.sub(r"\n{3,}", "\n\n", s)
+            f.write_text(s, encoding="utf-8")
+            print(f"rewrote {name}: {len(spans)} cut(s)")
+        return
     if cmd == "usage":                                   # declarations that never win anywhere under a root
         import json, collections
         raw = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
@@ -520,14 +544,20 @@ def main():
         # :focus is forced together with :focus-visible, so a :focus-only state is never seen: keep those rules
         STATEFUL = re.compile(r":(?!hover\b|is\(|where\(|root\b)[-\w]+|::?(before|after|placeholder|selection|marker|first-line|first-letter|-webkit-)")
         dead = []
+        skip_rules = set(sys.argv[sys.argv.index("--skip-rule") + 1].split("|")) if "--skip-rule" in sys.argv else set()
+        CONTENT = re.compile(r":(empty|has|nth-|first-child|last-child|only-child|first-of-type|last-of-type|placeholder-shown|checked|disabled)")
         for r in rules:
             if r["fi"] == 0 or id(r) not in seen_rule: continue
+            if ", ".join(r["sels"]) in skip_rules: continue                                 # checked by hand: still needed
             if not all((id(r), i) in seen_sel for i in range(len(r["sels"]))): continue    # a selector never matched: unknown state
             if any(cand is ALL or not cand <= subtree for _, cand in r["cand"]): continue      # also hits things outside root
             if any(STATEFUL.search(x) for x in r["sels"]): continue                            # states we did not force
             if r["ctx"]: continue                                                               # inside @media / @supports
             for d in r["decls"]:
                 if not any((id(d), lh) in won for lh in cd.longhands(d["prop"])):
+                    beaters = beaten_by[id(d)]
+                    if any(w == "inline" or w.startswith("anon:") or CONTENT.search(w) for w in beaters):
+                        continue                          # lost only to something that depends on content / JS
                     dead.append(d)
         print(f"records {len(raw)}, rules seen {len(seen_rule)}, unmapped rule hits {unmapped}")
         print(f"never-winning declarations in {root}-only rules: {len(dead)}")
@@ -535,6 +565,11 @@ def main():
             r = d["rule"]; top = beaten_by[id(d)].most_common(1)
             print(f'  {r["file"].name}: {", ".join(r["sels"])[:70]} {{{d["prop"]}{" !important" if d["imp_old"] else ""}}}'
                   f'   <- {top[0][0] if top else "?"}')
+        if "--emit" in sys.argv:                           # write the cuts; apply several roots together with --apply-cuts
+            json.dump([[d["rule"]["file"].name, d["start"], d["end"], d["rule"]["start"], len(d["rule"]["decls"])] for d in dead],
+                      open(sys.argv[sys.argv.index("--emit") + 1], "w"))
+            print("emitted", len(dead))
+            return
         if "--delete" in sys.argv:
             per = collections.defaultdict(list)
             for d in dead: per[d["rule"]["file"]].append(d)

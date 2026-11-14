@@ -66,7 +66,7 @@ html.in-player body::after, body.np-open::after { display: none !important; }
 html body :is(#home-view, #video-view, #videos-view, #series-view, #photos-view, #private-view, #dl-view, #time-view) h2 { counter-increment: lmsec; }
 
 :is(#home-view, #video-view, #videos-view, #series-view) h2::after { content: ''; display: inline-block; vertical-align: middle; margin-left: 1rem; }
-.hc-greet { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(2.2rem, 4.4vw, 4rem); letter-spacing: -.03em; }
+
 html body .hc-greet i { background: var(--prism); -webkit-background-clip: text; background-clip: text; color: transparent !important; }
 
 input[type="range"], input[type="checkbox"], input[type="radio"] { accent-color: var(--pr2); }
@@ -475,14 +475,14 @@ html body #home-view > div { max-width: 96rem !important; margin: 0 auto; paddin
 html body #home-view > div > * { grid-column: 2; min-width: 0; }
 #home-view > div > #dh-top { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 1.6rem; }
 html body #dh-top > div { display: flex; flex-direction: column; align-items: stretch; gap: 1.4rem; margin: 0 !important; }
-#dh-top .hc { display: flex; flex-direction: column; align-items: flex-start; gap: 1.1rem; padding: 0 0 1.3rem; background: none !important; border: 0 !important; border-bottom: 1px solid var(--v-line) !important; border-radius: 0; }
+#dh-top .hc { display: flex; flex-direction: column; align-items: flex-start; gap: 1.1rem; padding: 0 0 1.3rem; background: none !important; border: 0 !important; border-bottom: 1px solid var(--v-line) !important; }
 #dh-top .hc-clock { width: min(13rem, 100%); }
 html body #dh-top .hc-clock svg { width: 100%; height: auto; display: block; }
 #dh-top .hc-greet { font-family: var(--v-display); font-style: normal; font-weight: 800; font-size: clamp(1.9rem, 2.6vw, 2.7rem); letter-spacing: -.005em; text-transform: uppercase; line-height: .95; gap: .5rem; align-items: center; flex-direction: row; }
 html body #dh-top .hc-greet i { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--pr1) !important; font-size: .6em; }
 html body #dh-top h1 { font-family: var(--v-display); font-weight: 800 !important; text-transform: uppercase; }
 #dh-top .flex-wrap { display: flex !important; flex-direction: column; align-items: stretch; gap: 0 !important; }
-#dh-top .qa-btn { display: flex !important; align-items: center; gap: .8rem; width: 100%; justify-content: flex-start; text-align: left; padding: .7rem .1rem; border: 0 !important; border-bottom: 1px solid var(--v-line) !important; border-radius: 0; color: var(--v-mute); }
+#dh-top .qa-btn { align-items: center; gap: .8rem; width: 100%; justify-content: flex-start; text-align: left; padding: .7rem .1rem; border: 0 !important; border-bottom: 1px solid var(--v-line) !important; color: var(--v-mute); }
 html body #dh-top .qa-btn i { width: 1.2rem; text-align: center; color: var(--v-mute); transition: color .2s; }
 html body #dh-top .qa-btn kbd { margin-left: auto; border: 0; background: none; color: var(--v-mute); opacity: .7; }
 #dh-top .qa-btn:hover { color: var(--v-ink); padding-left: .6rem; }
@@ -510,11 +510,11 @@ html body .pv-tab { border-radius: 3px !important; font-family: var(--v-mono); f
 #dh-top .flex-wrap .qa-btn { display: flex !important; }
 
 /* hero (resume / new) = a framed feature, flat, with a spectral foot-rule */
-.dash-hero { border-radius: 3px; --tw-ring-shadow: 0 0 #0000; border: 1px solid var(--v-line); min-height: 22rem; }
+.dash-hero { --tw-ring-shadow: 0 0 #0000; border: 1px solid var(--v-line); min-height: 22rem; }
 .dash-hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--spec); z-index: 12; }
 html body .dash-hero img.rounded-lg, html body .dash-hero img[class*="aspect-"] { border-radius: 2px !important; box-shadow: 0 0 0 1px var(--v-line2), 0 24px 50px -20px #000 !important; }
 .dash-hero .text-accent { font-family: var(--v-mono); letter-spacing: .24em !important; font-size: .64rem !important; text-transform: uppercase !important; color: var(--pr1) !important; font-weight: 500; }
-.dash-hero .h-px { display: block !important; background: var(--pr1) !important; }
+.dash-hero .h-px { display: block !important; }
 .dash-hero .font-black { font-family: var(--v-display); text-transform: uppercase; letter-spacing: .01em; font-weight: 800 !important; line-height: .98 !important; }
 html body .dash-hero button { border-radius: 3px !important; font-family: var(--v-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
 html body .dash-hero button.bg-white { background: var(--pr1) !important; color: var(--v-on) !important; }

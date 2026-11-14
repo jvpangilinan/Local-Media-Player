@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 FIX = Path(tempfile.gettempdir()) / "zeno-css-fixture"
 
 VIEWS = [("home-view", "tab-home"), ("video-view", "tab-video"), ("music-view", "tab-music"),
-         ("time-view", "tab-time"), ("photos-view", "tab-photos"), ("dl-view", "tab-dl")]
+         ("time-view", "tab-time"), ("photos-view", "tab-photos"), ("dl-view", "tab-dl"),
+         ("series-view", "tab-video"), ("videos-view", "tab-video")]          # reached from Home tiles / Browse
 SIZES = [(1280, 800), (1920, 1080)]
 SMALL = [(1024, 700), (900, 640)]            # breakpoints: 1050 / 900 wide, 700 tall (default look only)
 VARIANTS = [  # name, localStorage
@@ -280,8 +281,10 @@ def winners(root, out_file):
                 cdp.on("CSS.styleSheetAdded", lambda e: sheets.__setitem__(e["header"]["styleSheetId"], e["header"].get("sourceURL", "")))
                 page.goto(url); page.wait_for_load_state("load"); page.wait_for_timeout(2500)
                 cdp.send("DOM.enable"); cdp.send("CSS.enable")
-                states = [("home-view", "tab-home", None), ("music-view", "tab-music", None), ("dl-view", "tab-dl", None),
-                          ("menu-open", None, None), ("private", None, None)]
+                view_root = root.lstrip("#") if root.endswith("-view") else None
+                states = ([(view_root, dict(VIEWS)[view_root], None)] if view_root else
+                          [("home-view", "tab-home", None), ("music-view", "tab-music", None), ("dl-view", "tab-dl", None),
+                           ("menu-open", None, None), ("private", None, None)])
                 for view, tab, _ in states:
                     if tab: page.evaluate("([v, t]) => { switchTab(v, t); }", [view, tab])
                     elif view == "menu-open": page.evaluate("() => { switchTab('home-view', 'tab-home'); toggleMenu(true); }")

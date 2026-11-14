@@ -155,12 +155,12 @@ html body #photos-view{counter-reset:ph;background:radial-gradient(circle at 1px
 html body #photos-view .ph-title b{display:block;font-family:var(--v-display);font-weight:800;font-size:clamp(2.6rem,6vw,5.4rem);line-height:.85;letter-spacing:-.02em;text-transform:uppercase}
 html body #photos-view .ph-title>span{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.35em;text-transform:uppercase;color:var(--v-mute)}
 html body #photos-view .ph-back{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.25em;text-transform:uppercase;color:var(--pr1);display:block;margin-bottom:.8rem}
-#photos-view .ph-act {font-family:var(--v-mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--v-line2);padding:.45rem .8rem;margin-left:.4rem}
+#photos-view .ph-act {font-family:var(--v-mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;margin-left:.4rem}
 #photos-view .ph-act:hover, #photos-view .ph-act.on {border-color:var(--pr1);color:var(--pr1)}
 /* albums = piles of prints on the table; hover fans them out */
 #ph-albums {gap:3.2rem 2.2rem;padding:1.4rem .6rem 2rem}
 #ph-albums .al {position:relative;transition:transform .35s cubic-bezier(.2,.85,.25,1),opacity .2s}
-#ph-albums .al-cover {position:relative;display:block;overflow:visible!important;border-radius:2px!important;isolation:isolate;box-shadow:0 14px 30px -10px rgba(0,0,0,.8);border:6px solid #f4f1ea;border-bottom-width:22px}
+#ph-albums .al-cover {position:relative;display:block;overflow:visible!important;border-radius:2px;isolation:isolate;box-shadow:0 14px 30px -10px rgba(0,0,0,.8);border:6px solid #f4f1ea;border-bottom-width:22px}
 #ph-albums .al-cover::before, #ph-albums .al-cover::after {content:'';position:absolute;inset:-6px -6px -22px;background:#e7e2d6;border-radius:2px;z-index:-1;transition:transform .4s cubic-bezier(.2,.85,.25,1);box-shadow:0 8px 18px -8px rgba(0,0,0,.7)}
 #ph-albums .al-cover::before {transform:rotate(-5deg)}
 #ph-albums .al-cover::after {transform:rotate(4deg);background:#d9d3c4}
