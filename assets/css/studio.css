@@ -22,7 +22,7 @@
 .sx-abrange { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--sx-hot) 35%, transparent); pointer-events: none; border-radius: 2px; }
 .p-btn.sx-on { color: var(--sx-hot); }
 .p-btn .sx-badge { font: 800 .62rem var(--sx-mono); margin-left: .15rem; }
-#sx-snapflash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 30; }
+#sx-snapflash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: calc(var(--z-raised) + 10); }
 #sx-snapflash.go { animation: sxflash .45s ease-out; }
 @keyframes sxflash { 0% { opacity: .85; } 100% { opacity: 0; } }
 
@@ -37,12 +37,12 @@
 .lb-btn.sx-on { color: var(--sx-hot); }
 
 /* ---------- PRIVATE: look-away veil and vault doors ---------- */
-#sx-veil { position: fixed; inset: 0; z-index: 9990; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .8rem; opacity: 0; pointer-events: none;
+#sx-veil { position: fixed; inset: 0; z-index: calc(var(--z-fx) + 990); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .8rem; opacity: 0; pointer-events: none;
            background: rgba(0,0,0,.35); backdrop-filter: blur(42px) brightness(.35); -webkit-backdrop-filter: blur(42px) brightness(.35); transition: opacity .12s;
            font: 700 .7rem var(--sx-mono); letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.7); }
 #sx-veil i { font-size: 1.6rem; }
 html.sx-away #sx-veil { opacity: 1; pointer-events: auto; }
-#sx-vault { position: fixed; inset: 0; z-index: 9995; pointer-events: none; display: none; }
+#sx-vault { position: fixed; inset: 0; z-index: calc(var(--z-fx) + 995); pointer-events: none; display: none; }
 #sx-vault.go { display: block; }
 #sx-vault .d { position: absolute; top: 0; bottom: 0; width: 50.2%; background: #0b0b0d; transition: transform .75s cubic-bezier(.7,0,.2,1) .35s;
                background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 14px); }
@@ -77,7 +77,7 @@ html.sx-away #sx-veil { opacity: 1; pointer-events: auto; }
 #sx-dock button:hover { color: var(--sx-hot); border-color: var(--sx-hot); }
 #dl-list .h-1\.5 > div.bg-accent { background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.28) 0 8px, transparent 8px 16px); background-size: 32px 100%; animation: sxstripe .8s linear infinite; }
 @keyframes sxstripe { to { background-position: 32px 0; } }
-#sx-drop { position: fixed; inset: 0; z-index: 9980; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .7rem; pointer-events: none;
+#sx-drop { position: fixed; inset: 0; z-index: calc(var(--z-fx) + 980); display: none; align-items: center; justify-content: center; flex-direction: column; gap: .7rem; pointer-events: none;
            background: rgba(0,0,0,.72); backdrop-filter: blur(6px); border: 2px dashed var(--sx-hot); margin: 14px; inset: 0;
            font: 800 .9rem var(--sx-mono); letter-spacing: .3em; text-transform: uppercase; color: var(--sx-hot); }
 #sx-drop.on { display: flex; }
@@ -85,7 +85,7 @@ html.sx-away #sx-veil { opacity: 1; pointer-events: auto; }
 
 /* ---------- VIDEOS: movie night roulette ---------- */
 #browse-bar #sx-roulette { border-left: 1px solid var(--sx-line); }
-#sx-rl { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.86); backdrop-filter: blur(10px); }
+#sx-rl { position: fixed; inset: 0; z-index: var(--z-fx); display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.86); backdrop-filter: blur(10px); }
 #sx-rl.on { display: flex; }
 #sx-rl .box { width: min(920px, 94vw); padding: 2rem 2rem 1.6rem; background: #0c0c0f; border: 1px solid var(--sx-line); position: relative; }
 #sx-rl .x { position: absolute; top: .8rem; right: 1rem; font-size: 1.4rem; color: rgba(255,255,255,.6); }

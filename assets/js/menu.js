@@ -45,7 +45,7 @@
             if (bridge && bridge.quit_app) { bridge.quit_app(); return; }
             fetch('/api/quit', { method: 'POST', headers: { 'X-LMP': '1' } }).catch(function () {});
             var d = document.createElement('div');
-            d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0b0b0c;color:#86868b;font:500 1rem Inter,system-ui,sans-serif';
+            d.style.cssText = 'position:fixed;inset:0;z-index:calc(var(--z-fx) + 999);display:flex;align-items:center;justify-content:center;background:#0b0b0c;color:#86868b;font:500 1rem Inter,system-ui,sans-serif';
             d.textContent = 'Closed. You can close this tab.';
             document.body.appendChild(d);
             try { window.close(); } catch (e) {}

@@ -9,7 +9,7 @@ body.sel-mode #tracklist .num, body.sel-mode #tracklist td .fa-play { display: n
 body.sel-mode #tracklist tr[data-id] { cursor: pointer; }
 html body #tracklist tr.sel-on { background: rgba(var(--pr1rgb, 255, 195, 113), .16) !important; box-shadow: inset 3px 0 0 var(--pr1, #ffc371); }
 
-.sel-bar { position: fixed; left: 50%; bottom: 7rem; z-index: 90; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: .5rem; max-width: calc(100vw - 2rem);
+.sel-bar { position: fixed; left: 50%; bottom: 7rem; z-index: calc(var(--z-nav) + 10); display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: .5rem; max-width: calc(100vw - 2rem);
   padding: .6rem .75rem .6rem 1.1rem; border-radius: 1rem; background: rgba(18,16,24,.96); border: 1px solid rgba(var(--pr1rgb, 255, 195, 113), .5);
   box-shadow: 0 18px 50px -12px rgba(0,0,0,.8), 0 0 40px -18px rgba(var(--pr1rgb, 255, 195, 113), .7); backdrop-filter: blur(14px);
   opacity: 0; transform: translate(-50%, 24px); pointer-events: none; transition: opacity .18s, transform .18s; }

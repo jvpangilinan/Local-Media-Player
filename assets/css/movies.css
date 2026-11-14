@@ -5,7 +5,7 @@
     border: 1px solid rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .6); cursor: help; white-space: nowrap; }
 
 /* ---------- expanding card: poster rests, hover grows into a wide card with a muted preview ---------- */
-.nfx-pop { position: fixed; z-index: 70; border-radius: 10px; overflow: hidden; background: #131318; color: #fff;
+.nfx-pop { position: fixed; z-index: calc(var(--z-bars) + 15); border-radius: 10px; overflow: hidden; background: #131318; color: #fff;
     box-shadow: 0 24px 60px -12px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 255, 255, .08);
     opacity: 0; transform: scale(.56); transition: transform .2s cubic-bezier(.2, .8, .2, 1), opacity .16s ease; will-change: transform; }
 .nfx-pop.on { opacity: 1; transform: scale(1); }
@@ -89,5 +89,5 @@
 #nfx-prec .np-step { display: flex; gap: 4px; }
 #nfx-prec .np-tipline { margin-left: auto; font-size: .66rem; color: rgba(255, 255, 255, .4); }
 
-@media (max-width: 900px) { #nfx-prec .np-tipline { display: none; } #nfx-prec .np-zoom { margin-left: 0; } }
+@media (max-width: 899px) { #nfx-prec .np-tipline { display: none; } #nfx-prec .np-zoom { margin-left: 0; } }
 @media (prefers-reduced-motion: reduce) { .nfx-pop, #player-modal #player { transition: none; } }

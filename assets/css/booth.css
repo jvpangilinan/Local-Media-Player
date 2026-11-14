@@ -101,14 +101,14 @@ html body #mv-home section.mb-8{margin-bottom:1.2rem}
 #dj-help{display:none;margin-bottom:.6rem;padding:.7rem .8rem;border:1px solid var(--v-line2);background:rgba(0,0,0,.4);font-family:Inter,system-ui,sans-serif;font-size:.78rem;letter-spacing:0;line-height:1.5;color:#ddd}
 #dj-help.open{display:block}#dj-help b{color:var(--pr1);font-family:var(--v-mono);font-size:.64rem;letter-spacing:.12em}
 
-.autobots{position:fixed;inset:0;z-index:9999;pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(0,0,0,.2),rgba(0,0,0,.78));animation:abf 2.6s ease forwards;overflow:hidden}
+.autobots{position:fixed;inset:0;z-index:calc(var(--z-fx) + 999);pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(0,0,0,.2),rgba(0,0,0,.78));animation:abf 2.6s ease forwards;overflow:hidden}
 .ab-t{font-family:var(--v-display,Impact,sans-serif);font-weight:900;font-size:clamp(3rem,10vw,9rem);line-height:.9;text-align:center;letter-spacing:-.02em;color:#fff;text-shadow:0 0 40px var(--pr1,#ff4d6d),0 0 90px var(--pr1,#ff4d6d);animation:abt 2.6s cubic-bezier(.2,.9,.2,1) forwards}
 .ab-truck{position:absolute;bottom:12%;font-size:6rem;animation:abr 2.2s .2s cubic-bezier(.5,0,.8,.4) forwards;right:-12rem}
 @keyframes abf{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
 @keyframes abt{0%{transform:scale(2.4);opacity:0;letter-spacing:.3em}25%{transform:scale(1);opacity:1;letter-spacing:-.02em}100%{transform:scale(1.06)}}
 @keyframes abr{to{right:110%}}
 
-.ab-rain{position:fixed;top:-3rem;z-index:9999;pointer-events:none;animation:abfall 2.2s linear forwards}
+.ab-rain{position:fixed;top:-3rem;z-index:calc(var(--z-fx) + 999);pointer-events:none;animation:abfall 2.2s linear forwards}
 @keyframes abfall{to{transform:translateY(112vh) rotate(360deg)}}
 html.disco #main{animation:abdisco 1.2s linear infinite}
 @keyframes abdisco{to{filter:hue-rotate(360deg)}}
@@ -121,15 +121,15 @@ html body #private-view .vault-door .spin{transform-origin:100px 100px;transitio
 html body #private-view:hover .vault-door .spin{transform:rotate(120deg)}
 
 #lm-deck .dj-fx{position:absolute;left:-25%;top:-25%;width:150%;height:150%;pointer-events:none}
-#nowplaying .npg-sleep{position:absolute;top:1.4rem;right:1.6rem;z-index:20;font-family:var(--v-mono);font-size:.6rem;letter-spacing:.2em;border:1px solid var(--v-line2);padding:.4rem .7rem;color:#ccc;background:rgba(0,0,0,.3)}
+#nowplaying .npg-sleep{position:absolute;top:1.4rem;right:1.6rem;z-index:var(--z-raised);font-family:var(--v-mono);font-size:.6rem;letter-spacing:.2em;border:1px solid var(--v-line2);padding:.4rem .7rem;color:#ccc;background:rgba(0,0,0,.3)}
 #nowplaying .npg-sleep.on,#nowplaying .npg-sleep:hover{border-color:var(--pr1);color:var(--pr1)}
-#dj-sheet{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.75);align-items:center;justify-content:center;font-family:Inter,system-ui,sans-serif}
+#dj-sheet{display:none;position:fixed;inset:0;z-index:calc(var(--z-fx) + 998);background:rgba(0,0,0,.75);align-items:center;justify-content:center;font-family:Inter,system-ui,sans-serif}
 #dj-sheet.open{display:flex}
 #dj-sheet>div{background:#121214;border:1px solid var(--v-line2,#333);padding:1.6rem 2rem;max-width:26rem;line-height:1.7;font-size:.88rem}
 #dj-sheet h3{font-family:var(--v-display);font-size:1.8rem;letter-spacing:.06em;margin-bottom:.6rem}
 #dj-sheet b{font-family:var(--v-mono);color:var(--pr1,#ffb347);font-size:.74rem;letter-spacing:.08em}
 
-#egg-page{position:fixed;inset:0;z-index:9990;background:rgba(5,5,7,.92);overflow-y:auto;display:flex;justify-content:center;padding:4rem 1.5rem;font-family:Inter,system-ui,sans-serif}
+#egg-page{position:fixed;inset:0;z-index:calc(var(--z-fx) + 990);background:rgba(5,5,7,.92);overflow-y:auto;display:flex;justify-content:center;padding:4rem 1.5rem;font-family:Inter,system-ui,sans-serif}
 #egg-page .ep-in{width:min(60rem,100%);position:relative}
 #egg-page h2{font-family:var(--v-display);font-weight:900;font-size:clamp(2.6rem,7vw,5.5rem);line-height:.9;letter-spacing:.03em}
 #egg-page p{font-family:var(--v-mono);font-size:.64rem;letter-spacing:.3em;text-transform:uppercase;color:var(--v-mute);margin:.6rem 0 2rem}
@@ -191,8 +191,8 @@ html body :is(#video-view,#series-view,#videos-view,#private-view) .vgrid{gap:1.
 
 /* ===== ULTRON Private: the vault ===== */
 html body #private-view{--vault:#ff3b3b;position:relative;background:repeating-linear-gradient(135deg,rgba(255,59,59,.035) 0 12px,transparent 12px 24px),linear-gradient(180deg,rgba(255,59,59,.07),transparent 22rem)}
-html body #private-view::before{content:'VAULT';display:block;padding:2.2rem clamp(1.5rem,6vw,3rem) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em;color:var(--vault)}
-html body #private-view::after{content:'EYES ONLY';position:absolute;top:1.6rem;left:clamp(1.5rem,6vw,3rem);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.5em;color:var(--v-mute)}
+html body #private-view::before{content:'VAULT';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em;color:var(--vault)}
+html body #private-view::after{content:'EYES ONLY';position:absolute;top:1.6rem;left:var(--page-gutter);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.5em;color:var(--v-mute)}
 html body #private-view section>div:first-child::before{border-color:var(--vault);color:var(--vault);content:'FILE ' counter(reel,decimal-leading-zero)}
 html body #private-view section>div:first-child::after{background:var(--vault)}
 html body #private-view .vcard img,html body #private-view .vcard video{filter:blur(7px) saturate(.6);transform:scale(1.06);transition:filter .35s,transform .35s}
@@ -201,7 +201,7 @@ html body #private-view .vcard:hover{outline-color:var(--vault)!important}
 html body #private-bar .pv-tab.on{background:var(--vault)!important;border-color:var(--vault)!important}
 /* ===== ULTRON Downloads: the loading dock ===== */
 html body #dl-view{position:relative;--hz:repeating-linear-gradient(135deg,var(--pr1) 0 10px,#111 10px 20px)}
-html body #dl-view::before{content:'DOCK';display:block;padding:2.2rem clamp(1.5rem,6vw,3rem) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em}
+html body #dl-view::before{content:'DOCK';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em}
 html body #dl-view::after{content:'';position:absolute;left:0;top:0;right:0;height:.5rem;background:var(--hz)}
 html body #dl-kinds>*{border-radius:0!important;border:1px dashed var(--v-line2)!important;font-family:var(--v-mono);text-transform:uppercase;letter-spacing:.14em;position:relative;transition:transform .2s,border-color .2s}
 html body #dl-kinds>*:hover{transform:translateY(-3px);border-color:var(--pr1)!important}

@@ -1,10 +1,10 @@
 /* ULTRON Browse hub (loaded last). Dark tokens come from darkroom-6.css (--v-*, --pr1). Only #video-view is touched. */
-#video-view { --ubh-w: 11.5rem; --ubh-gx: clamp(1.25rem, 3.4vw, 3rem); }
+#video-view { --ubh-w: 11.5rem; --ubh-gx: var(--page-gutter); }
 #video-view .ubh { min-height: 100vh; padding-bottom: 5rem; }
 #video-view .ubh-pad { padding: 1.6rem var(--ubh-gx) 0; }
 
 /* ---------- sticky header ---------- */
-#video-view .ubh-head { position: sticky; top: 0; z-index: 40; padding: .95rem var(--ubh-gx) 0;
+#video-view .ubh-head { position: sticky; top: 0; z-index: var(--z-sticky); padding: .95rem var(--ubh-gx) 0;
   background: color-mix(in srgb, var(--v-bg) 97%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2);
   border-bottom: 1px solid var(--v-line); }
 #video-view .ubh-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem 1.5rem; flex-wrap: wrap; }
@@ -13,7 +13,7 @@
 #video-view .ubh-ttl h1::before, #video-view .ubh-ttl h1::after { display: none !important; }
 #video-view .ubh-tabrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-top: .55rem; }
 #video-view .ubh-stats { padding-bottom: .75rem; font-family: var(--v-mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--v-mute); white-space: nowrap; }
-@media (max-width: 1000px) { #video-view .ubh-stats { display: none; } }
+@media (max-width: 1050px) { #video-view .ubh-stats { display: none; } }
 #video-view .ubh-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 
 #video-view .ubh-search { position: relative; display: flex; align-items: center; width: clamp(14rem, 24vw, 24rem); }
@@ -64,12 +64,12 @@
 #video-view .ubh-size i:last-child { font-size: .95rem; }
 #video-view .ubh-size input { width: 5.5rem; accent-color: var(--pr1); cursor: pointer; }
 #video-view .ubh-cnt { margin-left: auto; font-family: var(--v-mono); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--v-mute); }
-#ubh-az { position: fixed; z-index: 45; right: 1.05rem; top: 54%; transform: translateY(-50%); display: none; flex-direction: column; align-items: center; padding: .35rem .15rem;
+#ubh-az { position: fixed; z-index: calc(var(--z-sticky) + 5); right: 1.05rem; top: 54%; transform: translateY(-50%); display: none; flex-direction: column; align-items: center; padding: .35rem .15rem;
   background: color-mix(in srgb, var(--v-bg) 80%, transparent); border: 1px solid var(--v-line); border-radius: 3px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 body.ubh-on #ubh-az.has { display: flex; }
 #ubh-az button { width: 1.25rem; height: 1.08rem; padding: 0; background: none; border: 0; border-radius: 2px; color: var(--v-mute); cursor: pointer; font-family: var(--v-mono); font-size: .56rem; line-height: 1; }
 #ubh-az button:hover { background: var(--pr1); color: var(--v-on); }
-@media (max-height: 640px) { #ubh-az { display: none !important; } }
+@media (max-height: 700px) { #ubh-az { display: none !important; } }
 
 /* ---------- hero + page header ---------- */
 #video-view .ubh-hero, #video-view .ubh-ph { position: relative; display: flex; align-items: flex-end; overflow: hidden; }
@@ -159,7 +159,7 @@ body.ubh-on #ubh-az.has { display: flex; }
 #video-view .ubh-empty .x b { color: var(--v-ink); font-weight: 600; }
 #video-view .ubh-empty .b { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.4rem; }
 
-@media (max-width: 760px) {
+@media (max-width: 899px) {
   #video-view .ubh-search { width: 100%; }
   #video-view .ubh-btn > span { display: none; }
   #video-view .ubh-cnt { margin-left: 0; }
@@ -199,7 +199,7 @@ body.ubh-selecting #ubh-body .vcard { outline: 1px dashed var(--v-line2); outlin
 #video-view .vcard.ubh-picked::after { content: '\2713'; position: absolute; z-index: 12; top: .45rem; right: .45rem; width: 1.6rem; height: 1.6rem; display: flex; align-items: center; justify-content: center;
   background: var(--pr1); color: var(--v-on); font-weight: 800; font-size: .95rem; border-radius: 2px; }
 #video-view .ubh-btn.on { background: var(--pr1); border-color: var(--pr1); color: var(--v-on); }
-#ubh-selbar { position: fixed; z-index: 60; left: 50%; bottom: 1.4rem; transform: translate(-50%, 140%); display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; justify-content: center;
+#ubh-selbar { position: fixed; z-index: calc(var(--z-bars) + 5); left: 50%; bottom: 1.4rem; transform: translate(-50%, 140%); display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; justify-content: center;
   padding: .6rem .7rem; max-width: calc(100vw - 3rem); background: color-mix(in srgb, var(--v-bg) 94%, transparent); border: 1px solid var(--v-line2); border-radius: 3px;
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 18px 50px -12px rgba(0, 0, 0, .9); transition: transform .28s cubic-bezier(.2, .85, .25, 1); }
 #ubh-selbar.on { transform: translate(-50%, 0); }
@@ -214,7 +214,7 @@ body.ubh-selecting #ubh-body .vcard { outline: 1px dashed var(--v-line2); outlin
 body.in-player #ubh-selbar, html.in-player #ubh-selbar { display: none; }
 
 /* ---------- Add movies dialog ---------- */
-.ubh-dlg { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(0, 0, 0, .66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.ubh-dlg { position: fixed; inset: 0; z-index: calc(var(--z-dialog) + 100); display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(0, 0, 0, .66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .ubh-dbox { width: min(38rem, 100%); max-height: min(44rem, 92vh); display: flex; flex-direction: column; gap: .9rem; padding: 1.3rem 1.4rem 1.2rem; background: var(--v-panel, #141316); color: var(--v-ink, #efece6);
   border: 1px solid var(--v-line2, rgba(255, 255, 255, .18)); border-radius: 3px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .95); }
 .ubh-dh { display: flex; align-items: center; justify-content: space-between; }

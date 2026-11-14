@@ -2,7 +2,7 @@
 Use it before and after any stylesheet clean-up; the diff should be empty unless you meant to change something.
 
     <python with playwright> tools/css_snapshot.py snap  OUT_DIR      # writes OUT_DIR/snap.json + one PNG per state
-    py -3.12 tools/css_snapshot.py diff  OLD_DIR NEW_DIR [OLD2_DIR...]  # prints what changed; anything that differs
+    py -3.12 tools/css_snapshot.py diff  OLD_DIR NEW_DIR [OLD2_DIR...] [--all]  # prints what changed; anything that differs
                                                                         # between OLD and OLD2 (run-to-run noise) is ignored
 
 `snap` needs Playwright (pip install playwright, no browser download: it drives the installed Chrome) and starts
@@ -18,6 +18,7 @@ FIX = Path(tempfile.gettempdir()) / "zeno-css-fixture"
 VIEWS = [("home-view", "tab-home"), ("video-view", "tab-video"), ("music-view", "tab-music"),
          ("time-view", "tab-time"), ("photos-view", "tab-photos"), ("dl-view", "tab-dl")]
 SIZES = [(1280, 800), (1920, 1080)]
+SMALL = [(1024, 700), (900, 640)]            # breakpoints: 1050 / 900 wide, 700 tall (default look only)
 VARIANTS = [  # name, localStorage
     ("default", {}),
     ("rail", {"lmp_rail": "1"}),
@@ -154,7 +155,7 @@ def snap(out_dir):
         with sync_playwright() as pw:
             browser = pw.chromium.launch(channel="chrome", headless=True)
             for vname, ls in VARIANTS:
-                sizes = SIZES if vname in ("default", "rail", "rail-off") else SIZES[:1]
+                sizes = SIZES + SMALL if vname == "default" else SIZES if vname in ("rail", "rail-off") else SIZES[:1]
                 for w, h in sizes:
                     ctx = browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=1, reduced_motion="no-preference")
                     ctx.add_init_script("""(() => { let s = 42; Math.random = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
@@ -239,6 +240,7 @@ if __name__ == "__main__":
     elif cmd == "snap":
         snap(sys.argv[2])
     elif cmd == "diff":
-        sys.exit(1 if diff(sys.argv[2], sys.argv[3], sys.argv[4:]) else 0)
+        rest = [a for a in sys.argv[4:] if a != "--all"]
+        sys.exit(1 if diff(sys.argv[2], sys.argv[3], rest, limit=10**9 if "--all" in sys.argv else 60) else 0)
     else:
         print(__doc__)

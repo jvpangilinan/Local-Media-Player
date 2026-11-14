@@ -11,7 +11,7 @@
 .sg-btn.hidden { display: none; }
 .sg-barwrap { height: 6px; background: rgba(255, 255, 255, .1); border-radius: 3px; overflow: hidden; margin-top: .6rem; }
 #sg-bar { height: 100%; width: 0; background: #ececee; transition: width .4s; }
-#sg-rv { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, .82); backdrop-filter: blur(4px); padding: 1rem; }
+#sg-rv { position: fixed; inset: 0; z-index: var(--z-dialog); display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, .82); backdrop-filter: blur(4px); padding: 1rem; }
 #sg-rv.on { display: flex; }
 .sg-card { width: min(720px, 100%); max-height: 86vh; overflow-y: auto; background: #181818; border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; padding: 1.4rem; }
 .sg-head { display: flex; align-items: center; justify-content: space-between; }

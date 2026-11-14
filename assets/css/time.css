@@ -1,5 +1,5 @@
 /* ===================== Clocks (from special.css + ui-fix.css): corner clock, round dial ===================== */
-#corner-clock{position:fixed;z-index:55;display:none;font-weight:500;letter-spacing:.04em;color:var(--faint);font-variant-numeric:tabular-nums;pointer-events:none}
+#corner-clock{position:fixed;z-index:var(--z-bars);display:none;font-weight:500;letter-spacing:.04em;color:var(--faint);font-variant-numeric:tabular-nums;pointer-events:none}
 #corner-clock.on{display:block}
 .hc { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(1.4rem, 3vw, 3rem); margin: .2rem 0 .6rem; }
 .rx { display: block; filter: drop-shadow(0 16px 34px rgba(0,0,0,.5)); }
@@ -13,7 +13,7 @@
 body.clock-on #browse-bar { right: 6rem; }
 
 /* ===================== Time section ===================== */
-#time-view { padding: 5rem clamp(1.2rem, 4vw, 3.5rem) 4rem; max-width: 86rem; margin: 0 auto; }
+#time-view { padding: 5rem var(--page-gutter) 4rem; max-width: 86rem; margin: 0 auto; }
 .tm-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .tm-head h1 { line-height: 1; }
 .tm-head p { margin-top: .45rem; }
@@ -57,7 +57,7 @@ html[data-bg="colorful"] .tm-panel, html[data-bg="time"] .tm-panel, html[data-bg
 
 /* shared form bits */
 .tm-grid2 { display: grid; grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
-@media (max-width: 900px) { .tm-grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 899px) { .tm-grid2 { grid-template-columns: 1fr; } }
 .tm-form { display: flex; flex-direction: column; gap: .9rem; }
 .tm-form h2 { margin-bottom: .1rem; }
 .tm-btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1.2rem; font-weight: 700; color: #fff; transition: background .15s, transform .1s; }
@@ -118,7 +118,7 @@ html[data-bg="colorful"] .tm-panel, html[data-bg="time"] .tm-panel, html[data-bg
 .tt-acts { display: flex; gap: .3rem; }
 
 /* ringing alarm / timer */
-.tm-ringbox { position: fixed; inset: 0; z-index: 400; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.tm-ringbox { position: fixed; inset: 0; z-index: calc(var(--z-dialog) + 100); display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .tm-ringbox.on { display: flex; }
 .tm-ringcard { width: min(26rem, 90vw); text-align: center; padding: 2.2rem 1.6rem 1.8rem; border-radius: 1.8rem; background: #17171a; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
 .tm-ringic { width: 4.6rem; height: 4.6rem; margin: 0 auto 1rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; background: #e5484d; color: #fff; animation: tmShake .9s ease-in-out infinite; }

@@ -59,9 +59,9 @@ html body #sidebar .sb-exit::before { content: "\f011"; font-family: "Font Aweso
 html body #sidebar:hover .sb-exit { width: auto !important; padding: 0 .7rem; gap: .45rem; }
 
 /* ---------- atmosphere: drifting prism light (dark mode) + film grain ---------- */
-html[data-bg="dark"] body::before { content: ''; position: fixed; z-index: -1; pointer-events: none; }
+html[data-bg="dark"] body::before { content: ''; position: fixed; z-index: var(--z-below); pointer-events: none; }
 @keyframes lm-drift { 0% { transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1); } 100% { transform: translate3d(4%, 3%, 0) rotate(14deg) scale(1.12); } }
-html[data-theme="dark"] body::after { content: ''; position: fixed; inset: 0; z-index: 9990; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+html[data-theme="dark"] body::after { content: ''; position: fixed; inset: 0; z-index: calc(var(--z-fx) + 990); pointer-events: none; opacity: .07; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 html.in-player body::after, body.np-open::after { display: none !important; }
 
@@ -126,7 +126,7 @@ html body #audio-bar { border-bottom: 0 !important; }
 
 ::-webkit-scrollbar-thumb { opacity: .6; }
 ::-webkit-scrollbar-track { background: transparent; }
-#lm-intro { position: fixed; inset: 0; z-index: 99999; pointer-events: none; display: grid; place-items: center; animation: lm-intro-bg 2.3s var(--ease) forwards; }
+#lm-intro { position: fixed; inset: 0; z-index: var(--z-intro); pointer-events: none; display: grid; place-items: center; animation: lm-intro-bg 2.3s var(--ease) forwards; }
 #lm-intro .t { background-size: 220% 100%;
   animation: lm-intro-t 2.3s var(--ease) forwards; }
 #lm-intro .s { position: absolute; margin-top: 9rem; font-size: .7rem; animation: lm-intro-s 2.3s ease forwards; }
@@ -174,7 +174,7 @@ html body #settings-modal #lm-set-pane > section::before { display: none; }
 html body #settings-modal #lm-set-pane > section h4 { color: var(--ink) !important; }
 html body #settings-modal #lm-set-pane > section h4::before { display: none; }
 html body #settings-modal #lm-set-pane > section > div.flex, html body #settings-modal #lm-set-pane > section > div > div.flex { padding: .85rem 0; border-bottom: 1px solid var(--glass-line); margin-bottom: 0 !important; }
-@media (max-width: 860px) { html body #settings-modal > div { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
+@media (max-width: 899px) { html body #settings-modal > div { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
   #lm-set-nav { grid-row: 2; grid-column: 1; flex-direction: row; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--glass-line); }
   #lm-set-nav button { width: auto; white-space: nowrap; } #lm-set-pane { grid-row: 3; grid-column: 1; padding: 1rem 1.2rem 2rem; } }
 
@@ -216,7 +216,7 @@ html[data-pal="mono"]  { --pr1: #ffffff; --pr2: #c9c9d1; --pr3: #8a8a96; --pr1rg
 .lm-pal button.on { color: var(--ink); }
 
 /* cursor spotlight behind everything */
-#lm-spot { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .6s;
+#lm-spot { position: fixed; inset: 0; z-index: var(--z-below); pointer-events: none; opacity: 0; transition: opacity .6s;
   background: radial-gradient(34rem circle at var(--mx, 50%) var(--my, 40%), rgba(var(--pr2rgb), .13), rgba(var(--pr3rgb), .05) 45%, transparent 70%); }
 html[data-theme="dark"] #lm-spot.on { opacity: 1; }
 html.in-player #lm-spot, body.np-open #lm-spot { display: none; }
@@ -329,7 +329,7 @@ html body .tm-card:hover { transform: translateY(-6px) !important; border-color:
 html body .tm-cname { font-family: var(--serif); font-style: italic; }
 
 /* scroll line */
-#lm-sp { position: fixed; top: 0; width: calc(var(--sp, 0) * 100%); z-index: 9991; pointer-events: none; transition: width .12s linear; border-radius: 0 3px 3px 0; }
+#lm-sp { position: fixed; top: 0; width: calc(var(--sp, 0) * 100%); z-index: calc(var(--z-fx) + 991); pointer-events: none; transition: width .12s linear; border-radius: 0 3px 3px 0; }
 html.in-player #lm-sp, body.np-open #lm-sp { display: none; }
 
 /* =====================================================================================================
@@ -371,7 +371,7 @@ html body, html body.rail { --side-w: 3.9rem !important; padding-left: var(--sid
 html body #sidebar, html body.rail #sidebar, html body #sidebar:hover, html body #sidebar:focus-within, html body.menu-open #sidebar {
   position: fixed; left: 0; top: 0; right: auto; bottom: var(--bar-h) !important; width: var(--side-w) !important; height: auto; max-height: none;
   padding: .7rem 0 .6rem !important; border-radius: 0 !important; background: var(--v-panel) !important; border: 0 !important; border-right: 1px solid var(--v-line) !important;
-  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transform: none !important; overflow: visible; align-items: stretch; z-index: 80;
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transform: none !important; overflow: visible; align-items: stretch; z-index: var(--z-nav);
   transition: transform .35s cubic-bezier(.2, .85, .25, 1), opacity .25s; }
 html.in-player body #sidebar, html body.np-open #sidebar { transform: translateX(-102%) !important; opacity: 0; pointer-events: none; }
 html body #menu-trigger, html body #menu-scrim { display: none !important; }
@@ -458,7 +458,7 @@ html body :is(button.bg-white, .btn-primary) { border-radius: 3px !important; }
 /* ---------- contact-sheet frames (cards) ---------- */
 html body .video-card, html body .vcard { border-radius: 2px !important; box-shadow: none !important; transform: none !important; transition: outline-color .2s, opacity .3s; outline: 1px solid transparent; outline-offset: 5px; position: relative; }
 html body .video-card img, html body .video-card video, html body .video-card > div:first-child { border-radius: 2px !important; }
-html body .video-card:hover { transform: none !important; box-shadow: none !important; outline-color: var(--pr1); opacity: 1; z-index: 20; }
+html body .video-card:hover { transform: none !important; box-shadow: none !important; outline-color: var(--pr1); opacity: 1; z-index: var(--z-raised); }
 html body .video-card::after { content: ''; position: absolute; inset: -5px; border-radius: 0; z-index: 7; pointer-events: none; opacity: 0; mix-blend-mode: normal; transition: opacity .2s;
   --m: var(--pr1);
   background:
@@ -474,7 +474,7 @@ html body .ph-tile { border-radius: 2px !important; }
 html body #ph-grid .ph-tile:hover { box-shadow: 0 0 0 2px var(--pr1); }
 
 /* ---------- HOME: a readout column (clock, greeting, actions) beside the content ---------- */
-html body #home-view > div { max-width: 96rem !important; margin: 0 auto; padding: 2.2rem clamp(1.2rem, 3.4vw, 3.4rem) 4rem !important;
+html body #home-view > div { max-width: 96rem !important; margin: 0 auto; padding: 2.2rem var(--page-gutter) 4rem !important;
   display: grid; grid-template-columns: minmax(14.5rem, 18.5rem) minmax(0, 1fr); column-gap: clamp(1.6rem, 3.2vw, 3.2rem); align-items: start; }
 html body #home-view > div > * { grid-column: 2; min-width: 0; }
 html body #home-view > div > #dh-top { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 1.6rem; }
@@ -564,7 +564,7 @@ html body #lib-list .org-row img, html body #lib-list .org-row > div:first-child
 
 html body #m-main { background: transparent !important; border-radius: 0 !important; }
 html body #music-grid #m-main > .sticky, html body #music-grid.lib-off #m-main > .sticky, html body #music-grid:not(.lib-off) #m-main > .sticky {
-  top: 0 !important; margin: 0 0 1.6rem; width: auto; max-width: none; padding: .8rem clamp(1rem, 2.4vw, 2rem) !important; gap: .6rem !important; border-radius: 0; background: var(--v-bg) !important;
+  top: 0 !important; margin: 0 0 1.6rem; width: auto; max-width: none; padding: .8rem var(--page-gutter) !important; gap: .6rem !important; border-radius: 0; background: var(--v-bg) !important;
   border: 0; border-bottom: 1px solid var(--v-line); -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none; justify-content: flex-start; }
 html body #music-grid #m-main > .sticky::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 6rem; height: 2px; background: var(--spec); }
 html body #m-main > .sticky > button { border-radius: 2px !important; height: 2.4rem; width: 2.4rem; background: none !important; border: 1px solid var(--v-line2); transform: none !important; }
@@ -574,7 +574,7 @@ html body #m-search:focus { border-color: var(--pr1) !important; }
 html body #m-main > .sticky .relative.flex-1 i { font-size: .8rem; }
 html body #m-main > .sticky .mpill { height: 2.4rem; padding: 0 .9rem !important; }
 html body #m-main > .sticky .mpill .mp-label { font-weight: 500; }
-html body :is(#mv-home, #mv-albums, #mv-playlists) { padding-left: clamp(1rem, 2.4vw, 2rem) !important; padding-right: clamp(1rem, 2.4vw, 2rem) !important; }
+html body :is(#mv-home, #mv-albums, #mv-playlists) { padding-left: var(--page-gutter) !important; padding-right: var(--page-gutter) !important; }
 html body #music-view h1 { font-size: clamp(2.2rem, 4.2vw, 3.6rem) !important; line-height: .95 !important; margin-top: .6rem !important; }
 html body #music-view h1::after { content: ''; display: block; width: 4rem; height: 3px; margin-top: .8rem; background: var(--spec); }
 html body #music-view section > div > h2, html body #music-view h2.text-2xl { font-size: 1.05rem !important; font-weight: 700 !important; letter-spacing: .1em !important; text-transform: uppercase; }
@@ -601,7 +601,7 @@ html body #music-view .group .font-bold:not(i), html body #music-view .group .fo
 html body #music-view .group .text-gray-400:not(i), html body #music-view .group .text-gray-500:not(i) { font-family: var(--v-mono); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--v-mute) !important; }
 
 /* tracks = patch list */
-html body #m-table-wrap { padding-left: clamp(1rem, 2.4vw, 2rem) !important; padding-right: clamp(1rem, 2.4vw, 2rem) !important; }
+html body #m-table-wrap { padding-left: var(--page-gutter) !important; padding-right: var(--page-gutter) !important; }
 html body #m-table-wrap thead tr { border-bottom: 1px solid var(--v-line2) !important; }
 html body #m-table-wrap th { font-family: var(--v-mono); font-size: .6rem !important; letter-spacing: .24em; text-transform: uppercase; font-weight: 500 !important; color: var(--v-mute) !important; }
 html body #tracklist tr { border-bottom: 1px solid var(--v-line); transition: background .2s, box-shadow .2s; }

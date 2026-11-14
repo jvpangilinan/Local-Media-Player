@@ -14,18 +14,18 @@ html:not(.fl-no-squish) button:not(:disabled):active,html:not(.fl-no-squish) .sb
 @keyframes fl-toast{from{opacity:0;translate:0 16px;scale:.92}to{opacity:1;translate:0 0;scale:1}}
 
 /* ---------- click ripple + comet trail ---------- */
-.fl-ripple{position:fixed;z-index:9999;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;
+.fl-ripple{position:fixed;z-index:calc(var(--z-fx) + 999);pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;
   border:2px solid rgba(var(--pr2rgb,255,95,143),.9);box-shadow:0 0 18px rgba(var(--pr2rgb,255,95,143),.55);
   animation:fl-rip .6s cubic-bezier(.2,.7,.3,1) forwards}
 @keyframes fl-rip{to{transform:scale(6);opacity:0;border-width:1px}}
 #fl-trail,#fl-confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
-#fl-trail{z-index:9998}
-#fl-confetti{z-index:9997}
+#fl-trail{z-index:calc(var(--z-fx) + 998)}
+#fl-confetti{z-index:calc(var(--z-fx) + 997)}
 .fl-mag{transition:transform .25s cubic-bezier(.2,.8,.2,1)!important}
 
 /* ---------- ambient layers: dust + aurora ---------- */
-#fl-dust{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
-#fl-aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;opacity:calc(.55 + var(--bass,0)*.45);mix-blend-mode:screen}
+#fl-dust{position:fixed;inset:0;width:100%;height:100%;z-index:var(--z-below);pointer-events:none}
+#fl-aurora{position:fixed;inset:0;z-index:var(--z-below);pointer-events:none;overflow:hidden;opacity:calc(.55 + var(--bass,0)*.45);mix-blend-mode:screen}
 #fl-aurora i{position:absolute;width:62vmax;height:62vmax;border-radius:50%;will-change:transform}
 #fl-aurora i:nth-child(1){left:-18vmax;top:-26vmax;background:radial-gradient(closest-side,rgba(var(--pr1rgb,255,195,113),.20),transparent);animation:fl-d1 41s ease-in-out infinite alternate}
 #fl-aurora i:nth-child(2){right:-22vmax;top:8vmax;background:radial-gradient(closest-side,rgba(var(--pr2rgb,255,95,143),.17),transparent);animation:fl-d2 53s ease-in-out infinite alternate}
@@ -80,7 +80,7 @@ html.fl-no-tint #audio-bar{--fl-tint:var(--pr2rgb,255,95,143)}
 #nowplaying #lm-deck{filter:drop-shadow(0 0 calc(12px + var(--bass,0)*46px) rgba(var(--pr2rgb,255,95,143),.55))}
 
 /* ---------- back to top ---------- */
-#fl-top{position:fixed;right:1.2rem;bottom:calc(var(--bar-h,0px) + 1.2rem);z-index:55;width:2.9rem;height:2.9rem;border-radius:50%;border:0;cursor:pointer;color:#fff;
+#fl-top{position:fixed;right:1.2rem;bottom:calc(var(--bar-h,0px) + 1.2rem);z-index:var(--z-bars);width:2.9rem;height:2.9rem;border-radius:50%;border:0;cursor:pointer;color:#fff;
   display:grid;place-items:center;opacity:0;pointer-events:none;translate:0 14px;transition:opacity .25s,translate .25s;
   background:conic-gradient(rgb(var(--pr2rgb,255,95,143)) calc(var(--p,0)*360deg),rgba(255,255,255,.14) 0)}
 #fl-top::before{content:"";position:absolute;inset:3px;border-radius:50%;background:rgba(14,14,18,.92)}
@@ -90,12 +90,12 @@ html.fl-no-tint #audio-bar{--fl-tint:var(--pr2rgb,255,95,143)}
 html.in-player #fl-top,body.np-open #fl-top{display:none}
 
 /* ---------- banner, confetti, screensaver ---------- */
-#fl-banner{position:fixed;left:50%;top:38%;z-index:9996;pointer-events:none;translate:-50% -50%;text-align:center;white-space:nowrap;
+#fl-banner{position:fixed;left:50%;top:38%;z-index:calc(var(--z-fx) + 996);pointer-events:none;translate:-50% -50%;text-align:center;white-space:nowrap;
   font:900 clamp(2.2rem,8vw,6.5rem)/1 Inter,system-ui,sans-serif;letter-spacing:-.03em;color:#fff;
   text-shadow:0 0 40px rgba(var(--pr2rgb,255,95,143),.9),0 6px 40px rgba(0,0,0,.6);animation:fl-ban 2.3s cubic-bezier(.2,.9,.3,1) forwards}
 #fl-banner small{display:block;font:600 .9rem/1 Inter,system-ui,sans-serif;letter-spacing:.35em;margin-top:1rem;opacity:.8}
 @keyframes fl-ban{0%{opacity:0;scale:.6}14%{opacity:1;scale:1.06}22%{scale:1}80%{opacity:1}100%{opacity:0;scale:1.12}}
-#fl-idle{position:fixed;inset:0;z-index:600;display:grid;place-items:center;background:rgba(5,5,8,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+#fl-idle{position:fixed;inset:0;z-index:calc(var(--z-dialog) + 300);display:grid;place-items:center;background:rgba(5,5,8,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
   opacity:0;pointer-events:none;transition:opacity 1.2s ease;cursor:none}
 #fl-idle.on{opacity:1;pointer-events:auto}
 #fl-idle .fi-card{text-align:center;animation:fl-roam 48s ease-in-out infinite alternate}
@@ -107,7 +107,7 @@ html.in-player #fl-top,body.np-open #fl-top{display:none}
 @keyframes fl-roam{0%{translate:-9vw -7vh}50%{translate:6vw 5vh}100%{translate:9vw -4vh}}
 
 /* ---------- what's new + welcome chip ---------- */
-#fl-new{position:fixed;inset:0;z-index:400;display:grid;place-items:center;padding:1rem;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fl-fade .35s ease both}
+#fl-new{position:fixed;inset:0;z-index:calc(var(--z-dialog) + 100);display:grid;place-items:center;padding:1rem;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fl-fade .35s ease both}
 @keyframes fl-fade{from{opacity:0}to{opacity:1}}
 #fl-new .fn-card{width:min(32rem,100%);max-height:90vh;overflow:auto;border-radius:1.2rem;padding:1.8rem;background:#131318;color:#fff;
   border:1px solid rgba(var(--pr2rgb,255,95,143),.45);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(var(--pr2rgb,255,95,143),.18);animation:fl-rise .55s cubic-bezier(.2,.9,.3,1) both}
@@ -124,7 +124,7 @@ html.in-player #fl-top,body.np-open #fl-top{display:none}
 .fl-btn{font:700 .82rem/1 Inter,system-ui,sans-serif;padding:.75rem 1.2rem;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;cursor:pointer}
 .fl-btn:hover{background:rgba(255,255,255,.14)}
 .fl-btn.pri{border:0;color:#14080f;background:linear-gradient(90deg,rgb(var(--pr1rgb,255,195,113)),rgb(var(--pr2rgb,255,95,143)))}
-#fl-chip{position:fixed;left:50%;top:1rem;transform:translate(-50%,-160%);z-index:300;padding:.55rem 1.1rem;border-radius:999px;
+#fl-chip{position:fixed;left:50%;top:1rem;transform:translate(-50%,-160%);z-index:var(--z-dialog);padding:.55rem 1.1rem;border-radius:999px;
   font:600 .8rem/1 Inter,system-ui,sans-serif;letter-spacing:.04em;color:#fff;background:rgba(18,18,22,.8);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(var(--pr2rgb,255,95,143),.5);
   box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 24px rgba(var(--pr2rgb,255,95,143),.25);transition:transform .6s cubic-bezier(.2,.9,.2,1)}
