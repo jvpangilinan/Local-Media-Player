@@ -1155,7 +1155,18 @@
         async function rescan() {
             const icon = $('rescan-icon');
             icon.classList.add('fa-spin');
-            try { await post('/api/rescan'); await loadVideos('public'); if (token) await loadVideos('private'); if (currentView === 'music-view') musicOpened(); } catch (e) { console.error(e); }
+            try {
+                const d = await post('/api/rescan');
+                await loadVideos('public'); if (token) await loadVideos('private');
+                if (d.music_scanning) {           // music indexes in the background: keep spinning, refresh it when done
+                    const end = Date.now() + 10 * 60000;
+                    while (Date.now() < end) {
+                        await new Promise(r => setTimeout(r, 1500));
+                        try { if (!(await api('/api/scan/status')).music) break; } catch (e) { break; }
+                    }
+                }
+                if (currentView === 'music-view') musicOpened();
+            } catch (e) { console.error(e); }
             icon.classList.remove('fa-spin');
         }
 

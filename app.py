@@ -511,6 +511,8 @@ STARTUP_SCAN = threading.Event()                  # cleared by main() while the 
 STARTUP_SCAN.set()
 SCAN_STATE = {"running": False, "again": False}
 SCAN_GUARD = threading.Lock()
+MUSIC_SCAN_LOCK = threading.Lock()               # one music scan at a time; a second caller waits, then rescans
+MUSIC_STATE = {"running": False, "again": False}  # the background music scan (Rescan button, folder watcher)
 SCAN_VER = {"v": 0}                 # bumps every time the video library was re-indexed (the page polls it)
 OFFLINE = {}                        # library -> folder, for media folders that were not there at the last scan (drive unplugged)
 
@@ -773,7 +775,42 @@ def read_track(path, rel):
 
 
 def scan_music():
-    """Index lives in SQLite (table `tracks`). Only new or changed files are re-read."""
+    """Index lives in SQLite (table `tracks`). Only new or changed files are re-read.
+    Scans never overlap: a call made while one runs waits for it, then scans again (so its new files are seen)."""
+    with MUSIC_SCAN_LOCK:
+        return _scan_music()
+
+
+def schedule_music_scan():
+    """Rescan the music in the background so the caller returns at once. Requests made while it runs are merged into
+    one rerun."""
+    with SCAN_GUARD:
+        if MUSIC_STATE["running"]:
+            MUSIC_STATE["again"] = True
+            return
+        MUSIC_STATE["running"] = True
+
+    def work():
+        background_io(True)
+        while True:
+            try:
+                scan_music()
+            except Exception:
+                log.exception("background scan_music failed")
+            with SCAN_GUARD:
+                if MUSIC_STATE["again"]:
+                    MUSIC_STATE["again"] = False
+                    continue
+                MUSIC_STATE["running"] = False
+                break
+    threading.Thread(target=work, daemon=True).start()
+
+
+def music_busy():
+    return bool(MUSIC_STATE["running"] or STATUS["music_scanning"])
+
+
+def _scan_music():
     STATUS["music_scanning"] = True
     try:
         root = CFG["music_dir"]
@@ -3143,8 +3180,8 @@ def finish_download(job, stage, rc):
     try:                                          # index BEFORE reporting done, so "Show in library" always finds it
         if is_video:
             scan_videos()
-        elif not STATUS["music_scanning"]:
-            scan_music()
+        else:
+            scan_music()                          # waits for a scan already running, then picks up the new songs
     except Exception:
         log.warning("finish_download: Exception ignored", exc_info=True)
     if not is_video and rels and (job.get("mk_album") or job.get("mk_playlist")):
@@ -5228,14 +5265,6 @@ def page_seen():
     WATCH["seen"] = now
 
 
-def _rescan_music_bg():
-    background_io(True)
-    try:
-        scan_music()
-    except Exception:
-        log.exception("background scan_music failed")
-
-
 def folder_watcher():
     """New genre folder, new video or song, or a rename done by hand? Re-index by itself, no Rescan press needed.
     Rescans only after the folders have been quiet for one full check, so one torrent finishing (or ten) causes a single
@@ -5247,8 +5276,7 @@ def folder_watcher():
         "videos": (lambda: _tree_signature((CFG["video_dir"], CFG["private_dir"]), VIDEO_EXTS, SIDE_IMAGE_EXTS),
                    lambda: SCAN_STATE["running"], schedule_scan),
         "music": (lambda: _tree_signature((CFG["music_dir"],), MUSIC_EXTS),
-                  lambda: STATUS["music_scanning"],
-                  lambda: threading.Thread(target=_rescan_music_bg, daemon=True).start()),
+                  lambda: music_busy(), lambda: schedule_music_scan()),
     }
     state = {k: {"last": None, "dirty": False, "unsettled": False} for k in trees}
     while True:
@@ -5280,15 +5308,20 @@ def api_videos_version():
 
 @app.get("/api/scan/status")
 def api_scan_status():
-    return jsonify({"scanning": bool(SCAN_STATE["running"]), "offline": offline_json()})
+    return jsonify({"scanning": bool(SCAN_STATE["running"]), "music": music_busy(), "offline": offline_json()})
 
 
 @app.post("/api/rescan")
 def api_rescan():
+    """Videos are re-indexed before answering (quick: unchanged files are not re-read), so the page can reload them.
+    Music is re-indexed in the background, since reading new songs' tags can take minutes; the page polls
+    /api/scan/status ("music") to know when it is done."""
     n_videos = scan_videos()
-    n_tracks = scan_music() if not STATUS["music_scanning"] else len(LIB["tracks"])
+    schedule_music_scan()
     threading.Thread(target=pregenerate_posters, daemon=True).start()
-    return jsonify({"videos": n_videos, "tracks": n_tracks, "offline": offline_json()})
+    with LIB_LOCK:
+        n_tracks = len(LIB["tracks"])
+    return jsonify({"videos": n_videos, "tracks": n_tracks, "music_scanning": True, "offline": offline_json()})
 
 
 

@@ -74,7 +74,7 @@ assert msig()[0] == m2
 #    and wakes up right away when the page comes back
 calls = {"videos": 0, "music": 0}
 app.schedule_scan = lambda: calls.__setitem__("videos", calls["videos"] + 1)
-app._rescan_music_bg = lambda: calls.__setitem__("music", calls["music"] + 1)
+app.schedule_music_scan = lambda: calls.__setitem__("music", calls["music"] + 1)
 app.WATCH_FAST, app.WATCH_SLOW = 0.05, 30
 app.WATCH["seen"] = time.time() + 3600                # page "open" while the watcher takes its first look
 threading.Thread(target=app.folder_watcher, daemon=True).start()
