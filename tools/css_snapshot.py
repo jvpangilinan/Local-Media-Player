@@ -2,6 +2,7 @@
 Use it before and after any stylesheet clean-up; the diff should be empty unless you meant to change something.
 
     <python with playwright> tools/css_snapshot.py snap  OUT_DIR      # writes OUT_DIR/snap.json + one PNG per state
+    <python with playwright> tools/css_snapshot.py match SELECTORS.json OUT.json   # used by css_unimportant.py
     py -3.12 tools/css_snapshot.py diff  OLD_DIR NEW_DIR [OLD2_DIR...] [--all]  # prints what changed; anything that differs
                                                                         # between OLD and OLD2 (run-to-run noise) is ignored
 
@@ -191,6 +192,60 @@ def snap(out_dir):
         srv.kill()
 
 
+MATCH_JS = r"""(sels) => {
+  const key = el => { const parts = []; let n = el;
+    while (n && n.nodeType === 1 && n !== document.documentElement) {
+      if (n.id && !/-\d+$/.test(n.id)) { parts.unshift('#' + n.id); break; }
+      let i = 1, s = n; while ((s = s.previousElementSibling)) if (s.tagName === n.tagName) i++;
+      parts.unshift(n.tagName.toLowerCase() + ':' + i); n = n.parentElement; }
+    return parts.join('>') || 'html'; };
+  const out = {}, ids = new Set();
+  for (const el of document.querySelectorAll('[id]')) ids.add(el.id);
+  for (const sel of sels) {
+    try { out[sel] = [...document.querySelectorAll(sel)].map(key); } catch (e) { out[sel] = null; }
+  }
+  return { matches: out, ids: [...ids] };
+}"""
+
+
+def match(sel_file, out_file):
+    """Evaluate selectors (JSON list) against the DOM of every view and variant; write {selector: [element keys]} (null = invalid)."""
+    from playwright.sync_api import sync_playwright
+    sels = json.loads(Path(sel_file).read_text(encoding="utf-8"))
+    port = free_port()
+    srv = subprocess.Popen(["py", "-3.12", str(Path(__file__).resolve()), "serve", str(port)],
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=str(ROOT))
+    res, ids = {}, set()
+    try:
+        for line in srv.stdout:
+            if "READY" in line: break
+        url = f"http://127.0.0.1:{port}/?nobundle=1"
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(channel="chrome", headless=True)
+            for vname, ls in VARIANTS:
+                ctx = browser.new_context(viewport={"width": 1280, "height": 800})
+                ctx.add_init_script("localStorage.setItem('ultron_ffmpeg_skip','1');localStorage.setItem('lmpv9_seen','1');"
+                                    "const __ls = LS_JSON; for (const k in __ls) localStorage.setItem(k, __ls[k]);".replace("LS_JSON", json.dumps(ls)))
+                page = ctx.new_page(); page.clock.install(time=1767268800000); page.clock.pause_at(1767268800000)
+                page.goto(url); page.wait_for_load_state("networkidle")
+                for view, tab in VIEWS + [("settings", None), ("menu-open", None)]:
+                    if tab: page.evaluate("([v, t]) => { try { closeSettings(); } catch (e) {} switchTab(v, t); }", [view, tab])
+                    elif view == "settings": page.evaluate("() => { switchTab('home-view', 'tab-home'); openSettings(); }")
+                    else: page.evaluate("() => { closeSettings(); toggleMenu(true); }")
+                    page.clock.run_for(2500); page.wait_for_timeout(300)
+                    r = page.evaluate(MATCH_JS, sels)
+                    ids.update(r["ids"])
+                    for k, v in r["matches"].items():
+                        if v is None: res[k] = None
+                        elif res.get(k, 0) is not None: res.setdefault(k, set()).update(v)
+                ctx.close()
+            browser.close()
+    finally:
+        srv.kill()
+    Path(out_file).write_text(json.dumps({"matches": {k: (None if v is None else sorted(v)) for k, v in res.items()}, "ids": sorted(ids)}), encoding="utf-8")
+    print(f"{len(sels)} selectors matched across {len(VARIANTS) * (len(VIEWS) + 2)} states -> {out_file}")
+
+
 def diff(a_dir, b_dir, noise_dirs=(), limit=60):
     load = lambda d: json.loads((Path(d) / "snap.json").read_text())
     a, b = load(a_dir), load(b_dir)
@@ -239,6 +294,8 @@ if __name__ == "__main__":
         serve(int(sys.argv[2]))
     elif cmd == "snap":
         snap(sys.argv[2])
+    elif cmd == "match":
+        match(sys.argv[2], sys.argv[3])
     elif cmd == "diff":
         rest = [a for a in sys.argv[4:] if a != "--all"]
         sys.exit(1 if diff(sys.argv[2], sys.argv[3], rest, limit=10**9 if "--all" in sys.argv else 60) else 0)

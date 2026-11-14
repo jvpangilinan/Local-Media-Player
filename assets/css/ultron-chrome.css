@@ -33,7 +33,7 @@ html[data-pal="chrome"] body #sidebar #lm-mark .glyph {
 html[data-pal="chrome"] body #sidebar #lm-mark:hover .glyph { transform: scale(1.07); }
 
 /* chrome plates: lit edge + subtle sheen on glass and active controls */
-html[data-pal="chrome"] body #sidebar { border-color: rgba(255,255,255,.18) !important;
+html[data-pal="chrome"] body #sidebar { border-color: rgba(255,255,255,.18);
   box-shadow: 0 24px 60px -18px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(255,255,255,.05); }
 
 /* dark text on the bright metal so labels stay readable */

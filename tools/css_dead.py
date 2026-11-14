@@ -268,6 +268,48 @@ def strip_file(path, s, nodes):
     return len([c for c in cuts])
 
 
+# ------------------------------------------------------------------ shorthands
+_SIDES = ("top", "right", "bottom", "left")
+_CORNERS = ("top-left", "top-right", "bottom-right", "bottom-left")
+SHORTHANDS = {
+    "margin": [f"margin-{x}" for x in _SIDES], "padding": [f"padding-{x}" for x in _SIDES],
+    "inset": list(_SIDES), "border-width": [f"border-{x}-width" for x in _SIDES],
+    "border-style": [f"border-{x}-style" for x in _SIDES], "border-color": [f"border-{x}-color" for x in _SIDES],
+    "border-radius": [f"border-{x}-radius" for x in _CORNERS],
+    "border": [f"border-{x}-{k}" for x in _SIDES for k in ("width", "style", "color")] + ["border-image"],
+    **{f"border-{x}": [f"border-{x}-{k}" for k in ("width", "style", "color")] for x in _SIDES},
+    "outline": ["outline-width", "outline-style", "outline-color"],
+    "background": ["background-color", "background-image", "background-position", "background-size", "background-repeat",
+                   "background-attachment", "background-origin", "background-clip"],
+    "font": ["font-family", "font-size", "font-weight", "font-style", "font-variant", "line-height", "font-stretch"],
+    "flex": ["flex-grow", "flex-shrink", "flex-basis"], "flex-flow": ["flex-direction", "flex-wrap"],
+    "gap": ["row-gap", "column-gap"], "grid-gap": ["row-gap", "column-gap"], "overflow": ["overflow-x", "overflow-y"],
+    "transition": ["transition-property", "transition-duration", "transition-timing-function", "transition-delay"],
+    "animation": ["animation-name", "animation-duration", "animation-timing-function", "animation-delay",
+                  "animation-iteration-count", "animation-direction", "animation-fill-mode", "animation-play-state"],
+    "grid-template": ["grid-template-rows", "grid-template-columns", "grid-template-areas"],
+    "grid-area": ["grid-row-start", "grid-column-start", "grid-row-end", "grid-column-end"],
+    "grid-row": ["grid-row-start", "grid-row-end"], "grid-column": ["grid-column-start", "grid-column-end"],
+    "place-items": ["align-items", "justify-items"], "place-content": ["align-content", "justify-content"],
+    "place-self": ["align-self", "justify-self"], "list-style": ["list-style-type", "list-style-position", "list-style-image"],
+    "text-decoration": ["text-decoration-line", "text-decoration-color", "text-decoration-style", "text-decoration-thickness"],
+    "columns": ["column-width", "column-count"], "mask": ["mask-image", "mask-position", "mask-size", "mask-repeat"],
+    "-webkit-mask": ["-webkit-mask-image", "-webkit-mask-position", "-webkit-mask-size", "-webkit-mask-repeat"],
+    "scroll-margin": [f"scroll-margin-{x}" for x in _SIDES], "scroll-padding": [f"scroll-padding-{x}" for x in _SIDES],
+}
+
+
+def longhands(prop):
+    """Set of longhand properties a declaration sets (itself if it is not a known shorthand)."""
+    out, todo = set(), [prop]
+    while todo:
+        p = todo.pop()
+        if p in SHORTHANDS: todo.extend(SHORTHANDS[p])
+        else: out.add(p)
+    # border-top-left-radius etc. come from border-radius; border-top etc. expand above
+    return out
+
+
 # ------------------------------------------------------------------ order check (for moving rules between files)
 def subject(sel):
     """Rightmost compound of a selector -> (pseudo_element, ids, tag)."""
@@ -334,12 +376,15 @@ def order_check(old_ref):
     for m in added[:20]: print("  ADDED  ", m)
     by_prop = {}
     for d in new:
-        if d[0] in old_pos: by_prop.setdefault(d[2], []).append(d)
-    hits = []
+        if d[0] in old_pos:
+            for lh in longhands(d[2]): by_prop.setdefault(lh, []).append(d)
+    hits, seen_pairs = [], set()
     for prop, ds in by_prop.items():
         for i in range(len(ds)):
             for j in range(i + 1, len(ds)):
                 a, b = ds[i], ds[j]                     # a before b in the new order
+                if (a[0], b[0]) in seen_pairs: continue
+                seen_pairs.add((a[0], b[0]))
                 if old_pos[a[0]] < old_pos[b[0]] or a[3] != b[3]:
                     continue                            # same relative order, or importance decides anyway
                 for sa, pa in a[1]:

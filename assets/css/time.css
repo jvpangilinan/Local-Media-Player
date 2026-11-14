@@ -8,7 +8,7 @@
 .hc-greet { display: flex; align-items: center; gap: .7rem; line-height: 1.05; }
 .hc-greet i { font-size: .78em; }
 .hc-date { margin-top: .55rem; font-weight: 500; }
-#corner-clock { top: .85rem !important; right: 1.4rem !important; width: 3.3rem; height: 3.3rem; font-size: 0; }
+#corner-clock { top: .85rem !important; right: 1.4rem; width: 3.3rem; height: 3.3rem; font-size: 0; }
 #corner-clock .rx { width: 100%; height: 100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
 body.clock-on #browse-bar { right: 6rem; }
 

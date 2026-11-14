@@ -1,14 +1,14 @@
 /* ===== Music page base (from ui-fix.css): layout, toolbar, type, shelves, track list ===== */
 #music-view { top: 0 !important; right: 0 !important; bottom: var(--bar-h) !important; }
-html #music-grid { display: grid; height: 100%; }
+#music-grid { display: grid; height: 100%; }
 html #music-view aside, html #m-main { min-height: 0; height: 100%; }
 html #music-view aside { padding-top: .25rem; }
 /* the menu button lives top-left: give it its own room instead of sitting on top of the library header or the toolbar */
 html #music-grid:not(.lib-off) aside { padding-top: 3.4rem; }
-html #music-grid.lib-off #m-main > .sticky { padding-left: 4.6rem !important; }
-html #music-grid:not(.lib-off) #m-main > .sticky { padding-left: 1.5rem !important; }
-html body.clock-on #m-main > .sticky { padding-right: 5.4rem; }
-html #m-main > .sticky { background: var(--panel-solid) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: .8rem; padding-bottom: .8rem; }
+#music-grid.lib-off #m-main > .sticky { padding-left: 4.6rem; }
+#music-grid:not(.lib-off) #m-main > .sticky { padding-left: 1.5rem; }
+body.clock-on #m-main > .sticky { padding-right: 5.4rem; }
+#m-main > .sticky { background: var(--panel-solid) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: .8rem; padding-bottom: .8rem; }
 /* library tabs: wrap instead of being cut off */
 #lib-tabs { flex-wrap: wrap !important; overflow: visible !important; row-gap: .4rem; }
 
@@ -48,7 +48,7 @@ html #m-main > .sticky { background: var(--panel-solid) !important; -webkit-back
 #mv-gen > div:first-child { background: rgba(255,255,255,.05) !important; border: 1px solid var(--mu-hair) !important; border-radius: 1.1rem; box-shadow: none !important; }
 
 /* ===== ULTRON: original music home (masthead, channel list, record crates) + scratch deck ===== */
-html body #mv-home{padding-top:1rem}
+#mv-home {padding-top:1rem}
 #mv-home .mh{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap;padding:1rem 0 1.6rem;border-bottom:1px solid var(--v-line2);position:relative;margin-bottom:0}
 #mv-home .mh::after{content:'';position:absolute;left:0;bottom:-1px;width:7rem;height:2px;background:var(--spec)}
 #mv-home .mh-t{font-family:var(--v-display);font-weight:800;font-size:clamp(3rem,7vw,6.5rem);line-height:.85;letter-spacing:-.02em;text-transform:uppercase}
@@ -69,15 +69,15 @@ html body #mv-home{padding-top:1rem}
 #mv-home .ch button:hover{background:var(--pr1);color:var(--v-on)}
 /* shelves: clean Spotify-style cards, no overlapping; the caption stays in the card so nothing covers the next one */
 html body #mv-home .hscroll{padding:1rem .4rem 1.4rem!important;margin:0!important;align-items:flex-start}
-html body #mv-home .hscroll>.group{width:11.5rem!important;margin-right:.4rem!important;padding:.7rem!important;border-radius:.9rem!important;position:relative;transition:transform .25s cubic-bezier(.2,.85,.25,1),background .2s!important}
-html body #mv-home .hscroll>.group:hover{transform:translateY(-4px)!important;z-index:2;background:var(--v-fill)!important}
-html body #mv-home .hscroll>.group:hover~.group{transform:none!important}
-html body #mv-home .hscroll>.group .relative{margin-bottom:.7rem!important;box-shadow:0 8px 22px -10px rgba(0,0,0,.8)}
+#mv-home .hscroll>.group {width:11.5rem!important;margin-right:.4rem!important;padding:.7rem!important;border-radius:.9rem!important;position:relative;transition:transform .25s cubic-bezier(.2,.85,.25,1),background .2s!important}
+#mv-home .hscroll>.group:hover {transform:translateY(-4px)!important;z-index:2;background:var(--v-fill)!important}
+#mv-home .hscroll>.group:hover~.group {transform:none!important}
+#mv-home .hscroll>.group .relative {margin-bottom:.7rem!important;box-shadow:0 8px 22px -10px rgba(0,0,0,.8)}
 html body #mv-home .hscroll>.group button.bg-accent,html body #mv-home .hscroll>.group>.relative>span.bg-accent{display:flex!important}
-html body #mv-home .hscroll>.group>div:not(.relative){position:static!important;width:auto!important;opacity:1!important;pointer-events:auto;background:none!important;padding:0!important;border:0!important;overflow:hidden}
-html body #mv-home .hscroll>.group>div:not(.relative)>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mv-home .hscroll>.group>div:not(.relative) {position:static!important;width:auto!important;opacity:1!important;pointer-events:auto;background:none!important;padding:0!important;border:0!important;overflow:hidden}
+#mv-home .hscroll>.group>div:not(.relative)>div {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body #mv-home section.mb-8>div:first-child{border-left:3px solid var(--pr1);padding-left:.9rem;margin-bottom:.2rem}
-html body #mv-home section.mb-8 .carousel-btn{display:flex}
+#mv-home section.mb-8 .carousel-btn {display:flex}
 html body #mv-home section.mb-8{margin-bottom:1.2rem}
 /* scratch deck */
 #lm-deck .disc{cursor:grab;touch-action:none}
@@ -117,8 +117,8 @@ html.disco #main{animation:abdisco 1.2s linear infinite}
 #nowplaying .npg-x{left:4.1rem}
 
 html body #private-view .vault-door{position:absolute;top:.6rem;right:clamp(1.5rem,6vw,4rem);width:clamp(8rem,16vw,14rem);opacity:.75;pointer-events:none;z-index:0}
-html body #private-view .vault-door .spin{transform-origin:100px 100px;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
-html body #private-view:hover .vault-door .spin{transform:rotate(120deg)}
+#private-view .vault-door .spin {transform-origin:100px 100px;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
+#private-view:hover .vault-door .spin {transform:rotate(120deg)}
 
 #lm-deck .dj-fx{position:absolute;left:-25%;top:-25%;width:150%;height:150%;pointer-events:none}
 #nowplaying .npg-sleep{position:absolute;top:1.4rem;right:1.6rem;z-index:var(--z-raised);font-family:var(--v-mono);font-size:.6rem;letter-spacing:.2em;border:1px solid var(--v-line2);padding:.4rem .7rem;color:#ccc;background:rgba(0,0,0,.3)}
@@ -151,74 +151,74 @@ html body #private-view:hover .vault-door .spin{transform:rotate(120deg)}
 /* ===== ULTRON Photos: the light table ===== */
 html body #photos-view{counter-reset:ph;background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.07) 1px,transparent 0) 0 0/22px 22px}
 html body #photos-view .ph-head{align-items:flex-end;border-bottom:1px solid var(--v-line2);padding:1rem 0 1.2rem;margin-bottom:1.6rem;position:relative}
-html body #photos-view .ph-head::after{content:'';position:absolute;left:0;bottom:-1px;width:7rem;height:2px;background:var(--spec)}
+#photos-view .ph-head::after {content:'';position:absolute;left:0;bottom:-1px;width:7rem;height:2px;background:var(--spec)}
 html body #photos-view .ph-title b{display:block;font-family:var(--v-display);font-weight:800;font-size:clamp(2.6rem,6vw,5.4rem);line-height:.85;letter-spacing:-.02em;text-transform:uppercase}
 html body #photos-view .ph-title>span{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.35em;text-transform:uppercase;color:var(--v-mute)}
 html body #photos-view .ph-back{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.25em;text-transform:uppercase;color:var(--pr1);display:block;margin-bottom:.8rem}
 html body #photos-view .ph-act{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--v-line2);padding:.45rem .8rem;margin-left:.4rem}
 html body #photos-view .ph-act:hover,html body #photos-view .ph-act.on{border-color:var(--pr1);color:var(--pr1)}
 /* albums = piles of prints on the table; hover fans them out */
-html body #ph-albums{gap:3.2rem 2.2rem;padding:1.4rem .6rem 2rem}
+#ph-albums {gap:3.2rem 2.2rem;padding:1.4rem .6rem 2rem}
 html body #ph-albums .al{position:relative;transition:transform .35s cubic-bezier(.2,.85,.25,1),opacity .2s}
-html body #ph-albums .al-cover{position:relative;display:block;overflow:visible!important;border-radius:2px!important;isolation:isolate;box-shadow:0 14px 30px -10px rgba(0,0,0,.8);border:6px solid #f4f1ea;border-bottom-width:22px}
-html body #ph-albums .al-cover::before,html body #ph-albums .al-cover::after{content:'';position:absolute;inset:-6px -6px -22px;background:#e7e2d6;border-radius:2px;z-index:-1;transition:transform .4s cubic-bezier(.2,.85,.25,1);box-shadow:0 8px 18px -8px rgba(0,0,0,.7)}
-html body #ph-albums .al-cover::before{transform:rotate(-5deg)}
-html body #ph-albums .al-cover::after{transform:rotate(4deg);background:#d9d3c4}
-html body #ph-albums .al:hover{transform:translateY(-.5rem) rotate(-1deg)}
-html body #ph-albums .al:hover .al-cover::before{transform:rotate(-13deg) translateX(-.8rem)}
-html body #ph-albums .al:hover .al-cover::after{transform:rotate(11deg) translateX(.8rem)}
+#ph-albums .al-cover {position:relative;display:block;overflow:visible!important;border-radius:2px!important;isolation:isolate;box-shadow:0 14px 30px -10px rgba(0,0,0,.8);border:6px solid #f4f1ea;border-bottom-width:22px}
+#ph-albums .al-cover::before, #ph-albums .al-cover::after {content:'';position:absolute;inset:-6px -6px -22px;background:#e7e2d6;border-radius:2px;z-index:-1;transition:transform .4s cubic-bezier(.2,.85,.25,1);box-shadow:0 8px 18px -8px rgba(0,0,0,.7)}
+#ph-albums .al-cover::before {transform:rotate(-5deg)}
+#ph-albums .al-cover::after {transform:rotate(4deg);background:#d9d3c4}
+#ph-albums .al:hover {transform:translateY(-.5rem) rotate(-1deg)}
+#ph-albums .al:hover .al-cover::before {transform:rotate(-13deg) translateX(-.8rem)}
+#ph-albums .al:hover .al-cover::after {transform:rotate(11deg) translateX(.8rem)}
 html body #ph-albums .al-name{display:block;margin-top:1.6rem;font-family:var(--v-display);font-weight:700;font-size:1.25rem;letter-spacing:.08em;text-transform:uppercase}
 html body #ph-albums .al-n{font-family:var(--v-mono);font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--v-mute)}
 /* contact-sheet tiles: frame numbers, develop-on-hover */
-html body #ph-grid .ph-tile{counter-increment:ph;position:relative;border-radius:1px;filter:none;opacity:1;transition:box-shadow .25s,transform .25s}
-html body #ph-grid .ph-tile:hover{filter:none;opacity:1;transform:scale(1.03);z-index:5}
-html body #ph-grid .ph-tile::after{content:counter(ph,decimal-leading-zero);position:absolute;left:.4rem;bottom:.35rem;font-family:var(--v-mono);font-size:.55rem;letter-spacing:.2em;color:#fff;text-shadow:0 1px 4px #000;opacity:0;transition:opacity .2s}
-html body #ph-grid .ph-tile:hover::after{opacity:1}
+#ph-grid .ph-tile {counter-increment:ph;position:relative;border-radius:1px;filter:none;opacity:1;transition:box-shadow .25s,transform .25s}
+#ph-grid .ph-tile:hover {filter:none;opacity:1;transform:scale(1.03);z-index:5}
+#ph-grid .ph-tile::after {content:counter(ph,decimal-leading-zero);position:absolute;left:.4rem;bottom:.35rem;font-family:var(--v-mono);font-size:.55rem;letter-spacing:.2em;color:#fff;text-shadow:0 1px 4px #000;opacity:0;transition:opacity .2s}
+#ph-grid .ph-tile:hover::after {opacity:1}
 
 /* ===== ULTRON Browse: the projection booth (film reels, sprocket frames) ===== */
 html body :is(#video-view,#series-view,#videos-view,#private-view){counter-reset:reel;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 18rem)}
 html body :is(#video-view,#series-view,#videos-view,#private-view) section{counter-increment:reel;margin-bottom:2.6rem}
 html body :is(#video-view,#series-view,#videos-view,#private-view) section>div:first-child{display:flex;align-items:baseline;gap:1rem;border-bottom:1px solid var(--v-line2);padding-bottom:.7rem;margin-bottom:1.1rem;position:relative}
-html body :is(#video-view,#series-view,#videos-view,#private-view) section>div:first-child::before{content:'REEL ' counter(reel,decimal-leading-zero);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.3em;color:var(--pr1);flex:none;border:1px solid var(--pr1);padding:.25rem .5rem}
-html body :is(#video-view,#series-view,#videos-view,#private-view) section>div:first-child::after{content:'';position:absolute;left:0;bottom:-1px;width:5rem;height:2px;background:var(--spec)}
+:is(#video-view,#series-view,#videos-view,#private-view) section>div:first-child::before {content:'REEL ' counter(reel,decimal-leading-zero);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.3em;color:var(--pr1);flex:none;border:1px solid var(--pr1);padding:.25rem .5rem}
+:is(#video-view,#series-view,#videos-view,#private-view) section>div:first-child::after {content:'';position:absolute;left:0;bottom:-1px;width:5rem;height:2px;background:var(--spec)}
 html body :is(#video-view,#series-view,#videos-view,#private-view) section h2,html body :is(#video-view,#series-view,#videos-view,#private-view) section h3{font-family:var(--v-display)!important;font-weight:800!important;font-size:1.9rem!important;letter-spacing:.04em;text-transform:uppercase;line-height:1}
 /* cards = film frames: sprocket strip on top, develops on hover, dims the rest of the row */
 html body :is(#video-view,#series-view,#videos-view,#private-view) .vcard{position:relative;transition:transform .3s cubic-bezier(.2,.85,.25,1),filter .3s,opacity .3s;filter:saturate(.8) brightness(.9)}
-html body :is(#video-view,#series-view,#videos-view,#private-view) .vcard::before{content:'';position:absolute;left:0;right:0;top:0;height:.9rem;z-index:6;pointer-events:none;background-color:rgba(8,8,10,.92);background-image:repeating-linear-gradient(90deg,transparent 0 .35rem,#cfc9bb .35rem .75rem,transparent .75rem 1.1rem);background-size:100% 46%;background-position:0 50%;background-repeat:no-repeat;box-shadow:inset 0 -1px 0 rgba(255,255,255,.12)}
+:is(#video-view,#series-view,#videos-view,#private-view) .vcard::before {content:'';position:absolute;left:0;right:0;top:0;height:.9rem;z-index:6;pointer-events:none;background-color:rgba(8,8,10,.92);background-image:repeating-linear-gradient(90deg,transparent 0 .35rem,#cfc9bb .35rem .75rem,transparent .75rem 1.1rem);background-size:100% 46%;background-position:0 50%;background-repeat:no-repeat;box-shadow:inset 0 -1px 0 rgba(255,255,255,.12)}
 html body :is(#video-view,#series-view,#videos-view,#private-view) .vcard:hover{transform:translateY(-.5rem);filter:none;z-index:8;outline-color:var(--pr1)!important}
-html body :is(#video-view,#series-view,#videos-view,#private-view) .hscroll:hover .vcard:not(:hover){opacity:.62}
+:is(#video-view,#series-view,#videos-view,#private-view) .hscroll:hover .vcard:not(:hover) {opacity:.62}
 html body :is(#video-view,#series-view,#videos-view,#private-view) .vgrid{gap:1.6rem 1.1rem}
 
 /* ===== ULTRON Private: the vault ===== */
 html body #private-view{--vault:#ff3b3b;position:relative;background:repeating-linear-gradient(135deg,rgba(255,59,59,.035) 0 12px,transparent 12px 24px),linear-gradient(180deg,rgba(255,59,59,.07),transparent 22rem)}
-html body #private-view::before{content:'VAULT';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em;color:var(--vault)}
-html body #private-view::after{content:'EYES ONLY';position:absolute;top:1.6rem;left:var(--page-gutter);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.5em;color:var(--v-mute)}
-html body #private-view section>div:first-child::before{border-color:var(--vault);color:var(--vault);content:'FILE ' counter(reel,decimal-leading-zero)}
-html body #private-view section>div:first-child::after{background:var(--vault)}
+#private-view::before {content:'VAULT';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em;color:var(--vault)}
+#private-view::after {content:'EYES ONLY';position:absolute;top:1.6rem;left:var(--page-gutter);font-family:var(--v-mono);font-size:.58rem;letter-spacing:.5em;color:var(--v-mute)}
+#private-view section>div:first-child::before {border-color:var(--vault);color:var(--vault);content:'FILE ' counter(reel,decimal-leading-zero)}
+#private-view section>div:first-child::after {background:var(--vault)}
 html body #private-view .vcard img,html body #private-view .vcard video{filter:blur(7px) saturate(.6);transform:scale(1.06);transition:filter .35s,transform .35s}
 html body #private-view .vcard:hover img,html body #private-view .vcard:hover video{filter:none;transform:none}
 html body #private-view .vcard:hover{outline-color:var(--vault)!important}
 html body #private-bar .pv-tab.on{background:var(--vault)!important;border-color:var(--vault)!important}
 /* ===== ULTRON Downloads: the loading dock ===== */
-html body #dl-view{position:relative;--hz:repeating-linear-gradient(135deg,var(--pr1) 0 10px,#111 10px 20px)}
-html body #dl-view::before{content:'DOCK';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em}
-html body #dl-view::after{content:'';position:absolute;left:0;top:0;right:0;height:.5rem;background:var(--hz)}
+#dl-view {position:relative;--hz:repeating-linear-gradient(135deg,var(--pr1) 0 10px,#111 10px 20px)}
+#dl-view::before {content:'DOCK';display:block;padding:2.2rem var(--page-gutter) 0;font-family:var(--v-display);font-weight:900;font-size:clamp(3rem,8vw,7rem);line-height:.85;letter-spacing:.04em}
+#dl-view::after {content:'';position:absolute;left:0;top:0;right:0;height:.5rem;background:var(--hz)}
 html body #dl-kinds>*{border-radius:0!important;border:1px dashed var(--v-line2)!important;font-family:var(--v-mono);text-transform:uppercase;letter-spacing:.14em;position:relative;transition:transform .2s,border-color .2s}
 html body #dl-kinds>*:hover{transform:translateY(-3px);border-color:var(--pr1)!important}
 html body #dl-kinds>.on,html body #dl-kinds>[class*="on"]{border-style:solid!important}
-html body #dl-list{counter-reset:crate;display:grid;gap:.7rem}
+#dl-list {counter-reset:crate;display:grid;gap:.7rem}
 html body #dl-list>*{counter-increment:crate;border-radius:0!important;border:1px solid var(--v-line2)!important;border-left:6px solid var(--pr1)!important;position:relative;background:var(--v-fill)!important;transition:transform .2s}
 html body #dl-list>*:hover{transform:translateX(.4rem)}
 html body #dl-list>*::before{content:'CRATE ' counter(crate,decimal-leading-zero);position:absolute;right:.7rem;top:.4rem;font-family:var(--v-mono);font-size:.5rem;letter-spacing:.25em;color:var(--v-mute)}
-html body #dl-go{background:var(--hz)!important;color:#fff!important;text-shadow:0 1px 3px #000;font-weight:800;border:1px solid #000!important}
-html body #dl-go:hover{filter:brightness(1.15)}
+#dl-go {background:var(--hz)!important;color:#fff!important;text-shadow:0 1px 3px #000;font-weight:800;border:1px solid #000!important}
+#dl-go:hover {filter:brightness(1.15)}
 /* Settings > Privacy > Blur private covers: off = clear covers */
 html body.priv-clear #private-view .vcard img,html body.priv-clear #private-view .vcard video{filter:none;transform:none}
 /* Private strip: sort the loose videos */
 html body #private-bar .pv-sort{margin-left:1rem;background:rgba(255,255,255,.08);color:inherit;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:.38rem .9rem;font-size:.75rem;outline:none;cursor:pointer}
 html body #private-bar .pv-sort:focus{border-color:var(--accent,rgba(255,255,255,.4))}
 html body #private-bar .pv-sort option{background:#181818;color:#fff}
-html body #private-bar .pv-sort.hidden{display:none}
+#private-bar .pv-sort.hidden {display:none}
 
 /* empty-state hint under the Music Home header (shown only while Plays and Playlists are both 0) */
 #mv-home .mh-hint{display:flex;align-items:center;gap:.7rem;margin-top:1rem;padding:.7rem 1rem;border:1px dashed rgba(255,255,255,.14);color:#9a9a9a;font-size:.8rem}

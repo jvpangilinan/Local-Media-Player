@@ -2,7 +2,7 @@
 
 /* ---- Minimal UI: no motion, no blur, no glow, no decorative layers. Layout and colours stay. ---- */
 html.lm-lite *, html.lm-lite *::before, html.lm-lite *::after {
-  animation: none !important; transition: none !important; scroll-behavior: auto !important;
+  animation: none !important; transition: none !important; scroll-behavior: auto;
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important; text-shadow: none !important;
 }
 html.lm-lite .video-card, html.lm-lite .video-card * { transform: none !important; }

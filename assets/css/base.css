@@ -261,7 +261,7 @@
         /* ---- music: one pane. library panel only when asked ---- */
 
         #music-view .rounded-xl { border-radius: .9rem; }
-        #m-main > .sticky { padding-left: 5rem !important; }
+        #m-main > .sticky { padding-left: 5rem; }
         .mpill .mp-label { font-weight: 400; }
 
         /* ---- buttons: one accent, no glow ---- */
@@ -388,7 +388,7 @@ body.rail .sb-tools .sb-row{flex-direction:column;align-items:center;gap:.15rem}
    ===================================================================================================== */
 :root { --panel: #141416; --panel-solid: #141416; --mu-rad: 1.1rem; --mu-hair: rgba(255,255,255,.09); }
 html { background: var(--bg); }
-html body.bg-lm-base, html body { background: transparent !important; }
+body.bg-lm-base, html body { background: transparent !important; }
 
 /* ---------- background layer: Dark shows none, Colorful = picture, Sync with time = slow colour ---------- */
 @property --bgr { syntax: '<number>'; inherits: true; initial-value: 70; }
@@ -427,7 +427,7 @@ html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { backgroun
 
 /* ---------- menu footer: always one tidy left-aligned block (the Music tab used to switch on a hidden "rail" mode) ---------- */
 
-#sidebar .sb-tools .sb-row, body.rail #sidebar .sb-tools .sb-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start !important; gap: .3rem 1.4rem; width: 100%; }
+#sidebar .sb-tools .sb-row, body.rail #sidebar .sb-tools .sb-row { flex-direction: row !important; flex-wrap: wrap; align-items: center; justify-content: flex-start !important; gap: .3rem 1.4rem; width: 100%; }
 #sidebar .sb-tool, #sidebar .sb-tools .sb-exit { justify-content: flex-start !important; padding: .25rem 0 !important; margin: 0 !important; text-align: left; }
 #theme-btn::after { content: 'Background'; }
 

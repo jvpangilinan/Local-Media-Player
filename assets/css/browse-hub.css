@@ -167,11 +167,11 @@ body.ubh-on #ubh-az.has { display: flex; }
 @media (prefers-reduced-motion: reduce) { #video-view .ubh-fan img { transition: none; } }
 
 /* ---------- old Movies / Series / All videos pill: the hub has its own tabs ---------- */
-html body #browse-bar, #browse-edge { display: none !important; }
+#browse-bar, #browse-edge { display: none !important; }
 
 /* back button: the theme's ".hero-sec button:first-of-type" rule paints it dark-on-dark */
-html body #video-view .ubh-ph .ubh-back { color: var(--v-ink) !important; }
-html body #video-view .ubh-ph .ubh-back:hover { color: var(--pr1) !important; }
+#video-view .ubh-ph .ubh-back { color: var(--v-ink) !important; }
+#video-view .ubh-ph .ubh-back:hover { color: var(--pr1) !important; }
 
 /* ======================================================================
    Cinema > Collections: same layout as Music > Albums
@@ -181,7 +181,7 @@ html body #video-view .ubh-ph .ubh-back:hover { color: var(--pr1) !important; }
 html body #video-view .ubh-mh { font-family: var(--v-display); font-weight: 800 !important; text-transform: uppercase; letter-spacing: .02em !important; font-style: normal;
   font-size: clamp(2.2rem, 4.2vw, 3.6rem) !important; line-height: .95 !important; margin: .6rem 0 1rem !important; color: var(--v-ink); }
 html body #video-view .ubh-mh::before { display: none !important; }
-html body #video-view .ubh-mh::after { content: ''; display: block; width: 4rem; height: 3px; margin-top: .8rem; background: var(--spec, var(--pr1)); }
+#video-view .ubh-mh::after { content: ''; display: block; width: 4rem; height: 3px; margin-top: .8rem; background: var(--spec, var(--pr1)); }
 #video-view .ubh-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 1.1rem; }
 #video-view .ubh-chips .chip { padding: .7rem 1.2rem; cursor: pointer; }
 #video-view .ubh-acts { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; margin: 0 0 1.4rem; }
