@@ -7129,7 +7129,7 @@ def main():
     threading.Thread(target=folder_watcher, daemon=True).start()
     threading.Thread(target=weekly_auto_backup, daemon=True).start()
     remote.init(DATA_DIR, RES_DIR, app, library=remote_library, is_public=remote_is_public, video_path=remote_video_path,
-                probe=remote_probe, ffmpeg=lambda: ff_tools()[0], ranged=ranged_file_response, popen=remote_popen,
+                probe=remote_probe, ffmpeg=lambda: ff_tools()[0], ffprobe=lambda: ff_tools()[1], ranged=ranged_file_response, popen=remote_popen,
                 track_exists=remote_track_exists, track_path=remote_track_path)
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)

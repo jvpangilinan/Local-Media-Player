@@ -38,6 +38,7 @@ H = {                     # app.py fills these in (see init); defaults keep the 
     "video_path": lambda vid: None,   # file of a PUBLIC video, else None
     "probe": lambda vid: {},          # probe_video() result
     "ffmpeg": lambda: None,           # ffmpeg executable or None
+    "ffprobe": lambda: None,          # ffprobe executable or None (keyframes for an in-sync remux)
     "ranged": None,                   # ranged_file_response(path)
     "popen": None,                    # Popen at the app's background priority
     "track_exists": lambda tid: False,
@@ -439,6 +440,56 @@ def choose_mode(ext, probe, audio_index=0):
     return "convert"
 
 
+def landing_keyframe(path, t):
+    """The video keyframe a seek to t lands on (the last one at or before t), asked with ffprobe; None if unknown."""
+    if t <= 0.05:
+        return 0.0
+    probe = H["ffprobe"]()
+    if not probe or H["popen"] is None:
+        return None
+    cmd = [str(probe), "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0",
+           "-read_intervals", "%.3f%%+#1" % t, str(path)]
+    try:
+        proc = H["popen"](cmd)
+        out, _ = proc.communicate(timeout=20)
+    except Exception:
+        log.warning("keyframe lookup failed", exc_info=True)
+        return None
+    for line in (out or b"").decode("utf-8", "replace").splitlines():
+        parts = line.strip().split(",")
+        if len(parts) >= 2 and "K" in parts[1]:
+            try:
+                k = float(parts[0])
+            except ValueError:
+                return None
+            return k if k <= t + 0.001 else None
+    return None
+
+
+_PLANS = {}
+
+
+def remux_plan(path, t):
+    """How to cut a remux (picture copied, sound converted) so both start together.
+    ffmpeg's own input seek is not exact for every container (Matroska lands a keyframe early, while the converted sound
+    starts exactly where asked: sound and picture end up a whole keyframe interval apart). So: a rough input seek to well
+    before the keyframe K, then an exact output cut at K - 0.5 s. The sound starts there, the picture at its keyframe K,
+    and delay_moov keeps that half second in the stream. Returns (input_ss, output_ss, phone_offset) or None."""
+    key = (str(path), round(t, 2))
+    if key in _PLANS:
+        return _PLANS[key]
+    k = landing_keyframe(path, t)
+    if k is None:
+        return None
+    off = max(0.0, k - 0.5)
+    ss_in = max(0.0, off - 3.0)
+    plan = (round(ss_in, 3), round(off - ss_in, 3), round(off, 3))
+    if len(_PLANS) > 200:
+        _PLANS.clear()
+    _PLANS[key] = plan
+    return plan
+
+
 def _kill_stream():
     with _stream_lock:
         p, _stream["proc"] = _stream["proc"], None
@@ -462,6 +513,23 @@ def lan_streaminfo(vid):
                     "audio": [{"lang": a.get("lang") or "", "codec": a.get("codec") or ""} for a in pr.get("audio") or []]})
 
 
+@LAN.get("/seekpoint/<vid>")
+def lan_seekpoint(vid):
+    """Where a remuxed stream asked to start at t really starts (the keyframe before t); the phone counts time from there."""
+    _need_pair()
+    path = H["video_path"](vid) if H["is_public"](vid) else None
+    if not path:
+        abort(404)
+    try:
+        t = max(0.0, float(request.args.get("t") or 0))
+    except ValueError:
+        abort(400)
+    if (request.args.get("mode") or "remux") != "remux":
+        return jsonify({"t": t, "exact": True})
+    plan = remux_plan(path, t)
+    return jsonify({"t": plan[2] if plan else t, "exact": plan is not None})
+
+
 @LAN.get("/stream/<vid>")
 def lan_stream(vid):
     _need_pair()
@@ -480,15 +548,21 @@ def lan_stream(vid):
     ff = H["ffmpeg"]()
     if not ff or H["popen"] is None:
         return jsonify({"error": "This file needs ffmpeg to play on a phone."}), 409
-    cmd = [str(ff), "-hide_banner", "-loglevel", "error", "-ss", "%.3f" % t, "-i", str(path),
-           "-map", "0:v:0", "-map", "0:a:%d?" % a, "-sn", "-dn"]
+    plan = remux_plan(path, t) if mode == "remux" else None
+    if mode == "remux" and plan is None:
+        mode = "convert"                                # keyframes unknown: re-encode, which cuts both exactly
+    if mode == "remux":                                 # see remux_plan: start sound and picture together
+        cmd = [str(ff), "-hide_banner", "-loglevel", "error", "-ss", "%.3f" % plan[0], "-i", str(path), "-ss", "%.3f" % plan[1]]
+    else:                                               # re-encoding decodes both streams, so this cut is exact
+        cmd = [str(ff), "-hide_banner", "-loglevel", "error", "-ss", "%.3f" % t, "-i", str(path)]
+    cmd += ["-map", "0:v:0", "-map", "0:a:%d?" % a, "-sn", "-dn"]
     if mode == "remux":
         cmd += ["-c:v", "copy"]
     else:
         cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
                 "-vf", "scale=-2:'min(720,ih)'"]
     cmd += ["-c:a", "aac", "-ac", "2", "-b:a", "192k",
-            "-movflags", "frag_keyframe+empty_moov+default_base_moof", "-f", "mp4", "pipe:1"]
+            "-movflags", "frag_keyframe+empty_moov+default_base_moof+delay_moov", "-f", "mp4", "pipe:1"]
     if mode == "remux" and str((H["probe"](vid) or {}).get("vcodec")) == "hevc":
         i = cmd.index("-f")
         cmd[i:i] = ["-tag:v", "hvc1"]                      # Safari / iOS want this tag for HEVC

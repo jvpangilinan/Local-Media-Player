@@ -147,6 +147,17 @@ assert si["mode"] == "direct" and si["playable"] is True, si
 r = phone.get(f"/stream/{pub}?mode=direct", headers={"Range": "bytes=0-9"})
 assert r.status_code == 206 and r.data == b"x" * 10, (r.status_code, r.data[:20])
 assert phone.get(f"/stream/{pub}?mode=remux").status_code == 409                         # no ffmpeg here: clear error
+# remuxed streams: an exact cut that starts sound and picture together (keyframe K -> sound from K - 0.5 s)
+assert phone.get(f"/seekpoint/{pub}?t=12").json == {"t": 12.0, "exact": False}                # no ffprobe here: honest fallback
+assert phone.get(f"/seekpoint/{priv}?t=12").status_code == 404
+real_landing = remote.landing_keyframe
+remote.landing_keyframe = lambda path, t: 6.0
+assert remote.remux_plan("x.mkv", 7.3) == (2.5, 3.0, 5.5)
+remote.landing_keyframe = lambda path, t: 0.0
+assert remote.remux_plan("y.mkv", 0.2) == (0.0, 0.0, 0.0)
+remote.landing_keyframe = lambda path, t: None
+assert remote.remux_plan("z.mkv", 40) is None                                          # unknown -> the stream re-encodes instead
+remote.landing_keyframe = real_landing
 cm = remote.choose_mode
 assert cm(".mp4", {"vcodec": "h264", "audio": [{"codec": "aac"}]}) == "direct"
 assert cm(".mp4", {"vcodec": "h264", "audio": [{"codec": "aac"}, {"codec": "aac"}]}, 1) == "remux"     # pick 2nd audio

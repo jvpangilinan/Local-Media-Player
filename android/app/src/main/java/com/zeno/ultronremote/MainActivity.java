@@ -74,7 +74,8 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(BG);
         root.setOnApplyWindowInsetsListener((v, ins) -> {             // keep the page out from under the status / navigation bars
             android.graphics.Insets s = ins.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
-            if (immersive) v.setPadding(0, 0, 0, 0);
+            android.graphics.Insets cut = ins.getInsets(WindowInsets.Type.displayCutout());
+            if (immersive) v.setPadding(cut.left, cut.top, cut.right, cut.bottom);   // full-screen video: bars hidden, but stay clear of the camera
             else v.setPadding(s.left, s.top, s.right, s.bottom);
             return WindowInsets.CONSUMED;
         });
