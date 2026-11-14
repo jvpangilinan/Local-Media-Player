@@ -5,6 +5,8 @@
     py -3.12 tools/css_unimportant.py report --matches M.json                 # 3. what could go, what has to stay
     py -3.12 tools/css_unimportant.py apply  --matches M.json                 # 4. rewrite the stylesheets in place
     py -3.12 tools/css_unimportant.py why [SELECTOR-TEXT] --matches M.json    # why each remaining !important stays
+  --inline-free "#sidebar" --inline-except "#logo-img:display"   (report/apply/why) treat that subtree as never styled
+      inline by JS. Only after checking the JS by hand; M.json must contain matches for "#sidebar" and "#sidebar *".
 (Without --matches it falls back to the markup alone, which cannot see nesting and keeps far more.)
 
 How it decides. Every declaration (all app stylesheets + vendor/tailwind.css, which only competes) is compared with
@@ -16,6 +18,13 @@ flip are undone and the check runs again until nothing flips. It never moves a r
 
 !important always stays on properties JS sets inline (style.x = ..., setProperty, style="..."), because without it
 the inline value would win, and on anything inside a rule this tool cannot parse.
+Blind spot: <style> tags that JS injects (app.js cue-style, autosubs.js, private-search.js, ffmpeg-gate.js) are not read
+as competitors here; they only style their own elements today. `usage` (Chrome's real cascade) does see them.
+
+    py -3.12 tools/css_unimportant.py usage WINNERS.json --matches M.json --root "#sidebar" [--delete]
+        declarations in rules that only hit ROOT's subtree and never win in any recorded state (WINNERS.json from
+        css_snapshot.py winners). Skips @media rules, pseudo-elements, :focus / :active / ... rules and any rule
+        with a selector that never matched, because those states were not observed.
 Confirm with tools/css_snapshot.py afterwards.
 """
 import glob, re, sys
@@ -26,6 +35,8 @@ import css_dead as cd
 
 ROOT = cd.ROOT
 ALL = None                                              # candidate set meaning "could be any element"
+INLINE_FREE = set()                                     # DOM keys checked by hand: JS never styles them inline
+INLINE_EXCEPT = set()                                   # (DOM key, property) inside INLINE_FREE that does get one
 STATIC_INLINE = {}                                      # prop -> DOM keys of elements with style="prop: ..." in index.html
 DYN_TARGETS = {}                                        # class JS adds/toggles -> where ("#id", "body", "html", "*")
 STATIC_IDS = set()                                      # ids written literally somewhere (markup or JS)
@@ -58,6 +69,7 @@ def markup_index():
             els.append({"src": src, "tag": tag, "id": eid, "cls": classes, "inline": inline,
                         "idpat": re.compile("^" + re.sub(r"\\\$\\\{[^}]*\\\}", ".*", re.escape(eid)) + "$") if "${" in eid else None})
         alias = {}
+        newvars = set(re.findall(r"\b(\w+)\s*=\s*(?:document|D|doc)\.createElement\(", t))   # elements JS makes itself
         for m in re.finditer(r"(?:var|let|const)\s+(\w+)\s*=\s*(document\.documentElement|document\.body)\b", t):
             alias[m.group(1)] = "html" if m.group(2).endswith("documentElement") else "body"
         recv_re = r"(\$\(\s*['\"]([-\w]+)['\"]\s*\)|document\.getElementById\(\s*['\"]([-\w]+)['\"]\s*\)|document\.documentElement|document\.body|[\w.$\]\[)'\"]+)"
@@ -67,17 +79,23 @@ def markup_index():
             elif recv.endswith("documentElement"): target = "html"
             elif recv.endswith("document.body"): target = "body"
             elif recv in alias: target = alias[recv]
+            elif recv in newvars: target = "new"         # a class on an element JS just made: it lives only there
             else: target = "*"
             names = re.findall(r"['\"]([-\w:/.\[\]]+)['\"]", args)
             if names and "toggle" in m.group(0)[len(recv):len(recv) + 20] and len(names) > 1:
                 names = names[:1]                          # toggle('x', cond): only the first is a class
             for c in names:
                 dyn.add(c); DYN_TARGETS.setdefault(c, set()).add(target)
-        for m in re.finditer(r"className\s*[+]?=\s*([^;\n]*)", t):
-            for c in [c for x in re.findall(r"['\"`]([^'\"`]*)['\"`]", m.group(1)) for c in x.split()]:
-                DYN_TARGETS.setdefault(c, set()).add("*")
-            dyn.update(re.findall(r"['\"`]([^'\"`]*)['\"`]", m.group(1)) and
-                       [c for s in re.findall(r"['\"`]([^'\"`]*)['\"`]", m.group(1)) for c in s.split()])
+                if target == "new":
+                    els.append({"src": "js", "tag": "", "id": "", "cls": {c}, "inline": set(), "idpat": None})
+        for m in re.finditer(r"([\w$.]+)\.className\s*([+]?=)\s*([^;\n]*)", t):
+            target = "new" if (m.group(1) in newvars and m.group(2) == "=") else "*"
+            names = [c for x in re.findall(r"['\"`]([^'\"`]*)['\"`]", m.group(3)) for c in x.split() if not re.search(r"[${}]", c)]
+            for c in names:
+                DYN_TARGETS.setdefault(c, set()).add(target)
+            dyn.update(names)
+            if target == "new" and names:                 # stand-in for the element JS creates (never in the markup)
+                els.append({"src": "js", "tag": "", "id": "", "cls": set(names), "inline": set(), "idpat": None})
         for m in re.finditer(r"\.id\s*=\s*['\"]([-\w]+)['\"]", t):
             els.append({"src": "js", "tag": "", "id": m.group(1), "cls": set(), "inline": set(), "idpat": None})
     STATIC_IDS.update(e["id"] for e in els if e["id"] and not e["idpat"])
@@ -197,8 +215,9 @@ def relax(sel, dyn):
             m = re.match(r"\.((?:\\.|[-\w])+)", sel[i:])
             if m:
                 c = unescape(m.group(1))
-                tg = DYN_TARGETS.get(c, set()) if c in dyn else set()
-                if c not in dyn: compound += m.group(0)
+                all_tg = DYN_TARGETS.get(c, set()) if c in dyn else set()
+                tg = all_tg - {"new"}                        # "new": only on elements JS creates, never widens
+                if c not in dyn or (not tg and "new" in all_tg): compound += m.group(0)
                 elif "*" in tg or not tg: compound += "\0"
                 else: compound += ":is(" + ", ".join([m.group(0)] + sorted(tg)) + ")"
                 i += len(m.group(0)); continue
@@ -278,7 +297,7 @@ def load(matches=None):
                 if nd[0] == "group": walk(nd[4])
                 elif nd[0] == "rule":
                     sels = cd.split_top(nd[3])
-                    r = {"file": f, "fi": fi, "start": nd[1], "sels": sels, "new": [strip_prefix(x) for x in sels], "pref": False, "decls": []}
+                    r = {"file": f, "fi": fi, "start": nd[1], "sels": sels, "new": [strip_prefix(x) for x in sels], "pref": False, "decls": [], "ctx": nd[4]}
                     rules.append(r)
                     for d in nd[5]:
                         order += 1
@@ -291,7 +310,10 @@ def load(matches=None):
         dom, dom_ids = data["matches"], set(data["ids"])
         STATIC_IDS.update(dom_ids)
         # markup the browser never rendered: JS-built tags, and index.html tags whose id never showed up
-        static_els = [e for e in els if (e["src"] == "js" and not (e["id"] and e["id"] in dom_ids))
+        # ...and JS-template tags whose exact tag + class list showed up in the page (the DOM match already has them)
+        sigs = set(data.get("sigs", ()))
+        seen = lambda e: e["tag"] and (e["tag"] + "|" + " ".join(sorted(e["cls"]))) in sigs
+        static_els = [e for e in els if (e["src"] == "js" and not (e["id"] and e["id"] in dom_ids) and not seen(e))
                       or (e["src"] == "html" and e["id"] and e["id"] not in dom_ids)]
         for r in rules:
             r["cand"] = [dom_candidates(x, relax(x, dyn), dom, static_els, dyn) for x in r["sels"]]
@@ -344,6 +366,17 @@ def flips(decls):
     return out
 
 
+def inline_exempt(d):
+    """True when every element this declaration can hit is in the hand-checked inline-free set."""
+    if not INLINE_FREE: return False
+    mine = cd.longhands(d["prop"])
+    for _, cand in d["rule"]["cand"]:
+        if cand is ALL or not cand <= INLINE_FREE: return False
+        for k, prop in INLINE_EXCEPT:
+            if k in cand and mine & cd.longhands(prop): return False
+    return True
+
+
 def static_inline_hit(d):
     mine = cd.longhands(d["prop"])
     for prop, keys in STATIC_INLINE.items():
@@ -361,7 +394,7 @@ def solve(decls, rules, inl, mode):
     if mode == "imp":
         for d in app:
             if d["imp_old"]:
-                if touches_inline(d["prop"], inl) or static_inline_hit(d): kept_inline += 1
+                if (touches_inline(d["prop"], inl) and not inline_exempt(d)) or static_inline_hit(d): kept_inline += 1
                 else: d["imp_new"] = False
         movable = lambda d: d["imp_new"] != d["imp_old"]
         undo = lambda d: d.__setitem__("imp_new", d["imp_old"])
@@ -407,6 +440,106 @@ def main():
         return
     mfile = sys.argv[sys.argv.index("--matches") + 1] if "--matches" in sys.argv else None
     files, decls, rules, els, inl = load(mfile)
+    if "--inline-free" in sys.argv:                    # e.g. --inline-free "#sidebar" (its subtree must be in --matches)
+        import json
+        m = json.loads(Path(mfile).read_text(encoding="utf-8"))["matches"]
+        root = sys.argv[sys.argv.index("--inline-free") + 1]
+        INLINE_FREE.update("d:" + k for k in (m.get(root, []) + m.get(root + " *", [])))
+        for ex in (sys.argv[sys.argv.index("--inline-except") + 1].split(",") if "--inline-except" in sys.argv else []):
+            k, prop = ex.rsplit(":", 1); INLINE_EXCEPT.add(("d:" + k, prop))
+        print(f"inline-free: {len(INLINE_FREE)} elements under {root}, exceptions {sorted(INLINE_EXCEPT)}")
+    if cmd == "usage":                                   # declarations that never win anywhere under a root
+        import json, collections
+        raw = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+        root = sys.argv[sys.argv.index("--root") + 1] if "--root" in sys.argv else "#sidebar"
+        m = json.loads(Path(mfile).read_text(encoding="utf-8"))["matches"]
+        subtree = set("d:" + k for k in (m.get(root, []) + m.get(root + " *", [])))
+        # (file, line, col) of each rule's first selector, as Chrome reports it
+        by_pos = {}
+        texts = {f.name: f.read_text(encoding="utf-8") for f in files}
+        for r in rules:
+            t = texts[r["file"].name]; st = r["start"]
+            line = t.count("\n", 0, st); col = st - (t.rfind("\n", 0, st) + 1)
+            by_pos[(r["file"].name, line, col)] = r
+        won, seen_rule, seen_sel, beaten_by = set(), set(), set(), collections.defaultdict(collections.Counter)
+        unmapped = 0
+
+        def cascade(rec, skip_media):
+            best = {}                                     # longhand -> (rank, decl or label)
+            for order, (src, line, col, props, *msel) in enumerate(rec["rules"]):
+                r = by_pos.get((src, line, col))
+                if r is None:
+                    entries = [(p, imp, f"anon:{src or 'injected'}") for p, imp in props]
+                else:
+                    if skip_media and r["ctx"]: continue  # as at a window size where this @media is off
+                    entries = [(d["prop"], d["imp_old"], d) for d in r["decls"]]
+                for prop, imp, who in entries:
+                    for lh in cd.longhands(prop):
+                        rank = (2 if imp else 0, order)
+                        if lh not in best or rank >= best[lh][0]: best[lh] = (rank, who)
+            for prop, imp in rec["inline"]:
+                for lh in cd.longhands(prop):
+                    rank = (3 if imp else 1, 0)
+                    if lh not in best or rank >= best[lh][0]: best[lh] = (rank, "inline")
+            return best
+
+        for rec in raw:
+            for (src, line, col, props, *msel) in rec["rules"]:
+                r = by_pos.get((src, line, col))
+                if r is None: unmapped += 1; continue
+                seen_rule.add(id(r))
+                for i in (msel[0] if msel else range(len(r["sels"]))): seen_sel.add((id(r), i))
+            best = cascade(rec, False)
+            for b in (best, cascade(rec, True)):
+                for lh, (rank, who) in b.items():
+                    if isinstance(who, dict): won.add((id(who), lh))
+            # who beat what (for the report)
+            for order, (src, line, col, props, *msel) in enumerate(rec["rules"]):
+                r = by_pos.get((src, line, col))
+                if r is None: continue
+                for d in r["decls"]:
+                    for lh in cd.longhands(d["prop"]):
+                        w = best.get(lh, (None, None))[1]
+                        if w is not None and w is not d:
+                            label = w if isinstance(w, str) else f'{w["rule"]["file"].name}: {", ".join(w["rule"]["sels"])[:60]}'
+                            beaten_by[id(d)][label] += 1
+        # :focus is forced together with :focus-visible, so a :focus-only state is never seen: keep those rules
+        STATEFUL = re.compile(r":(?!hover\b|is\(|where\(|root\b)[-\w]+|::?(before|after|placeholder|selection|marker|first-line|first-letter|-webkit-)")
+        dead = []
+        for r in rules:
+            if r["fi"] == 0 or id(r) not in seen_rule: continue
+            if not all((id(r), i) in seen_sel for i in range(len(r["sels"]))): continue    # a selector never matched: unknown state
+            if any(cand is ALL or not cand <= subtree for _, cand in r["cand"]): continue      # also hits things outside root
+            if any(STATEFUL.search(x) for x in r["sels"]): continue                            # states we did not force
+            if r["ctx"]: continue                                                               # inside @media / @supports
+            for d in r["decls"]:
+                if not any((id(d), lh) in won for lh in cd.longhands(d["prop"])):
+                    dead.append(d)
+        print(f"records {len(raw)}, rules seen {len(seen_rule)}, unmapped rule hits {unmapped}")
+        print(f"never-winning declarations in {root}-only rules: {len(dead)}")
+        for d in dead:
+            r = d["rule"]; top = beaten_by[id(d)].most_common(1)
+            print(f'  {r["file"].name}: {", ".join(r["sels"])[:70]} {{{d["prop"]}{" !important" if d["imp_old"] else ""}}}'
+                  f'   <- {top[0][0] if top else "?"}')
+        if "--delete" in sys.argv:
+            per = collections.defaultdict(list)
+            for d in dead: per[d["rule"]["file"]].append(d)
+            for f, ds in per.items():
+                s = f.read_text(encoding="utf-8")
+                cuts = []
+                for r in {id(d["rule"]): d["rule"] for d in ds}.values():
+                    mine = [d for d in ds if d["rule"] is r]
+                    if len(mine) == len(r["decls"]):          # whole rule is dead: remove it with its braces
+                        end = s.index("}", s.index("{", r["start"])) + 1
+                        cuts.append((r["start"], end))
+                    else:
+                        cuts += [(d["start"], d["end"]) for d in mine]
+                for a, b in sorted(cuts, reverse=True):
+                    s = s[:a] + s[b:]
+                s = re.sub(r"\{\s*\}", "{ }", s); s = re.sub(r"[ \t]+\n", "\n", s); s = re.sub(r"\n{3,}", "\n\n", s)
+                f.write_text(s, encoding="utf-8")
+                print(f"rewrote {f.name}: {len(cuts)} cut(s)")
+        return
     if cmd == "why":                                     # for each !important that has to stay: what it beats
         sel_filter = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith("--") else ""
         by_lh = {}
@@ -415,7 +548,7 @@ def main():
         for d in decls:
             r = d["rule"]
             if r["fi"] == 0 or not d["imp_old"] or (sel_filter and not any(sel_filter in x for x in r["sels"])): continue
-            if touches_inline(d["prop"], inl) or static_inline_hit(d):
+            if (touches_inline(d["prop"], inl) and not inline_exempt(d)) or static_inline_hit(d):
                 print(f'{r["file"].name}: {", ".join(r["sels"])[:70]} {{{d["prop"]}}}  -- JS / markup sets {d["prop"]} inline'); continue
             d["imp_new"] = False
             for b in {id(x): x for lh in cd.longhands(d["prop"]) for x in by_lh.get(lh, ())}.values():

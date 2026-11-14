@@ -3,6 +3,7 @@ Use it before and after any stylesheet clean-up; the diff should be empty unless
 
     <python with playwright> tools/css_snapshot.py snap  OUT_DIR      # writes OUT_DIR/snap.json + one PNG per state
     <python with playwright> tools/css_snapshot.py match SELECTORS.json OUT.json   # used by css_unimportant.py
+    <python with playwright> tools/css_snapshot.py winners "#sidebar" OUT.json     # cascade data for css_unimportant.py usage
     py -3.12 tools/css_snapshot.py diff  OLD_DIR NEW_DIR [OLD2_DIR...] [--all]  # prints what changed; anything that differs
                                                                         # between OLD and OLD2 (run-to-run noise) is ignored
 
@@ -168,9 +169,13 @@ def snap(out_dir):
                     page.clock.install(time=1767268800000)       # fixed date: 2026-01-01 12:00 UTC
                     page.clock.pause_at(1767268800000)
                     page.goto(url); page.wait_for_load_state("networkidle")
-                    states = [(v, t) for v, t in VIEWS] + [("settings", None), ("menu-open", None)]
+                    states = [(v, t) for v, t in VIEWS] + [("settings", None), ("menu-open", None),
+                                                           ("hover-tab", "#tab-music"), ("hover-tool", "#settings-btn")]
                     for view, tab in states:
-                        if tab:
+                        if view.startswith("hover-"):           # mouse over a sidebar tab / tool (the sidebar is hovered too)
+                            page.evaluate("() => { toggleMenu(false); switchTab('home-view', 'tab-home'); }")
+                            page.hover(tab)
+                        elif tab:
                             page.evaluate("([v, t]) => { if (typeof closeSettings === 'function') try { closeSettings(); } catch (e) {} switchTab(v, t); window.scrollTo(0, 0); }", [view, tab])
                         elif view == "settings":
                             page.evaluate("() => { switchTab('home-view', 'tab-home'); openSettings(); }")
@@ -199,12 +204,13 @@ MATCH_JS = r"""(sels) => {
       let i = 1, s = n; while ((s = s.previousElementSibling)) if (s.tagName === n.tagName) i++;
       parts.unshift(n.tagName.toLowerCase() + ':' + i); n = n.parentElement; }
     return parts.join('>') || 'html'; };
-  const out = {}, ids = new Set();
+  const out = {}, ids = new Set(), sigs = new Set();
   for (const el of document.querySelectorAll('[id]')) ids.add(el.id);
+  for (const el of document.querySelectorAll('*')) sigs.add(el.tagName.toLowerCase() + '|' + [...el.classList].sort().join(' '));
   for (const sel of sels) {
     try { out[sel] = [...document.querySelectorAll(sel)].map(key); } catch (e) { out[sel] = null; }
   }
-  return { matches: out, ids: [...ids] };
+  return { matches: out, ids: [...ids], sigs: [...sigs] };
 }"""
 
 
@@ -215,7 +221,7 @@ def match(sel_file, out_file):
     port = free_port()
     srv = subprocess.Popen(["py", "-3.12", str(Path(__file__).resolve()), "serve", str(port)],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=str(ROOT))
-    res, ids = {}, set()
+    res, ids, sigs = {}, set(), set()
     try:
         for line in srv.stdout:
             if "READY" in line: break
@@ -234,7 +240,7 @@ def match(sel_file, out_file):
                     else: page.evaluate("() => { closeSettings(); toggleMenu(true); }")
                     page.clock.run_for(2500); page.wait_for_timeout(300)
                     r = page.evaluate(MATCH_JS, sels)
-                    ids.update(r["ids"])
+                    ids.update(r["ids"]); sigs.update(r["sigs"])
                     for k, v in r["matches"].items():
                         if v is None: res[k] = None
                         elif res.get(k, 0) is not None: res.setdefault(k, set()).update(v)
@@ -242,8 +248,99 @@ def match(sel_file, out_file):
             browser.close()
     finally:
         srv.kill()
-    Path(out_file).write_text(json.dumps({"matches": {k: (None if v is None else sorted(v)) for k, v in res.items()}, "ids": sorted(ids)}), encoding="utf-8")
+    Path(out_file).write_text(json.dumps({"matches": {k: (None if v is None else sorted(v)) for k, v in res.items()}, "ids": sorted(ids), "sigs": sorted(sigs)}), encoding="utf-8")
     print(f"{len(sels)} selectors matched across {len(VARIANTS) * (len(VIEWS) + 2)} states -> {out_file}")
+
+
+WIN_VARIANTS = VARIANTS + [("time-bg", {"lmp_bg": "time"}), ("plain", {"lmpv9_plain": "1"}), ("lite", {"lmpv9_lite": "1"})]
+
+
+def winners(root, out_file):
+    """For every element under ROOT (and ROOT), in every view / variant / hover / focus state, ask Chrome (DevTools
+    protocol) which rules match, in cascade order, plus the inline style. Writes the raw data for
+    css_unimportant.py usage. Hover is forced on each element together with its ancestors, so :hover rules count."""
+    from playwright.sync_api import sync_playwright
+    port = free_port()
+    srv = subprocess.Popen(["py", "-3.12", str(Path(__file__).resolve()), "serve", str(port)],
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=str(ROOT))
+    records, t0 = [], time.time()
+    try:
+        for line in srv.stdout:
+            if "READY" in line: break
+        url = f"http://127.0.0.1:{port}/?nobundle=1"
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(channel="chrome", headless=True)
+            for vname, ls in WIN_VARIANTS:
+                ctx = browser.new_context(viewport={"width": 1280, "height": 800})
+                ctx.add_init_script("localStorage.setItem('ultron_ffmpeg_skip','1');localStorage.setItem('lmpv9_seen','1');"
+                                    "const __ls = LS_JSON; for (const k in __ls) localStorage.setItem(k, __ls[k]);".replace("LS_JSON", json.dumps(ls)))
+                page = ctx.new_page()
+                sheets = {}
+                cdp = ctx.new_cdp_session(page)
+                cdp.on("CSS.styleSheetAdded", lambda e: sheets.__setitem__(e["header"]["styleSheetId"], e["header"].get("sourceURL", "")))
+                page.goto(url); page.wait_for_load_state("load"); page.wait_for_timeout(2500)
+                cdp.send("DOM.enable"); cdp.send("CSS.enable")
+                states = [("home-view", "tab-home", None), ("music-view", "tab-music", None), ("dl-view", "tab-dl", None),
+                          ("menu-open", None, None), ("private", None, None)]
+                for view, tab, _ in states:
+                    if tab: page.evaluate("([v, t]) => { switchTab(v, t); }", [view, tab])
+                    elif view == "menu-open": page.evaluate("() => { switchTab('home-view', 'tab-home'); toggleMenu(true); }")
+                    else: page.evaluate("() => { toggleMenu(false); document.body.classList.add('is-private'); $('tab-private').classList.remove('hidden'); }")
+                    page.wait_for_timeout(700)
+                    doc = cdp.send("DOM.getDocument", {"depth": -1})
+                    nodes = cdp.send("DOM.querySelectorAll", {"nodeId": doc["root"]["nodeId"], "selector": f"{root}, {root} *"})["nodeIds"]
+                    keys = page.evaluate("""(root) => [...document.querySelectorAll(root + ', ' + root + ' *')].map(el => {
+                        const parts = []; let n = el;
+                        while (n && n.nodeType === 1 && n !== document.documentElement) {
+                          if (n.id && !/-\\d+$/.test(n.id)) { parts.unshift('#' + n.id); break; }
+                          let i = 1, s = n; while ((s = s.previousElementSibling)) if (s.tagName === n.tagName) i++;
+                          parts.unshift(n.tagName.toLowerCase() + ':' + i); n = n.parentElement; }
+                        return parts.join('>'); })""", root)
+                    parent, tags = {}, {}
+                    for nid in nodes:
+                        d = cdp.send("DOM.describeNode", {"nodeId": nid})
+                        parent[nid] = d["node"].get("parentId"); tags[nid] = d["node"]["nodeName"].lower()
+                    index, inside = {nid: i for i, nid in enumerate(nodes)}, set(nodes)
+                    subtree = lambda nid: [n for n in nodes if nid in _chain(n, parent, inside)]
+                    # plain; hover on the root, the logo and every button (with its ancestors, so #root:hover applies);
+                    # focus on every button. Only the forced element's own subtree can change, so only that is read.
+                    hot = [n for n in nodes if tags[n] in ("button", "a", "input") or n == nodes[0] or keys[index[n]] == "#lm-mark"]
+                    forced_sets = [("none", [], nodes)] \
+                        + [(f"hover:{keys[index[n]]}", _chain(n, parent, inside), subtree(n)) for n in hot] \
+                        + [(f"focus:{keys[index[n]]}", [n], subtree(n)) for n in hot if tags[n] in ("button", "a", "input")]
+                    for fname, forced, targets in forced_sets:
+                        pc = ["focus", "focus-visible", "focus-within"] if fname.startswith("focus") else ["hover"]
+                        for n in forced: cdp.send("CSS.forcePseudoState", {"nodeId": n, "forcedPseudoClasses": pc})
+                        for nid in targets:
+                            key = keys[index[nid]]
+                            m = cdp.send("CSS.getMatchedStylesForNode", {"nodeId": nid})
+                            rules = []
+                            for mr in m.get("matchedCSSRules", []):
+                                r = mr["rule"]
+                                if r.get("origin") != "regular": continue
+                                src = sheets.get(r.get("styleSheetId"), "")
+                                rng = r["selectorList"]["selectors"][0].get("range") if r["selectorList"]["selectors"] else None
+                                props = [[p["name"], bool(p.get("important"))] for p in r["style"]["cssProperties"]
+                                         if p.get("range") and not p.get("disabled") and p.get("parsedOk", True)]
+                                rules.append([src.split("/assets/css/")[-1].split("/vendor/")[-1].split("?")[0], rng["startLine"] if rng else -1,
+                                              rng["startColumn"] if rng else -1, props, mr.get("matchingSelectors", [])])
+                            inline = [[p["name"], bool(p.get("important"))] for p in (m.get("inlineStyle") or {}).get("cssProperties", [])
+                                      if p.get("range") and p.get("value")]
+                            records.append({"variant": vname, "state": view, "forced": fname, "el": key, "rules": rules, "inline": inline})
+                        for n in forced: cdp.send("CSS.forcePseudoState", {"nodeId": n, "forcedPseudoClasses": []})
+                ctx.close()
+            browser.close()
+    finally:
+        srv.kill()
+    Path(out_file).write_text(json.dumps(records), encoding="utf-8")
+    print(f"{len(records)} element/state records under {root} -> {out_file} ({time.time() - t0:.0f}s)")
+
+
+def _chain(nid, parent, inside):
+    out = []
+    while nid and nid in inside:
+        out.append(nid); nid = parent.get(nid)
+    return out
 
 
 def diff(a_dir, b_dir, noise_dirs=(), limit=60):
@@ -294,6 +391,8 @@ if __name__ == "__main__":
         serve(int(sys.argv[2]))
     elif cmd == "snap":
         snap(sys.argv[2])
+    elif cmd == "winners":
+        winners(sys.argv[2], sys.argv[3])
     elif cmd == "match":
         match(sys.argv[2], sys.argv[3])
     elif cmd == "diff":

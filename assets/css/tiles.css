@@ -29,18 +29,18 @@ html body .utile .ut-mos img { width: 100%; height: 100%; object-fit: cover; min
 html body .utile .ut-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, .35); font-size: 1.6rem; }
 
 /* ---------- title + small uppercase line (same fonts as the Music tiles) ---------- */
-html body .utile .ut-title {
+.utile .ut-title {
   margin-top: .65rem; font-family: var(--v-display, inherit); font-weight: 700; font-size: .98rem; letter-spacing: .02em; line-height: 1.2;
   text-transform: none; color: var(--v-ink, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-html body .utile .ut-sub {
+.utile .ut-sub {
   margin-top: .2rem; font-family: var(--v-mono, ui-monospace, monospace); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase;
   color: var(--v-mute, rgba(255, 255, 255, .5)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .utile:hover .ut-title, .ubh-coll.utile:focus-visible .ut-title { color: var(--pr1, inherit); }
 
 /* ---------- little things on the cover ---------- */
-html body .utile .ut-new { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .15rem .4rem; border-radius: 2px; background: var(--pr1, #e50914); color: var(--v-on, #fff);
+.utile .ut-new { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .15rem .4rem; border-radius: 2px; background: var(--pr1, #e50914); color: var(--v-on, #fff);
   font: 800 .6rem/1 var(--v-mono, ui-monospace, monospace); letter-spacing: .12em; transition: opacity .2s; }
 
 .utile .ut-kind { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .2rem .45rem; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff;
@@ -50,14 +50,14 @@ html body .utile .ut-new { position: absolute; z-index: 5; top: .45rem; left: .4
 html body .utile .ut-prog i, html body .utile .ut-cover > .absolute.bottom-0 > div { display: block; height: 100%; background: var(--pr1, #e50914); }
 
 /* hover extras: play button (bottom right), rename pencil (top right), your rating (bottom left) */
-html body .utile .ut-play { position: absolute; z-index: 7; right: .5rem; bottom: .5rem; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+.utile .ut-play { position: absolute; z-index: 7; right: .5rem; bottom: .5rem; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: var(--pr1, #fff); color: var(--v-on, #000); box-shadow: none; cursor: pointer; font-size: .9rem;
   opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
 .utile .ut-play i { margin-left: 2px; }
 .utile:hover .ut-play, .utile:focus-visible .ut-play { opacity: 1; transform: none; }
-html body .utile .ut-edit { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+.utile .ut-edit { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .7rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
-html body .utile .ut-edit:hover { background: #fff; color: #000; }
+.utile .ut-edit:hover { background: #fff; color: #000; }
 .utile:hover .ut-edit { opacity: 1; }
 .utile .ut-stars { position: absolute; z-index: 7; left: .5rem; bottom: .8rem; display: flex; gap: .15rem; font-size: .72rem; opacity: 0; transition: opacity .2s; text-shadow: 0 1px 4px #000; }
 .utile:hover .ut-stars { opacity: 1; }
@@ -79,12 +79,12 @@ body.ubh-selecting #ubh-body .vcard.utile .ut-play, body.ubh-selecting #ubh-body
 }
 
 /* ---------- custom thumbnail button (picture icon) + its little menu ---------- */
-html body .utile .ut-img { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+.utile .ut-img { position: absolute; z-index: 7; top: .45rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
 .utile .ut-edit + .ut-img { right: 2.5rem; }
 .utile:hover .ut-img, .utile .ut-img:focus-visible { opacity: 1; }
-html body .utile .ut-img:hover { background: #fff; color: #000; }
-html body .utile.ut-custom .ut-img { color: var(--pr1, #fff); }
+.utile .ut-img:hover { background: #fff; color: #000; }
+.utile.ut-custom .ut-img { color: var(--pr1, #fff); }
 .utile.ut-custom .ut-img:hover { color: #000; }
 .utile .ut-cover > img.ut-mine { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 body.ubh-selecting #ubh-body .vcard.utile .ut-img { display: none !important; }

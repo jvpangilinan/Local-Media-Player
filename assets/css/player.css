@@ -14,7 +14,7 @@
 #p-thumb {width:15px!important;height:15px!important;border-radius:50%;background:#fff!important;box-shadow:0 0 0 4px rgba(var(--pr2rgb),.45),0 3px 10px rgba(0,0,0,.6)}
 html body .p-btn{border-radius:50%;transition:background .2s,transform .2s,color .2s}
 html body .p-btn:hover{background:rgba(255,255,255,.14)!important;color:var(--pr1);transform:translateY(-2px)}
-#p-play {width:3.4rem;height:3.4rem;border-radius:50%!important;background:linear-gradient(135deg,var(--pr1),var(--pr2))!important;color:#17101a!important;box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.9)!important;animation:lm8-pulse 2.6s ease-in-out infinite}
+#p-play {width:3.4rem;height:3.4rem;border-radius:50%;background:linear-gradient(135deg,var(--pr1),var(--pr2))!important;color:#17101a!important;box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.9)!important;animation:lm8-pulse 2.6s ease-in-out infinite}
 #p-play:hover {transform:scale(1.1);color:#17101a}
 @keyframes lm8-pulse{0%,100%{box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.85)}50%{box-shadow:0 10px 38px -4px rgba(var(--pr2rgb),1)}}
 html body .p-skip span{color:inherit}

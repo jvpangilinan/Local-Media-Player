@@ -2,10 +2,10 @@
 
 /* ---------- global polish ---------- */
 ::selection{background:rgba(var(--pr2rgb,255,95,143),.45);color:#fff}
-html body :focus-visible{outline:2px solid rgba(var(--pr2rgb,255,95,143),.85)!important;outline-offset:2px}
+:focus-visible {outline:2px solid rgba(var(--pr2rgb,255,95,143),.85)!important;outline-offset:2px}
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(var(--pr2rgb,255,95,143),.22)}
 html:not(.fl-no-squish) button:not(:disabled):active,html:not(.fl-no-squish) .sb-item:active,html:not(.fl-no-squish) .mpill:active{scale:.94}
-#sidebar .sb-item .ico{transition:translate .2s ease}
+
 #sidebar .sb-item:hover .ico{translate:2px 0}
 #lm-mark:hover .glyph{animation:fl-wob .6s ease}
 @keyframes fl-wob{0%,100%{rotate:0deg}25%{rotate:-7deg}60%{rotate:6deg}}
@@ -45,7 +45,7 @@ html.fl-rave #fl-aurora{opacity:1}
 @keyframes fl-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* ---------- sidebar ---------- */
-#sidebar .sb-item.active{position:relative}
+
 #sidebar .sb-item.active::after{content:"";position:absolute;left:-2px;top:22%;bottom:22%;width:3px;border-radius:3px;
   background:linear-gradient(var(--pr1,#ffc371),var(--pr3,#8b6bff));box-shadow:0 0 calc(8px + var(--bass,0)*18px) rgba(var(--pr2rgb,255,95,143),.9);animation:fl-edge .45s ease-out}
 @keyframes fl-edge{from{transform:scaleY(0)}to{transform:scaleY(1)}}
