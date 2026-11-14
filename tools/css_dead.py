@@ -2,6 +2,8 @@
 
     py -3.12 tools/css_dead.py report                       # per file: declarations, dead, !important
     py -3.12 tools/css_dead.py strip FILE [FILE...]          # delete the dead declarations from these files in place
+    py -3.12 tools/css_dead.py order-check [GIT_REF]         # after moving rules between files: list declaration pairs
+                                                             # whose order flipped and that could now resolve differently
 
 Files are read in the order templates/index.html loads them. A declaration D is dead when a LATER declaration L (any
 later rule, any later file; never the same rule, so in-rule fallbacks stay) has
@@ -266,8 +268,94 @@ def strip_file(path, s, nodes):
     return len([c for c in cuts])
 
 
+# ------------------------------------------------------------------ order check (for moving rules between files)
+def subject(sel):
+    """Rightmost compound of a selector -> (pseudo_element, ids, tag)."""
+    parts, depth, cur = [], 0, ""
+    for ch in sel.strip():
+        if ch in "([": depth += 1
+        elif ch in ")]": depth -= 1
+        if depth == 0 and ch in " >+~":
+            if cur: parts.append(cur)
+            cur = ""; continue
+        cur += ch
+    if cur: parts.append(cur)
+    last = parts[-1] if parts else ""
+    pe = re.search(r"::?(before|after|first-line|first-letter|placeholder|selection|marker|backdrop|cue-region|cue|-webkit-[\w-]+)\b", last)
+    pe = pe.group(1) if pe else ""
+    bare = re.sub(r"\([^()]*\)", "", last)              # ids inside :not()/:is() do not pin the subject
+    ids = set(re.findall(r"#([-\w]+)", bare))
+    classes = set(re.findall(r"\.([-\w]+)", re.sub(r"::?[-\w]+", "", bare)))
+    tag = re.match(r"^([a-zA-Z][\w-]*)", last)
+    return pe, ids, (tag.group(1).lower() if tag else ""), classes
+
+
+def may_overlap(a, b):
+    """Could both selectors hit the same element? Assumes components with no class in common are different elements."""
+    pa, ia, ta, ca = subject(a); pb, ib, tb, cb = subject(b)
+    if pa != pb: return False
+    if ia and ib and ia != ib: return False
+    if ta and tb and ta != tb: return False
+    if ca and cb and not (ca & cb) and not (ia or ib): return False
+    return True
+
+
+def decl_list(files_text):
+    """[(identity, sels+specs, prop, imp, ctx)] in cascade order; identity survives moving a rule to another file."""
+    out, seen = [], {}
+    for name, s in files_text:
+        def walk(nodes):
+            for nd in nodes:
+                if nd[0] == "group": walk(nd[4])
+                elif nd[0] == "rule":
+                    sel = re.sub(r"\s+", " ", nd[3])
+                    for d in nd[5]:
+                        val = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", s[d["start"]:d["end"]], flags=re.S)).strip().rstrip(";")
+                        base = (sel, nd[4], val)
+                        n = seen.get(base, 0); seen[base] = n + 1
+                        out.append(((base, n), [(x, specificity(x)) for x in split_top(nd[3])], d["prop"], d["imp"], name))
+        walk(parse(s))
+    return out
+
+
+def order_check(old_ref):
+    import subprocess
+    git = lambda *a: subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True, encoding="utf-8").stdout
+    old_html = git("show", f"{old_ref}:templates/index.html")
+    old_files = [(n, git("show", f"{old_ref}:assets/css/{n}")) for n in re.findall(r'href="/assets/css/([^"?]+\.css)', old_html)]
+    new_files = [(f.name, f.read_text(encoding="utf-8")) for f in load_order()]
+    old, new = decl_list(old_files), decl_list(new_files)
+    old_pos = {d[0]: i for i, d in enumerate(old)}
+    new_pos = {d[0]: i for i, d in enumerate(new)}
+    missing = [d[0] for d in old if d[0] not in new_pos]
+    added = [d[0] for d in new if d[0] not in old_pos]
+    print(f"declarations: old {len(old)}, new {len(new)}, missing {len(missing)}, added {len(added)}")
+    for m in missing[:20]: print("  MISSING", m)
+    for m in added[:20]: print("  ADDED  ", m)
+    by_prop = {}
+    for d in new:
+        if d[0] in old_pos: by_prop.setdefault(d[2], []).append(d)
+    hits = []
+    for prop, ds in by_prop.items():
+        for i in range(len(ds)):
+            for j in range(i + 1, len(ds)):
+                a, b = ds[i], ds[j]                     # a before b in the new order
+                if old_pos[a[0]] < old_pos[b[0]] or a[3] != b[3]:
+                    continue                            # same relative order, or importance decides anyway
+                for sa, pa in a[1]:
+                    hit = next(((sb, pb) for sb, pb in b[1] if pa == pb and may_overlap(sa, sb)), None)
+                    if hit:
+                        hits.append((prop, a[4], sa, b[4], hit[0])); break
+    print(f"order flips that could change a result: {len(hits)}")
+    for prop, fa, sa, fb, sb in hits:
+        print(f"  {prop}: [{fa}] {sa}   <->   [{fb}] {sb}")
+    return hits
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "report"
+    if cmd == "order-check":
+        sys.exit(1 if order_check(sys.argv[2] if len(sys.argv) > 2 else "HEAD") else 0)
     files = load_order()
     data, flat = collect(files)
     mark_dead(flat)

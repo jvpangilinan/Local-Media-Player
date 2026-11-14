@@ -204,3 +204,222 @@
         .npg-up { display: flex; align-items: center; gap: .75rem; padding: .4rem .5rem; border-radius: .6rem; cursor: pointer; }
         .npg-up:hover { background: rgba(255,255,255,.1); }
 
+/* =====================================================================================================
+   Folded in from minimalist.css: global type weights, Home tab filtering, photo gallery, lightbox, albums, hearts
+   ===================================================================================================== */
+        :root { --side-w: 0px !important; --faint: #515154; --hair: rgba(255,255,255,.08); }
+        body, body.rail { background: #0b0b0c; font-weight: 400; letter-spacing: -.003em; -webkit-font-smoothing: antialiased; }
+
+        h1, h2, h3, .font-black { font-weight: 600 !important; letter-spacing: -.02em; }
+        .font-bold { font-weight: 500; }
+        * { text-shadow: none !important; }
+        .shadow-2xl, .shadow-xl, .shadow-lg, .drop-shadow-lg { box-shadow: none !important; filter: none; }
+
+        /* ---- left over from the old menu panel, still shaping the rail (search button spacing, tool row) ---- */
+        #sb-scroll { flex: 1; }
+        .sb-search { margin: 0 0 1.4rem !important; font-size: .95rem !important; justify-content: flex-start !important; }
+        .sb-tools { flex-wrap: wrap !important; justify-content: flex-start !important; }
+
+
+        /* ---- home: greeting, resume, new. Everything else is one keystroke away ---- */
+        #dh-stats, #dh-dl, #dh-pl, #dh-genres, #dh-music, #dh-top .flex-wrap .qa-btn { display: none !important; }
+        .dash-top { grid-template-columns: minmax(0,1fr) !important; }
+        #home-view > div { padding-top: 6.5rem !important; padding-left: clamp(1.5rem, 6vw, 5rem) !important; padding-right: clamp(1.5rem, 6vw, 5rem) !important; }
+        #dh-top h1 { font-size: clamp(2.4rem, 4.4vw, 3.8rem) !important; }
+        #dh-top .tracking-\[0\.25em\] { letter-spacing: .08em; text-transform: none; font-size: .95rem; font-weight: 400; color: var(--mute); }
+        .dash-hero { ring: 0; }
+        .dash-hero .tracking-\[0\.25em\] { letter-spacing: .06em; text-transform: none; font-size: .9rem; font-weight: 400; color: var(--ink); }
+
+        section, [id$="-row"] { margin-bottom: 3rem; }
+
+        /* ---- music: one pane. library panel only when asked ---- */
+
+        #music-view .rounded-xl { border-radius: .9rem; }
+        #m-main > .sticky { padding-left: 5rem !important; }
+        .mpill .mp-label { font-weight: 400; }
+
+        /* ---- buttons: one accent, no glow ---- */
+        .qa-btn, .chip { background: transparent !important; border: 1px solid var(--hair) !important; box-shadow: none !important; font-weight: 500 !important; }
+
+        .bg-accent * { color: inherit; }
+
+        /* ---- private: videos or photos, nothing else ---- */
+
+        #private-bar { position: absolute; top: 1.35rem; right: clamp(1.5rem, 6vw, 5rem); z-index: 30; display: flex; gap: 1.6rem; }
+        .pv-tab { background: none !important; color: var(--mute); font-weight: 500; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+        .pv-tab:hover { color: var(--ink); }
+
+        #private-hero h1 { font-weight: 600 !important; }
+        #private-hero .tracking-\[0\.25em\] { letter-spacing: .08em; text-transform: none; font-size: .95rem; font-weight: 400; color: var(--mute); }
+        #private-hero .h-px { display: none; }
+        .hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; pointer-events: none; background: #000; }
+        .hero-video.on { opacity: 1; }
+
+        /* ---- photo gallery ---- */
+        #private-photos, #public-photos { padding: 5.5rem clamp(.75rem, 2.2vw, 2.2rem) 4rem; min-height: 100vh; }
+        .ph-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 .25rem 1.4rem; color: var(--mute); font-size: .9rem; }
+        .ph-acts { display: flex; gap: 1.3rem; }
+        .ph-act { color: var(--mute); font-size: .9rem; transition: color .2s; }
+
+        .ph-row { display: flex; overflow: hidden; }
+        .ph-tile { flex: 0 0 auto; height: 100%; padding: 0; border: 0; background: #151517; overflow: hidden; cursor: zoom-in; }
+        .ph-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #ph-grid .ph-tile, #ph-grid:hover .ph-tile { opacity: 1; }
+        .ph-empty { padding: 28vh 1rem 0; text-align: center; color: var(--ink); font-size: 1.3rem; font-weight: 500; }
+        .ph-empty .ph-sub { margin: .7rem 0 1.6rem; color: var(--mute); font-size: .95rem; font-weight: 400; }
+        .ph-empty .ph-sub span { color: var(--ink); }
+        #lightbox { position: fixed; inset: 0; z-index: 200; }
+        #lightbox.hidden { display: none; }
+        #lb-bg { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .35s ease; }
+        #lightbox.on #lb-bg { opacity: 1; }
+        #lb-img { position: fixed; object-fit: cover; user-select: none; transition: left .38s cubic-bezier(.2,.8,.2,1), top .38s cubic-bezier(.2,.8,.2,1), width .38s cubic-bezier(.2,.8,.2,1), height .38s cubic-bezier(.2,.8,.2,1), opacity .15s ease; border-radius: 3px; }
+        #lightbox.on #lb-img { border-radius: 2px; }
+        #lb-img.fade { opacity: 0; }
+        #lb-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.4rem; color: var(--mute); font-size: .9rem; opacity: 0; transition: opacity .3s; }
+        #lightbox.on #lb-top, #lightbox.on .lb-nav { opacity: 1; }
+        .lb-acts { display: flex; gap: .4rem; }
+        .lb-btn, .lb-nav { background: none !important; border: 0; color: var(--mute); width: 2.6rem; height: 2.6rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; transition: color .2s, background .2s; }
+        .lb-btn:hover, .lb-nav:hover { color: #fff; background: rgba(255,255,255,.1) !important; }
+        .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .3s, color .2s; }
+        #lb-prev { left: 1rem; } #lb-next { right: 1rem; }
+        #lightbox.idle #lb-top, #lightbox.idle .lb-nav { opacity: 0 !important; pointer-events: none; }
+        #lightbox.idle { cursor: none; }
+        /* ---- now playing: one quiet close control and a play button you can actually see ---- */
+        #nowplaying .npg-close { position: absolute; top: 1.15rem; left: 1.4rem; z-index: 20; width: 2.2rem; height: 2.2rem; display: flex; align-items: center; justify-content: center; color: var(--ink); font-size: .9rem; transition: opacity .2s, background .2s; }
+        #nowplaying .npg-close:hover { opacity: 1; background: rgba(255,255,255,.08); }
+
+        #nowplaying #npg-play:hover { background: #fff; color: #0b0b0c; }
+        #nowplaying #npg-play i { color: #0b0b0c; }
+
+
+        /* ---- home: clock, music, photos, private shelf ---- */
+        .home-link { background: none !important; border: 0; color: var(--mute); font-size: .85rem; font-weight: 500; padding: 0; transition: color .2s; }
+        .home-link:hover { color: var(--ink); }
+        .hp-tile { flex: 0 0 auto; height: 9.5rem; padding: 0; border: 0; border-radius: 6px; overflow: hidden; background: #151517; cursor: zoom-in; transition: opacity .25s; }
+        .hp-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        [id$="-row"] .hp-tile, [id$="-row"]:hover .hp-tile { opacity: 1; }
+        @keyframes heroIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .hero-fade { animation: heroIn .5s cubic-bezier(.2,.8,.2,1); }
+        #private-standalone-sec h2 span { color: var(--faint); font-size: .9rem; font-weight: 400; margin-left: .6rem; }
+
+        /* ---- photo albums: covers, quiet captions ---- */
+        .ph-title { display: flex; align-items: baseline; gap: 1.1rem; min-width: 0; }
+        .ph-title b { color: var(--ink); }
+        .ph-back { background: none !important; border: 0; color: var(--mute); font-size: .9rem; padding: .1rem 0; transition: color .2s; }
+        .ph-back:hover { color: var(--ink); }
+        #ph-albums { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); padding-top: .6rem; }
+        @media (min-width: 700px) { #ph-albums { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); } }
+        .al { background: none !important; border: 0; padding: 0; text-align: left; cursor: pointer; color: var(--ink); }
+        .al-cover { display: block; aspect-ratio: 1; overflow: hidden; background: #151517; position: relative; transition: opacity .25s; }
+        .al-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .al-cover.empty { background: transparent; box-shadow: inset 0 0 0 1px var(--hair); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 1.5rem; }
+        #ph-albums .al, #ph-albums:hover .al { opacity: 1; }
+        .al-name { display: block; margin-top: .7rem; font-size: .95rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .al-n { display: block; margin-top: .1rem; font-size: .85rem; color: var(--mute); }
+        /* ---- hearts ---- */
+        .lb-btn[hidden] { display: none; }
+        #lb-fav.on { color: #fff; }
+        #lb-fav.pop i { animation: heartPop .32s cubic-bezier(.2,.8,.2,1); }
+        @keyframes heartPop { 0% { transform: scale(1); } 45% { transform: scale(1.28); } 100% { transform: scale(1); } }
+        .ph-tile.is-fav::after, .hp-tile.is-fav::after { content: ''; position: absolute; right: .45rem; bottom: .45rem; width: .42rem; height: .42rem; border-radius: 50%; background: #fff; opacity: .9; }
+        .ph-tile, .hp-tile { position: relative; }
+        /* ---- home tabs: the same quiet text tabs as Private ---- */
+
+        #home-view[data-tab="videos"] :is(#dh-newmusic, #dh-photos, #dh-privphotos, #dh-favs, #dh-privfavs),
+        #home-view[data-tab="photos"] :is(.dash-top, #dh-cont, #dh-recent, #dh-newmusic, #dh-priv),
+        #home-view[data-tab="music"] :is(.dash-top, #dh-cont, #dh-recent, #dh-photos, #dh-priv, #dh-privphotos, #dh-favs, #dh-privfavs),
+        #home-view[data-tab="all"] :is(#dh-favs, #dh-privfavs) { display: none !important; }
+        #dh-empty { padding: 14vh 0 0; text-align: center; color: var(--mute); font-size: .95rem; }
+        #dh-empty b { display: block; color: var(--ink); font-weight: 500; font-size: 1.2rem; margin-bottom: .5rem; }
+
+/* =====================================================================================================
+   Folded in from special.css: browse bar, sidebar tool rows
+   ===================================================================================================== */
+/* ---- Browse: one tab, three ways in ---- */
+#browse-bar{position:fixed;z-index:60;align-items:center;border-radius:9999px;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:opacity .25s,transform .25s}
+
+#browse-bar.show{display:flex}
+#browse-bar.autohide{opacity:0;transform:translateY(-140%);pointer-events:none}
+#browse-bar.collapsed button[data-v]{display:none}
+#browse-bar #bb-collapse{padding:.55rem .7rem;color:var(--faint)}
+#browse-edge{position:fixed;top:0;left:0;right:0;height:.9rem;z-index:59}
+html.in-player #browse-bar,body.np-open #browse-bar,html.in-player #browse-edge,body.np-open #browse-edge,html.in-player #corner-clock,body.np-open #corner-clock{display:none!important}
+#tracklist tr.drop-at{box-shadow:inset 0 2px 0 var(--ink)}
+#browse-bar button{border:0;background:none;font-weight:600;line-height:1;cursor:pointer;}
+
+#series-view,#videos-view{padding-top:3.4rem}
+/* ---- bottom tools: two clean rows. Row 1 Theme / Mouse / Rescan / Settings, row 2 Lock / Exit as a matching pair ---- */
+.sb-tools{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:.35rem!important}
+.sb-tools .sb-row{display:flex;flex-wrap:wrap;gap:.2rem 1.3rem;align-items:center}
+body.rail .sb-tools .sb-row{flex-direction:column;align-items:center;gap:.15rem}
+.sb-tools .sb-tool,.sb-tools .sb-exit .sb-label{font-size:.85rem!important;font-weight:500!important}
+.sb-tools .sb-exit{margin:0!important;padding:.25rem 0!important;border:0!important;color:var(--mute)!important}
+.sb-tools .sb-exit .sb-label{display:inline!important}
+.sb-tools .sb-exit:hover,.sb-tools .sb-exit.armed{color:#ff453a!important}
+
+/* =====================================================================================================
+   Folded in from ui-fix.css: background modes, Settings background tiles, menu footer, page titles, logo tile
+   ===================================================================================================== */
+:root { --panel: #141416; --panel-solid: #141416; --mu-rad: 1.1rem; --mu-hair: rgba(255,255,255,.09); }
+html { background: var(--bg); }
+html body.bg-lm-base, html body { background: transparent !important; }
+
+/* ---------- background layer: Dark shows none, Colorful = picture, Sync with time = slow colour ---------- */
+@property --bgr { syntax: '<number>'; inherits: true; initial-value: 70; }
+@property --bgg { syntax: '<number>'; inherits: true; initial-value: 60; }
+@property --bgb { syntax: '<number>'; inherits: true; initial-value: 120; }
+#bg-layer { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; transition: --bgr 60s linear, --bgg 60s linear, --bgb 60s linear; }
+html[data-bg="colorful"] #bg-layer, html[data-bg="time"] #bg-layer { display: block; }
+#bg-layer .bg-pic { position: absolute; inset: 0; background: var(--bg-pic, none) center / cover no-repeat; display: none; }
+html[data-bg="colorful"] #bg-layer .bg-pic { display: block; }
+#bg-layer .bg-glow { position: absolute; inset: 0; display: none; background:
+    radial-gradient(85% 75% at 18% 8%, rgba(var(--bgr), var(--bgg), var(--bgb), .6), transparent 70%),
+    radial-gradient(70% 60% at 92% 85%, rgba(var(--bgr), var(--bgg), var(--bgb), .3), transparent 70%), #08080a; }
+html[data-bg="time"] #bg-layer .bg-glow { display: block; }
+#bg-layer .bg-scrim { position: absolute; inset: 0; display: none; background: linear-gradient(180deg, rgba(6,6,8,.34), rgba(6,6,8,.62)); }
+html[data-bg="colorful"] #bg-layer .bg-scrim { display: block; }
+html[data-bg="colorful"], html[data-bg="time"] { --panel: rgba(14,14,18,.5); --panel-solid: rgba(14,14,18,.88); }
+html[data-bg="colorful"] #sidebar, html[data-bg="time"] #sidebar { background: rgba(10,10,12,.55) !important; }
+html[data-bg="colorful"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash-card),
+html[data-bg="time"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash-card) { -webkit-backdrop-filter: blur(26px) saturate(1.25); backdrop-filter: blur(26px) saturate(1.25); }
+html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { background: rgba(10,10,12,.6) !important; }
+
+/* ---------- Settings: background tiles ---------- */
+.bg-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+.bg-opt { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .5rem .4rem .6rem; background: #222; border: 1.5px solid transparent; font-size: .78rem; font-weight: 600; color: #cfcfcf; text-align: center; transition: background .15s, border-color .15s, color .15s; }
+.bg-opt:hover { background: #2c2c2f; color: #fff; }
+
+.bg-sw { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: .5rem; border: 1px solid rgba(255,255,255,.14); }
+.sw-dark { background: #0b0b0c; }
+.sw-colorful { background: linear-gradient(135deg, #1b6b74, #4b3b8f 45%, #a24bb5 70%, #f08a5d); }
+.sw-time { background: linear-gradient(90deg, #3a4296, #ee8a7a, #f0bc6c, #6eb0e8, #f06c62, #4246a0); }
+.bg-presets { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.bg-thumb { width: 3.5rem; height: 2.4rem; border-radius: .55rem; border: 2px solid transparent; background-size: cover; background-position: center; transition: transform .15s, border-color .15s; }
+.bg-thumb:hover { transform: scale(1.06); } .bg-thumb.on { border-color: #fff; }
+.bg-add { height: 2.4rem; padding: 0 .9rem; display: inline-flex; align-items: center; gap: .45rem; border-radius: .55rem; border: 1px dashed rgba(255,255,255,.3); color: #ddd; font-size: .8rem; font-weight: 600; }
+.bg-add:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+/* ---------- menu footer: always one tidy left-aligned block (the Music tab used to switch on a hidden "rail" mode) ---------- */
+
+#sidebar .sb-tools .sb-row, body.rail #sidebar .sb-tools .sb-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start !important; gap: .3rem 1.4rem; width: 100%; }
+#sidebar .sb-tool, #sidebar .sb-tools .sb-exit { justify-content: flex-start !important; padding: .25rem 0 !important; margin: 0 !important; text-align: left; }
+#theme-btn::after { content: 'Background'; }
+
+/* ---------- other pages: titles, cards, photos (unchanged look, no backdrop dependence) ---------- */
+#home-view h1, #series-view h1, #videos-view h1, #dl-view h1 { font-weight: 800 !important; letter-spacing: -.025em !important; }
+#home-view h2, #video-view h2, #series-view h2, #videos-view h2, #private-view h2, #dl-view h2 { font-size: .82rem !important; font-weight: 700 !important; letter-spacing: .22em !important; text-transform: uppercase; color: rgba(255,255,255,.6) !important; }
+
+.ph-act { border: 1px solid var(--mu-hair) !important; border-radius: 9999px; padding: .42rem 1.05rem !important; background: rgba(255,255,255,.06) !important; font-weight: 600; }
+.ph-act:hover, .ph-act.on { background: rgba(255,255,255,.16) !important; }
+
+.al-cover { border-radius: 1.25rem !important; }
+#settings-modal > div, #lock-modal > div { border-radius: 1.5rem !important; border: 1px solid var(--mu-hair); }
+body.is-private #sidebar .sb-item.active { background: none; }
+
+/* the "LM" tile in the sidebar is the logo (logo.png) in every palette */
+html body #sidebar #lm-mark .glyph {
+  background: #000 url('/logo.png') center / cover no-repeat !important; color: transparent !important; font-size: 0 !important;
+  width: 2.6rem; height: 2.6rem; border-radius: 50% !important; box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 6px 20px -6px rgba(0,0,0,.6);
+}
+html:not([data-pal="chrome"]) body #sidebar #lm-mark .glyph::after { display: none !important; }
+html body #sidebar #lm-mark:hover .glyph { transform: scale(1.07); }
