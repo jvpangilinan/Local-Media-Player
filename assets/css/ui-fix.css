@@ -1,0 +1,142 @@
+/* =====================================================================================================
+   Final UI layer: background modes, round clock, Settings tiles, Music.
+   Loaded last on purpose; it replaces the old "MusicUI / ambient" block.
+   ===================================================================================================== */
+:root { --panel: #141416; --panel-solid: #141416; --mu-rad: 1.1rem; --mu-hair: rgba(255,255,255,.09); }
+html { background: var(--bg); }
+html body.bg-lm-base, html body { background: transparent !important; }
+
+/* ---------- background layer: Dark / Light show none, Colorful = picture, Sync with time = slow colour ---------- */
+@property --bgr { syntax: '<number>'; inherits: true; initial-value: 70; }
+@property --bgg { syntax: '<number>'; inherits: true; initial-value: 60; }
+@property --bgb { syntax: '<number>'; inherits: true; initial-value: 120; }
+#bg-layer { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; transition: --bgr 60s linear, --bgg 60s linear, --bgb 60s linear; }
+html[data-bg="colorful"] #bg-layer, html[data-bg="time"] #bg-layer { display: block; }
+#bg-layer .bg-pic { position: absolute; inset: 0; background: var(--bg-pic, none) center / cover no-repeat; display: none; }
+html[data-bg="colorful"] #bg-layer .bg-pic { display: block; }
+#bg-layer .bg-glow { position: absolute; inset: 0; display: none; background:
+    radial-gradient(85% 75% at 18% 8%, rgba(var(--bgr), var(--bgg), var(--bgb), .6), transparent 70%),
+    radial-gradient(70% 60% at 92% 85%, rgba(var(--bgr), var(--bgg), var(--bgb), .3), transparent 70%), #08080a; }
+html[data-bg="time"] #bg-layer .bg-glow { display: block; }
+#bg-layer .bg-scrim { position: absolute; inset: 0; display: none; background: linear-gradient(180deg, rgba(6,6,8,.34), rgba(6,6,8,.62)); }
+html[data-bg="colorful"] #bg-layer .bg-scrim { display: block; }
+html[data-bg="colorful"], html[data-bg="time"] { --panel: rgba(14,14,18,.5); --panel-solid: rgba(14,14,18,.88); }
+html[data-bg="colorful"] #sidebar, html[data-bg="time"] #sidebar { background: rgba(10,10,12,.55) !important; }
+html[data-bg="colorful"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash-card),
+html[data-bg="time"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash-card) { -webkit-backdrop-filter: blur(26px) saturate(1.25); backdrop-filter: blur(26px) saturate(1.25); }
+html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { background: rgba(10,10,12,.6) !important; }
+
+/* ---------- Settings: background tiles ---------- */
+.bg-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+.bg-opt { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .5rem .4rem .6rem; border-radius: .8rem; background: #222; border: 1.5px solid transparent; font-size: .78rem; font-weight: 600; color: #cfcfcf; text-align: center; transition: background .15s, border-color .15s, color .15s; }
+.bg-opt:hover { background: #2c2c2f; color: #fff; }
+.bg-opt.on { border-color: #fff; color: #fff; background: #2a2a2d; }
+.bg-sw { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: .5rem; border: 1px solid rgba(255,255,255,.14); }
+.sw-dark { background: #0b0b0c; } .sw-light { background: #f2f2f4; }
+.sw-colorful { background: linear-gradient(135deg, #1b6b74, #4b3b8f 45%, #a24bb5 70%, #f08a5d); }
+.sw-time { background: linear-gradient(90deg, #3a4296, #ee8a7a, #f0bc6c, #6eb0e8, #f06c62, #4246a0); }
+.bg-presets { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.bg-thumb { width: 3.5rem; height: 2.4rem; border-radius: .55rem; border: 2px solid transparent; background-size: cover; background-position: center; transition: transform .15s, border-color .15s; }
+.bg-thumb:hover { transform: scale(1.06); } .bg-thumb.on { border-color: #fff; }
+.bg-add { height: 2.4rem; padding: 0 .9rem; display: inline-flex; align-items: center; gap: .45rem; border-radius: .55rem; border: 1px dashed rgba(255,255,255,.3); color: #ddd; font-size: .8rem; font-weight: 600; }
+.bg-add:hover { background: rgba(255,255,255,.08); color: #fff; }
+html[data-theme="light"] :is(.bg-sw, .bg-thumb) { filter: invert(1) hue-rotate(180deg); }
+
+/* ---------- menu footer: always one tidy left-aligned block (the Music tab used to switch on a hidden "rail" mode) ---------- */
+#sidebar .sb-tools { align-items: flex-start !important; }
+#sidebar .sb-tools .sb-row, body.rail #sidebar .sb-tools .sb-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start !important; gap: .3rem 1.4rem; width: 100%; }
+#sidebar .sb-tool, #sidebar .sb-tools .sb-exit { justify-content: flex-start !important; padding: .25rem 0 !important; margin: 0 !important; text-align: left; }
+#theme-btn::after { content: 'Background'; }
+
+/* ---------- clock: round dial ---------- */
+.hc { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(1.4rem, 3vw, 3rem); margin: .2rem 0 .6rem; }
+.rx { display: block; filter: drop-shadow(0 16px 34px rgba(0,0,0,.5)); }
+.hc .rx { width: clamp(12.5rem, 19vw, 17rem); height: auto; flex: none; }
+html[data-theme="light"] .rx { filter: invert(1) hue-rotate(180deg) drop-shadow(0 14px 28px rgba(255,255,255,.35)); }
+.hc-greet { display: flex; align-items: center; gap: .7rem; font-size: clamp(1.7rem, 3vw, 2.7rem); font-weight: 800 !important; letter-spacing: -.025em; line-height: 1.05; }
+.hc-greet i { color: rgb(var(--tc, 232,196,112)); font-size: .78em; }
+.hc-date { margin-top: .55rem; font-size: 1.05rem; font-weight: 500; color: rgba(255,255,255,.62); letter-spacing: 0; text-transform: none; }
+#corner-clock { top: .85rem !important; right: 1.4rem !important; width: 3.3rem; height: 3.3rem; font-size: 0; }
+#corner-clock .rx { width: 100%; height: 100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+body.clock-on #browse-bar { right: 6rem; }
+
+/* ---------- other pages: titles, cards, photos (unchanged look, no backdrop dependence) ---------- */
+#home-view h1, #series-view h1, #videos-view h1, #dl-view h1 { font-weight: 800 !important; letter-spacing: -.025em !important; }
+#home-view h2, #video-view h2, #series-view h2, #videos-view h2, #private-view h2, #dl-view h2 { font-size: .82rem !important; font-weight: 700 !important; letter-spacing: .22em !important; text-transform: uppercase; color: rgba(255,255,255,.6) !important; }
+.video-card { border-radius: var(--mu-rad) !important; box-shadow: 0 14px 38px rgba(0,0,0,.4); }
+.video-card:hover { transform: scale(1.04) !important; box-shadow: 0 24px 56px rgba(0,0,0,.55) !important; }
+.video-card img { border-radius: inherit; }
+.hero-sec { border-radius: 0 0 2.2rem 2.2rem; }
+.hero-sec button { border-radius: 9999px !important; }
+.ph-act { border: 1px solid var(--mu-hair) !important; border-radius: 9999px; padding: .42rem 1.05rem !important; background: rgba(255,255,255,.06) !important; font-weight: 600; }
+.ph-act:hover, .ph-act.on { background: rgba(255,255,255,.16) !important; }
+.ph-tile { border-radius: .85rem !important; }
+.al-cover { border-radius: 1.25rem !important; }
+#settings-modal > div, #lock-modal > div { border-radius: 1.5rem !important; border: 1px solid var(--mu-hair); }
+body.is-private #sidebar .sb-item.active { background: none; }
+
+/* =====================================================================================================
+   MUSIC
+   ===================================================================================================== */
+#music-view { background: transparent !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: var(--bar-h) !important; }
+html #music-grid { display: grid; height: 100%; gap: .5rem !important; padding: .5rem !important; }
+html #music-view aside, html #m-main { background: var(--panel) !important; border: 1px solid var(--mu-hair); border-radius: var(--mu-rad) !important; min-height: 0; height: 100%; }
+html #music-view aside { padding-top: .25rem; }
+/* the menu button lives top-left: give it its own room instead of sitting on top of the library header or the toolbar */
+html #music-grid:not(.lib-off) aside { padding-top: 3.4rem; }
+html #music-grid.lib-off #m-main > .sticky { padding-left: 4.6rem !important; }
+html #music-grid:not(.lib-off) #m-main > .sticky { padding-left: 1.5rem !important; }
+html body.clock-on #m-main > .sticky { padding-right: 5.4rem; }
+html #m-main > .sticky { background: var(--panel-solid) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: .8rem; padding-bottom: .8rem; }
+/* library tabs: wrap instead of being cut off */
+#lib-tabs { flex-wrap: wrap !important; overflow: visible !important; row-gap: .4rem; }
+#lib-tabs .chip { padding: .3rem .85rem !important; font-size: .8rem; }
+#lib-list { padding-bottom: 1rem; }
+
+/* toolbar */
+#m-main > .sticky .mpill { height: 2.6rem; background: rgba(255,255,255,.07); font-weight: 600; }
+#m-main > .sticky .mpill:hover { background: rgba(255,255,255,.14); }
+#m-search { background: rgba(255,255,255,.08) !important; border-radius: 9999px !important; }
+#m-search:focus { background: rgba(255,255,255,.13) !important; border-color: rgba(255,255,255,.35) !important; }
+#lib-toggle, #m-main button[onclick="showHome()"] { background: rgba(255,255,255,.07) !important; color: #ddd; }
+#lib-toggle:hover, #m-main button[onclick="showHome()"]:hover { background: rgba(255,255,255,.14) !important; color: #fff; }
+
+/* type: plain bold titles instead of tiny tracked capitals */
+#music-view h1:not(#list-title) { font-size: clamp(1.9rem, 2.6vw, 2.6rem) !important; font-weight: 800 !important; letter-spacing: -.025em !important; margin-top: 1.1rem; }
+#music-view h2 { font-size: 1.35rem !important; font-weight: 700 !important; letter-spacing: -.015em !important; text-transform: none !important; color: #fff !important; }
+#mv-home > section h2 { margin-bottom: .1rem; }
+#music-view .sb-sec { display: none; }
+
+/* shelves and tiles */
+#mv-home > .grid > .group { border-radius: .7rem; background: rgba(255,255,255,.08); }
+#mv-home > .grid > .group:hover { background: rgba(255,255,255,.15); }
+#music-view .group.w-44 { border-radius: .95rem; padding: .7rem; }
+#music-view .group.w-44 > .relative > :first-child { border-radius: .7rem; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,.35); }
+.carousel-container > .carousel-btn:first-child { background-image: linear-gradient(90deg, var(--panel-solid), transparent) !important; }
+.carousel-container > .carousel-btn:last-child { background-image: linear-gradient(270deg, var(--panel-solid), transparent) !important; }
+
+/* track list */
+#m-table-wrap thead th { font-size: .74rem; font-weight: 600; letter-spacing: .04em; color: var(--mute); }
+#m-table-wrap thead tr { border-color: var(--mu-hair) !important; }
+#tracklist tr { transition: background .12s; }
+#tracklist tr:hover { background: rgba(255,255,255,.08); }
+#tracklist td { padding-top: .5rem; padding-bottom: .5rem; }
+#tracklist td:first-child { border-radius: .55rem 0 0 .55rem; } #tracklist td:last-child { border-radius: 0 .55rem .55rem 0; }
+#tracklist tr.playing td { color: #fff; background: rgba(255,255,255,.06); }
+
+/* mix generator card */
+#mv-gen > div:first-child { background: rgba(255,255,255,.05) !important; border: 1px solid var(--mu-hair) !important; border-radius: 1.1rem; box-shadow: none !important; }
+
+/* ---------- Alternate music look (legacy, unused): fixed sidebar + flat content ---------- */
+
+/* logo clock face: never colour-invert the photo in the light theme */
+html[data-theme="light"] .rx.rx-logo { filter: drop-shadow(0 14px 28px rgba(0,0,0,.35)) !important; }
+html[data-theme="light"] .ck-tile .rx.rx-logo, html[data-theme="light"] .tm-card .rx.rx-logo { filter: none !important; }
+
+/* the "LM" tile in the sidebar is the logo (logo.png) in every palette */
+html body #sidebar #lm-mark .glyph {
+  background: #000 url('/logo.png') center / cover no-repeat !important; color: transparent !important; font-size: 0 !important;
+  width: 2.6rem; height: 2.6rem; border-radius: 50% !important; box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 6px 20px -6px rgba(0,0,0,.6);
+}
+html:not([data-pal="chrome"]) body #sidebar #lm-mark .glyph::after { display: none !important; }
+html body #sidebar #lm-mark:hover .glyph { transform: scale(1.07); }

@@ -1,0 +1,27 @@
+/* ===== ULTRON video player: glass capsule controls, glowing accent, big play button. Loaded last. ===== */
+html body #player-modal{background:#000}
+html body #p-top{padding:1.3rem 1.8rem 5rem;background:linear-gradient(to bottom,rgba(0,0,0,.82),rgba(0,0,0,.35) 55%,transparent)!important}
+html body #p-top .p-pill{border-radius:9999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(14px);letter-spacing:.06em;transition:transform .2s,background .2s,border-color .2s}
+html body #p-top .p-pill:hover{background:var(--pr1);color:var(--v-on,#111);border-color:transparent;transform:translateY(-2px)}
+html body #player-title{font-size:1.25rem;letter-spacing:-.01em;text-shadow:0 2px 18px rgba(0,0,0,.9)}
+html body #p-bottom{left:clamp(.8rem,3vw,2.6rem)!important;right:clamp(.8rem,3vw,2.6rem)!important;bottom:1.1rem!important;padding:.8rem 1.4rem .5rem!important;border-radius:1.6rem!important;border:1px solid rgba(255,255,255,.14)!important;
+  background:linear-gradient(160deg,rgba(30,26,40,.62),rgba(10,9,16,.8))!important;-webkit-backdrop-filter:blur(26px) saturate(1.5)!important;backdrop-filter:blur(26px) saturate(1.5)!important;box-shadow:0 30px 80px -24px #000,inset 0 1px 0 rgba(255,255,255,.08)!important}
+html body #p-seek .bar{height:5px;border-radius:9px;background:rgba(255,255,255,.2)!important}
+html body #p-seek:hover .bar{height:8px}
+html body #p-played{border-radius:9px!important;background:linear-gradient(90deg,var(--pr1),var(--pr2),var(--pr3))!important;box-shadow:0 0 16px rgba(var(--pr2rgb),.75)!important}
+html body #p-thumb{width:15px!important;height:15px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 0 0 4px rgba(var(--pr2rgb),.45),0 3px 10px rgba(0,0,0,.6)!important}
+html body .p-btn{border-radius:50%;transition:background .2s,transform .2s,color .2s}
+html body .p-btn:hover{background:rgba(255,255,255,.14)!important;color:var(--pr1);transform:translateY(-2px)}
+html body #p-play{width:3.4rem;height:3.4rem;border-radius:50%!important;background:linear-gradient(135deg,var(--pr1),var(--pr2))!important;color:#17101a!important;box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.9)!important;animation:lm8-pulse 2.6s ease-in-out infinite}
+html body #p-play:hover{transform:scale(1.1);color:#17101a}
+@keyframes lm8-pulse{0%,100%{box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.85)}50%{box-shadow:0 10px 38px -4px rgba(var(--pr2rgb),1)}}
+html body .p-skip span{color:inherit}
+html body #p-time{font-family:var(--v-mono);font-size:.78rem;letter-spacing:.06em}
+html body #p-flash{height:6.5rem;width:6.5rem;background:rgba(10,9,16,.55);border:1px solid rgba(255,255,255,.2);box-shadow:0 0 40px rgba(var(--pr2rgb),.5)}
+html body #p-titlecard #tc-title{background:linear-gradient(90deg,#fff,var(--pr1));-webkit-background-clip:text;background-clip:text;color:transparent}
+html body #p-titlecard #tc-sub{font-family:var(--v-mono);letter-spacing:.3em;text-transform:uppercase;font-size:.7rem}
+html body #p-menu,html body #p-next{border-radius:1.2rem!important;border:1px solid rgba(255,255,255,.16)!important;background:rgba(14,12,20,.82)!important;backdrop-filter:blur(22px)}
+html body #p-menu .menu-item{border-radius:.7rem;margin:.1rem .3rem;width:calc(100% - .6rem)}
+html body #player-modal:fullscreen,html body #player-modal:-webkit-full-screen{width:100vw!important;height:100vh!important;inset:0!important;border:0!important;border-radius:0!important}
+html body #player-modal:fullscreen #p-bottom{bottom:1.6rem!important}
+@media (prefers-reduced-motion:reduce){html body #p-play{animation:none}}

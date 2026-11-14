@@ -1,0 +1,40 @@
+/* ULTRON Plain mode + Minimal UI. Both are switches in Settings > Look. */
+
+/* ---- Minimal UI: no motion, no blur, no glow, no decorative layers. Layout and colours stay. ---- */
+html.lm-lite *, html.lm-lite *::before, html.lm-lite *::after {
+  animation: none !important; transition: none !important; scroll-behavior: auto !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; text-shadow: none !important;
+}
+html.lm-lite .video-card, html.lm-lite .video-card * { transform: none !important; }
+html.lm-lite :is(#lm-intro, #lm-spot, #lm-sp, #fl-trail, #fl-dust, #fl-aurora, #fl-confetti, #fl-top, #fl-banner, #fl-chip, #fl-idle, .fl-ripple) { display: none !important; }
+html.lm-lite body::after { display: none !important; }
+html.lm-lite :is(#audio-bar, #sidebar, .video-card, .dash-card, #settings-modal > div) { box-shadow: none !important; }
+
+/* ---- Plain mode: every theme, palette, background picture, glow and gradient removed. ---- */
+html.lm-plain {
+  --v-bg: #121212; --v-panel: #181818; --v-panel2: #202020;
+  --panel: #181818; --panel-solid: #181818;
+  --pr1: #e6e6e6; --pr2: #bdbdbd; --pr3: #8c8c8c; --pr1rgb: 230, 230, 230; --pr2rgb: 189, 189, 189; --pr3rgb: 140, 140, 140;
+  --prism: #e6e6e6;
+}
+html.lm-plain, html.lm-plain body { background: #121212 !important; background-image: none !important; color-scheme: dark; }
+html.lm-plain body::before, html.lm-plain body::after { display: none !important; }
+html.lm-plain :is(#bg-layer, #lm-spot, #lm-sp, #lm-intro, #fl-trail, #fl-dust, #fl-aurora, #fl-confetti, #fl-banner, .fl-ripple) { display: none !important; }
+html.lm-plain :is(#sidebar, #audio-bar, #music-view aside, #m-main, #m-main > .sticky, .dash-card, .tm-card, .tm-panel, #browse-bar) {
+  background: #181818 !important; background-image: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
+}
+html.lm-plain #settings-modal > div { background: #181818 !important; background-image: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lm-plain * { text-shadow: none !important; }
+html.lm-plain :is(.video-card, button, .set-switch, .fl-sw) { box-shadow: none !important; }
+html.lm-plain .video-card { transform: none !important; }
+
+/* the new settings page */
+#lk-set .lk-lead { font-size: .82rem; color: rgba(255,255,255,.55); margin: 0 0 1rem; line-height: 1.5; }
+#lk-set .lk-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+#lk-set .lk-row b { display: block; font-size: .9rem; font-weight: 600; }
+#lk-set .lk-row span { display: block; font-size: .74rem; color: rgba(255,255,255,.5); margin-top: .2rem; max-width: 30rem; }
+#lk-set .lk-sw { flex: none; width: 2.7rem; height: 1.5rem; border-radius: 999px; border: 0; cursor: pointer; background: rgba(255,255,255,.18); position: relative; }
+#lk-set .lk-sw::after { content: ''; position: absolute; top: .17rem; left: .17rem; width: 1.16rem; height: 1.16rem; border-radius: 50%; background: #fff; }
+#lk-set .lk-sw[aria-checked="true"] { background: #3ddc84; }
+#lk-set .lk-sw[aria-checked="true"]::after { left: 1.37rem; }

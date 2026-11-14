@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+{% raw %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRON</title>
+    <script src="/assets/js/persist.js"></script>
+    <script src="/assets/js/single-tab.js"></script>
+    <script>try{var __h=document.documentElement,__g=function(k){return localStorage.getItem(k)==="1"};if(__g("lmpv9_plain"))__h.classList.add("lm-plain");if(__g("lmpv9_lite"))__h.classList.add("lm-lite")}catch(e){}</script>
+    <script>try{[["lmpv"+"7_"],["lmpv"+"8_"]].forEach(function(o){var P=o[0],N="lmpv"+"9_";Object.keys(localStorage).forEach(function(k){if(k.indexOf(P)===0&&localStorage.getItem(N+k.slice(P.length))===null)localStorage.setItem(N+k.slice(P.length),localStorage.getItem(k))})})}catch(e){}</script>
+<script>try{var __d=document.documentElement,__m=localStorage.getItem('lmp_bg')||'dark';if(['dark','light','colorful','time'].indexOf(__m)<0)__m='dark';__d.setAttribute('data-bg',__m);__d.setAttribute('data-theme',__m==='light'?'light':'dark');__d.setAttribute('data-music-ui','prism')}catch(e){}</script>
+    <!-- Everything is served by the app itself (works offline): see vendor/ and tailwind.config.js -->
+    <script>/* photo editor: while it is open it owns the keyboard (runs before every other key handler) */
+window.__pxEd = null;
+window.addEventListener('keydown', function (e) { if (typeof window.__pxEd === 'function') { window.__pxEd(e); e.stopImmediatePropagation(); } }, true);
+window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 'function' && window.__pxWheel(e)) e.stopImmediatePropagation(); }, { capture: true, passive: false });
+</script>
+<link href="/vendor/inter/inter.css" rel="stylesheet">
+    <link href="/vendor/tailwind.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/smart-genres.css">
+
+    <link id="minimalist" rel="stylesheet" href="/assets/css/minimalist.css?v=ultron-update">
+<link id="special" rel="stylesheet" href="/assets/css/special.css">
+
+    <link id="ui-fix" rel="stylesheet" href="/assets/css/ui-fix.css">
+<link id="time-css" rel="stylesheet" href="/assets/css/time.css">
+
+
+<script>try{document.documentElement.setAttribute("data-pal",localStorage.getItem("lmpv9_pal")||localStorage.getItem("lmpv10_pal")||"prism")}catch(e){}</script>
+<link id="lmpv9" rel="stylesheet" href="/assets/css/darkroom-1.css">
+
+<link id="lmpv9-v2" rel="stylesheet" href="/assets/css/darkroom-2.css">
+
+<link id="lmpv9-v3" rel="stylesheet" href="/assets/css/darkroom-3.css">
+
+<link id="lmpv9-v4" rel="stylesheet" href="/assets/css/darkroom-4.css">
+
+<link id="lmpv9-v5" rel="stylesheet" href="/assets/css/darkroom-5.css">
+
+<link id="lmpv9-v6" rel="stylesheet" href="/assets/css/darkroom-6.css">
+    <link id="library-css" rel="stylesheet" href="/assets/css/library.css">
+
+
+</head>
+<body class="bg-lm-base text-white font-sans min-h-screen overflow-x-hidden">
+    <div id="bg-layer" aria-hidden="true"><div class="bg-pic"></div><div class="bg-glow"></div><div class="bg-scrim"></div></div>
+
+    <!-- ================= NAVIGATION (hidden until asked for) ================= -->
+    <button id="menu-trigger" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false"><span class="mt-a"></span><span class="mt-b"></span></button>
+    <div id="menu-scrim" onclick="toggleMenu(false)"></div>
+
+    <aside id="sidebar">
+        <div id="sb-head" class="flex items-center justify-between gap-2 px-1 pb-3">
+            <div id="lm-mark" onclick="switchTab('home-view','tab-home')" title="ULTRON - Home"><span class="glyph">LM</span><span class="word">ULTRON<small>DARKROOM EDITION</small></span></div>
+            <div class="flex items-center min-w-0 cursor-pointer" onclick="switchTab('home-view','tab-home')" title="Home">
+                <img id="logo-img" src="/logo.png" alt="App Logo" class="h-9 w-9 rounded-full object-cover"
+                     onerror="this.style.display='none';document.getElementById('wordmark').classList.remove('hidden')">
+                <span id="wordmark" class="brand hidden text-lg select-none whitespace-nowrap"><span class="rail-only">LM</span><span class="sb-label">LOCAL MEDIA</span></span>
+            </div>
+        </div>
+        <button class="sb-search" onclick="openPalette()" title="Search everything (Ctrl+K)"><i class="fas fa-magnifying-glass ico"></i><span class="sb-label">Search</span><kbd class="sb-label ml-auto">Ctrl K</kbd></button>
+        <span id="private-pill" class="hidden self-start mb-1 ml-2 text-[10px] font-bold tracking-widest bg-accent/90 rounded px-2 py-1">PRIVATE</span>
+
+        <nav id="sb-scroll" class="hide-scrollbar">
+            <div class="sb-sec first"><span>Menu</span></div>
+            <button id="tab-home" class="sb-item" onclick="switchTab('home-view','tab-home')" title="Home"><i class="fas fa-house ico"></i><span class="sb-label">Home</span></button>
+
+            <div class="sb-sec"><span>Watch</span></div>
+            <button id="tab-video" class="sb-item" onclick="switchTab('video-view','tab-video')" title="Cinema: Collections, Series and All videos"><i class="fas fa-clapperboard ico"></i><span class="sb-label">Cinema</span></button>
+
+            <div class="sb-sec"><span>Listen</span></div>
+            <button id="tab-music" class="sb-item" onclick="switchTab('music-view','tab-music')" title="Music"><i class="fas fa-music ico"></i><span class="sb-label">Music</span></button>
+
+            <div class="sb-sec"><span>Time</span></div>
+            <button id="tab-time" class="sb-item" onclick="switchTab('time-view','tab-time')" title="World clock, alarms, stopwatch and timers"><i class="fas fa-clock ico"></i><span class="sb-label">Time</span></button>
+
+            <div class="sb-sec"><span>Get</span></div>
+            <button id="tab-photos" class="sb-item" onclick="switchTab('photos-view','tab-photos')" title="Photos"><i class="fas fa-image ico"></i><span class="sb-label">Photos</span></button>
+            <button id="tab-dl" class="sb-item" onclick="switchTab('dl-view','tab-dl')" title="Downloads"><i class="fas fa-cloud-arrow-down ico"></i><span class="sb-label">Downloads</span><span id="dl-badge" class="hidden sb-badge">0</span></button>
+
+            <button id="tab-private" class="sb-item hidden mt-3" onclick="switchTab('private-view','tab-private')" title="Private library"><i class="fas fa-lock-open ico !text-accent"></i><span class="sb-label">Private</span></button>
+        </nav>
+
+        <div class="relative mt-2 pt-3 border-t border-white/[.07]">
+            <div id="lock-menu" class="hidden absolute left-0 bottom-full mb-2 w-56 bg-[#181818] border border-white/10 rounded-lg shadow-2xl py-2 text-sm z-[70]">
+                <button onclick="lockNow()" class="w-full text-left px-4 py-2 hover:bg-white/10 flex items-center justify-between"><span><i class="fas fa-lock w-5"></i>Lock now</span><span class="text-xs text-gray-500">Ctrl+L</span></button>
+                <button onclick="openLockModal('change')" class="w-full text-left px-4 py-2 hover:bg-white/10"><i class="fas fa-key w-5"></i>Change password</button>
+            </div>
+            <div class="sb-tools">
+                <div class="sb-row">
+                    <button id="theme-btn" class="sb-tool" onclick="quickTheme()" title="Change background"><i class="fas fa-moon"></i></button>
+                    <button id="wheel-btn" class="sb-tool" onclick="toggleWheel()"><i class="fas fa-computer-mouse"></i></button>
+                    <button id="rescan-btn" class="sb-tool" title="Rescan media folders" onclick="rescan()"><i id="rescan-icon" class="fas fa-rotate"></i></button>
+                    <button id="settings-btn" class="sb-tool" title="Settings" onclick="openSettings()"><i class="fas fa-gear"></i></button>
+                </div>
+                <div class="sb-row">
+                    <button id="lock-btn" class="sb-tool" title="Private library" onclick="onLockClick()"><i id="lock-icon" class="fas fa-lock"></i></button>
+                    <button id="tab-exit" class="sb-tool sb-exit" onclick="exitApp()" title="Close ULTRON (press twice)"><span class="sb-label">Exit</span></button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div id="corner-clock" aria-hidden="true"></div>
+    <div id="browse-edge"></div>
+
+    <main id="main" class="min-h-screen">
+        <div id="home-view" class="block animate-fade-in"></div>
+        <div id="video-view" class="hidden animate-fade-in"></div>
+        <div id="series-view" class="hidden animate-fade-in"></div>
+        <div id="videos-view" class="hidden animate-fade-in"></div>
+        <div id="private-view" class="hidden animate-fade-in"></div>
+        <div id="dl-view" class="hidden animate-fade-in"></div>
+        <div id="photos-view" class="hidden animate-fade-in"></div>
+        <div id="time-view" class="hidden animate-fade-in"></div>
+
+        <!-- ================= MUSIC VIEW ================= -->
+        <div id="music-view" class="hidden fixed z-40 bg-black" style="top:0; left:var(--side-w); right:0; bottom:var(--bar-h);">
+            <div id="music-grid" class="h-full grid gap-2 p-2" style="grid-template-columns: 19rem minmax(0,1fr);">
+
+                <!-- sidebar: library -->
+                <aside class="rounded-xl bg-[#121212] flex flex-col min-h-0 overflow-hidden">
+                    <div class="px-4 pt-4 pb-2 flex items-center justify-between">
+                        <button onclick="showPlaylists()" class="font-bold text-gray-300 hover:text-white transition-colors text-left" title="Open your playlists"><i class="fas fa-layer-group mr-3"></i>Your Library</button>
+                        <div class="flex items-center gap-1"><button onclick="toggleLib()" class="h-8 w-8 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Hide library"><i class="fas fa-angles-left"></i></button>
+                        <button onclick="openNameModal('create')" class="h-8 w-8 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors" title="Create playlist"><i class="fas fa-plus"></i></button></div>
+                    </div>
+                    <div class="px-4 pb-2 flex gap-2 hscroll overflow-x-auto hide-scrollbar" id="lib-tabs"></div>
+                    <div class="px-4 pb-2">
+                        <div class="relative"><i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500"></i>
+                        <input id="lib-q" oninput="libQ=this.value;renderLibrary()" placeholder="Search in Your Library" autocomplete="off" class="w-full bg-white/10 rounded-md pl-8 pr-3 py-1.5 text-sm outline-none focus:bg-white/15 placeholder-gray-500"></div>
+                    </div>
+                    <div id="lib-list" class="flex-1 overflow-y-auto thin-scroll px-2 pb-2"></div>
+                </aside>
+
+                <!-- main panel -->
+                <section id="m-main" class="rounded-xl bg-[#121212] overflow-y-auto thin-scroll relative min-h-0">
+                    <div class="sticky top-0 z-30 flex items-center gap-3 px-6 py-3 bg-[#121212]/90 backdrop-blur">
+                        <button id="lib-toggle" onclick="toggleLib()" class="h-11 w-11 flex-none rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] flex items-center justify-center transition-colors" title="Show / hide your library"><i class="fas fa-table-columns"></i></button>
+                        <button onclick="showHome()" class="h-11 w-11 flex-none rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] flex items-center justify-center transition-colors" title="Home"><i class="fas fa-house"></i></button>
+                        <div class="relative flex-1 max-w-xl">
+                            <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input id="m-search" oninput="onSearchInput()" onkeydown="if(event.key==='Escape'){this.value='';onSearchInput();}" placeholder="What do you want to play?" autocomplete="off" class="w-full bg-[#1f1f1f] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] rounded-full pl-11 pr-4 py-3 outline-none border border-transparent focus:border-white/40 transition-colors">
+                        </div>
+                        <div class="flex items-center gap-2 flex-none">
+                            <button id="mp-playlists" onclick="showPlaylists()" class="mpill" title="Your playlists"><i class="fas fa-list-ul"></i><span class="mp-label">Playlists</span></button>
+                            <button id="mp-albums" onclick="showAlbums()" class="mpill" title="Albums"><i class="fas fa-compact-disc"></i><span class="mp-label">Albums</span></button>
+                            <button id="mp-gen" onclick="showGen()" class="mpill" title="Mix generator"><i class="fas fa-wand-magic-sparkles"></i><span class="mp-label">Mix generator</span></button>
+                        </div>
+                    </div>
+
+                    <!-- HOME -->
+                    <div id="mv-home" class="px-6 pb-10"></div>
+                    <div id="mv-albums" class="hidden px-6 pb-10"></div>
+                    <div id="mv-playlists" class="hidden px-6 pb-10"></div>
+
+                    <!-- LIST header (playlist / artist / mix / search) -->
+                    <div id="mv-list" class="hidden"></div>
+
+                    <!-- MIX GENERATOR -->
+                    <div id="mv-gen" class="hidden px-6 pb-4">
+                        <div class="bg-gradient-to-br from-lm-card/70 to-black/40 border border-white/10 rounded-xl p-6 backdrop-blur-sm shadow-xl">
+                            <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
+                                <i class="fas fa-wand-magic-sparkles text-accent"></i>
+                                <h2 class="text-2xl font-bold">Mix generator</h2>
+                            </div>
+                            <div class="flex flex-wrap items-end gap-4 md:gap-6">
+                                <div class="flex flex-col w-full sm:w-auto flex-grow">
+                                    <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">Language</label>
+                                    <select id="pl-language" class="bg-black border border-gray-700 text-white rounded-lg p-3 outline-none focus:border-accent transition-colors cursor-pointer"><option value="any">Any Language</option></select>
+                                </div>
+                                <div class="flex flex-col w-full sm:w-auto flex-grow">
+                                    <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">Artist</label>
+                                    <input id="pl-artist" list="artist-list" type="text" autocomplete="off" placeholder="Any artist (type to search)" onkeydown="if (event.key === 'Enter') generatePlaylist('all')" class="bg-black border border-gray-700 text-white rounded-lg p-3 outline-none focus:border-accent transition-colors">
+                                    <datalist id="artist-list"></datalist>
+                                </div>
+                                <div class="flex flex-col w-full sm:w-auto flex-grow">
+                                    <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">Genre</label>
+                                    <select id="pl-genre" class="bg-black border border-gray-700 text-white rounded-lg p-3 outline-none focus:border-accent transition-colors cursor-pointer">
+                                        <option value="mix">Random Mix</option><option value="edm">EDM</option><option value="pop">Pop</option><option value="rock">Rock</option><option value="hiphop">Hip Hop</option><option value="chill">Chill / Lo-Fi</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col w-full sm:w-auto flex-grow">
+                                    <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">Search</label>
+                                    <input id="pl-search" type="text" autocomplete="off" placeholder="Title, artist or album" onkeydown="if (event.key === 'Enter') generatePlaylist('all')" class="bg-black border border-gray-700 text-white rounded-lg p-3 outline-none focus:border-accent transition-colors">
+                                </div>
+                                <div class="flex flex-col w-full sm:w-auto">
+                                    <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">Max Tracks</label>
+                                    <input id="pl-limit" type="number" value="20" min="1" max="500" class="bg-black border border-gray-700 text-white rounded-lg p-3 w-24 outline-none focus:border-accent transition-colors">
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 mt-5">
+                                <button id="pl-generate" onclick="generatePlaylist('mix')" class="bg-accent hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-all hover:scale-[1.03] shadow-lg shadow-red-900/40 flex items-center justify-center gap-2 disabled:opacity-60"><i class="fas fa-play"></i> Generate Mix</button>
+                                <button id="pl-all" onclick="generatePlaylist('all')" class="border border-white/25 hover:bg-white/10 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"><i class="fas fa-list"></i> Show all matches</button>
+                                <button onclick="resetFilters()" class="text-sm text-gray-400 hover:text-white px-3 py-2 transition-colors">Reset filters</button>
+                            </div>
+                            <p id="pl-status" class="text-sm text-gray-400 mt-4 min-h-[1.25rem]"></p>
+
+                            <div class="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                <i class="fas fa-language text-accent"></i>
+                                <span id="lang-status" class="text-gray-300"></span>
+                                <button id="lang-btn" onclick="startLang()" class="bg-white/10 hover:bg-white/20 font-semibold rounded-lg px-4 py-1.5 transition-colors disabled:opacity-50">Detect languages</button>
+                                <button id="lang-stop" onclick="stopLang()" class="hidden bg-white/10 hover:bg-white/20 font-semibold rounded-lg px-4 py-1.5 transition-colors">Stop</button>
+                                <label class="flex items-center gap-2 text-gray-400 cursor-pointer select-none"><input id="lang-online" type="checkbox" checked class="accent-red-600"> Look up lyrics online (LRCLIB)</label>
+                                <button onclick="testLang()" class="text-gray-400 hover:text-white underline-offset-2 hover:underline">Test lookup</button>
+                            </div>
+                            <p id="lang-warn" class="hidden text-xs text-yellow-400/90 mt-2"></p>
+                        </div>
+                        <div id="gen-bar" class="hidden flex-wrap items-center justify-between gap-3 mt-6"></div>
+                    </div>
+
+                    <!-- shared track table -->
+                    <div id="m-table-wrap" class="hidden px-6 pb-10">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-gray-400 text-sm border-b border-white/10">
+                                    <th class="py-2 px-3 w-12 font-medium">#</th>
+                                    <th class="py-2 px-3 font-medium">Title</th>
+                                    <th class="py-2 px-3 hidden lg:table-cell font-medium">Album</th>
+                                    <th class="py-2 px-3 hidden sm:table-cell font-medium">Language</th>
+                                    <th class="py-2 px-3 w-28 font-medium"></th>
+                                    <th class="py-2 px-3 w-20 font-medium text-center"><i class="far fa-clock"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tracklist" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= SERIES MODAL ================= -->
+    <div id="series-modal" class="hidden fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm overflow-y-auto" onclick="if (event.target === this) closeSeries()">
+        <div class="min-h-full flex items-start justify-center p-4 md:p-10" onclick="if (event.target === this) closeSeries()">
+            <div id="series-card" class="w-full max-w-4xl bg-[#181818] rounded-2xl overflow-hidden shadow-2xl animate-fade-in"></div>
+        </div>
+    </div>
+
+    <!-- ================= VIDEO PLAYER ================= -->
+    <div id="player-modal" class="hidden fixed inset-0 z-[100] bg-black select-none overflow-hidden">
+        <video id="player" class="absolute inset-0 h-full w-full bg-black" style="object-fit:contain" playsinline></video>
+        <div id="p-hit" class="absolute inset-0 z-[1]"></div>
+
+        <div id="p-flash"><i id="p-flash-icon" class="fas fa-play"></i><span id="p-flash-txt" class="text-xs font-bold mt-1"></span></div>
+        <div id="p-spin" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[4] pointer-events-none"><div class="spinner"></div></div>
+
+        <div id="p-titlecard" class="absolute left-12 bottom-40 z-[3] pointer-events-none max-w-[60%] opacity-0">
+            <div id="tc-sub" class="text-sm font-semibold text-accent mb-2"></div>
+            <div id="tc-title" class="font-black leading-tight drop-shadow-2xl" style="font-size:clamp(1.8rem,3.4vw,3.6rem);text-shadow:0 4px 30px rgba(0,0,0,.8)"></div>
+        </div>
+
+        <div id="p-hint" class="absolute top-20 left-1/2 -translate-x-1/2 z-[6] opacity-0 pointer-events-none bg-black/70 backdrop-blur rounded-full px-5 py-2 text-sm font-semibold"></div>
+
+        <div id="p-top" class="p-ui absolute top-0 inset-x-0 z-10 px-6 pt-5 pb-20 flex items-start justify-between" style="background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent)">
+            <div class="flex items-center gap-2"><button onclick="closePlayer()" class="p-pill"><i class="fas fa-arrow-left"></i> Back</button>
+                <button onclick="enterMini()" class="p-pill" title="Pop out into a small floating window that stays on top (I)"><i class="fas fa-down-left-and-up-right-to-center"></i> Mini player</button></div>
+            <div class="flex items-center gap-3 min-w-0 ml-6">
+                <button id="start-over" onclick="startOver()" class="hidden p-pill !py-1.5 text-xs"><i class="fas fa-rotate-left"></i> Start over</button>
+                <div class="min-w-0 text-right">
+                    <div id="player-sub" class="text-xs text-gray-300 truncate"></div>
+                    <div id="player-title" class="font-bold truncate"></div>
+                </div>
+                <button onclick="editTitle(event, playingId)" class="p-btn !h-9 !min-w-9 bg-white/10 text-xs" title="Rename"><i class="fas fa-pen"></i></button>
+            </div>
+        </div>
+
+        <div id="p-next" class="hidden absolute right-8 bottom-32 z-20 w-80 rounded-xl overflow-hidden bg-black/85 backdrop-blur border border-white/15 shadow-2xl">
+            <div class="relative aspect-video bg-lm-card"><img id="pn-img" alt="" class="h-full w-full object-cover opacity-80"><div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div><div class="absolute bottom-2 left-3 text-xs font-bold text-accent">UP NEXT &middot; <span id="pn-count">8</span>s</div></div>
+            <div class="p-3">
+                <div id="pn-title" class="font-bold truncate mb-2"></div>
+                <div class="flex gap-2">
+                    <button onclick="playNextNow()" class="flex-1 bg-white text-black font-bold rounded-md py-2 text-sm hover:bg-white/80 transition-colors"><i class="fas fa-play mr-1"></i> Play now</button>
+                    <button onclick="hideNext()" class="px-4 bg-white/15 rounded-md text-sm hover:bg-white/25 transition-colors">Cancel</button>
+                </div>
+            </div>
+            <div class="h-1 bg-white/10"><div id="pn-bar" class="h-full bg-accent" style="width:0"></div></div>
+        </div>
+
+        <div id="p-bottom" class="p-ui absolute bottom-0 inset-x-0 z-10 px-6 pb-4 pt-24" style="background:linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,.5) 55%,transparent)">
+            <div id="p-seek" class="group relative h-5 flex items-center cursor-pointer touch-none">
+                <div class="bar relative w-full h-1 group-hover:h-1.5 rounded-full bg-white/20">
+                    <div id="p-buf" class="absolute inset-y-0 left-0 rounded-full bg-white/30" style="width:0"></div>
+                    <div id="p-played" class="absolute inset-y-0 left-0 rounded-full bg-accent" style="width:0;box-shadow:0 0 14px rgba(255,255,255,.85)"></div>
+                    <div id="p-thumb" class="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-accent scale-0 group-hover:scale-100 transition-transform" style="left:0"></div>
+                </div>
+                <div id="p-tip" class="hidden absolute bottom-6 -translate-x-1/2 rounded bg-black/85 px-2 py-1 text-xs font-semibold pointer-events-none">0:00</div>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+                <div class="flex items-center gap-1">
+                    <button id="p-play" class="p-btn" onclick="togglePlayVideo()" title="Play / pause (Space)"><i id="p-play-icon" class="fas fa-pause"></i></button>
+                    <button id="p-prev" class="p-btn hidden" onclick="stepEpisode(-1)" title="Previous episode (P)"><i class="fas fa-backward-step"></i></button>
+                    <button class="p-btn p-skip" onclick="skip(-10)" title="Back 10s (J)"><i class="fas fa-rotate-left"></i><span>10</span></button>
+                    <button class="p-btn p-skip" onclick="skip(10)" title="Forward 10s (L)"><i class="fas fa-rotate-right"></i><span>10</span></button>
+                    <button id="p-nextbtn" class="p-btn hidden" onclick="stepEpisode(1)" title="Next episode (N)"><i class="fas fa-forward-step"></i></button>
+                    <div class="vol-wrap flex items-center ml-1">
+                        <button class="p-btn" onclick="toggleMute()" title="Mute (M)"><i id="p-vol-icon" class="fas fa-volume-high"></i></button>
+                        <input id="p-vol" type="range" min="0" max="100" value="100">
+                    </div>
+                    <span id="p-time" class="text-sm font-semibold ml-3 tabular-nums text-gray-200">0:00 / 0:00</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="p-speed" class="p-btn text-sm font-bold" onclick="openMenu('speed')" title="Speed">1x</button>
+                    <button id="p-cc" class="p-btn hidden" onclick="openMenu('cc')" title="Subtitles (C)"><i class="fas fa-closed-captioning"></i></button>
+                    <button class="p-btn" onclick="toggleFit()" title="Fit / fill the screen"><i id="p-fit-icon" class="fas fa-expand"></i></button>
+                    <button class="p-btn" onclick="toggleFS()" title="Fullscreen (F)"><i id="p-fs-icon" class="fas fa-maximize"></i></button>
+                </div>
+            </div>
+        </div>
+        <div id="p-menu" class="hidden absolute right-6 bottom-28 z-30 min-w-44 max-h-72 overflow-y-auto bg-black/90 backdrop-blur border border-white/15 rounded-lg shadow-2xl py-2"></div>
+        <div id="p-mini" class="absolute inset-0 z-[40] flex-col justify-between cursor-pointer select-none" onclick="exitMini()" title="Click to expand">
+            <div class="mini-ui flex items-start justify-between gap-2 p-2" style="background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent)">
+                <div id="mini-title" class="text-xs font-bold truncate pr-2 drop-shadow"></div>
+                <div class="flex gap-1 flex-none">
+                    <button onclick="event.stopPropagation();exitMini()" class="h-7 w-7 rounded-full bg-black/60 hover:bg-white hover:text-black text-xs transition-colors" title="Expand"><i class="fas fa-up-right-and-down-left-from-center"></i></button>
+                    <button onclick="event.stopPropagation();closePlayer()" class="h-7 w-7 rounded-full bg-black/60 hover:bg-white hover:text-black text-xs transition-colors" title="Close"><i class="fas fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="mini-ui flex items-center justify-center gap-3">
+                <button onclick="event.stopPropagation();miniStep(-1)" class="h-9 w-9 rounded-full bg-black/60 hover:bg-white hover:text-black text-sm transition-colors" title="Previous episode"><i class="fas fa-backward-step"></i></button>
+                <button onclick="event.stopPropagation();togglePlayVideo()" class="h-12 w-12 rounded-full bg-white text-black text-lg hover:scale-105 transition-transform" title="Play / pause"><i id="mini-play-icon" class="fas fa-pause"></i></button>
+                <button onclick="event.stopPropagation();miniStep(1)" class="h-9 w-9 rounded-full bg-black/60 hover:bg-white hover:text-black text-sm transition-colors" title="Next episode"><i class="fas fa-forward-step"></i></button>
+            </div>
+            <div class="h-3 flex items-end cursor-pointer" onclick="event.stopPropagation();miniSeek(event)"><div class="w-full h-1 bg-white/25"><div id="mini-bar" class="h-full bg-accent" style="width:0"></div></div></div>
+        </div>
+        <p id="player-error" class="hidden absolute bottom-32 inset-x-0 z-20 text-center text-sm text-red-400">This file can't be played by the built-in web player. Install libmpv (Settings > Playback) to play MKV, HEVC and AC3/DTS as they are.</p>
+    </div>
+
+    <!-- ================= MUSIC PLAYER BAR ================= -->
+    <div id="audio-bar" class="hidden fixed bottom-0 inset-x-0 z-[60] h-[5.5rem] bg-black border-t border-white/10 px-4 items-center gap-4">
+        <div class="flex items-center gap-3 w-[28%] min-w-0">
+            <div class="relative h-14 w-14 flex-none rounded-md bg-lm-card flex items-center justify-center overflow-hidden cursor-pointer" onclick="openNowPlaying()" title="Now Playing (full screen)">
+                <i class="fas fa-music text-gray-500"></i>
+                <img id="np-cover" alt="" class="absolute inset-0 h-full w-full object-cover" onerror="this.style.visibility='hidden'" onload="this.style.visibility='visible'">
+            </div>
+            <div class="min-w-0">
+                <div id="np-title" class="font-semibold truncate"></div>
+                <div id="np-artist" class="text-xs text-gray-400 truncate hover:underline cursor-pointer" onclick="openNowArtist()"></div>
+            </div>
+            <span id="np-heart"></span>
+            <button onclick="openNowPlaying()" class="h-8 w-8 flex-none rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Now Playing - full screen"><i class="fas fa-up-right-and-down-left-from-center text-xs"></i></button>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <div class="flex items-center gap-5">
+                <button id="b-shuffle" onclick="toggleShuffle()" class="relative text-gray-400 hover:text-white transition-colors" title="Shuffle"><i class="fas fa-shuffle"></i></button>
+                <button onclick="prevTrack()" class="text-gray-300 hover:text-white text-lg transition-colors" title="Previous"><i class="fas fa-backward-step"></i></button>
+                <button onclick="togglePlay()" class="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform" title="Play / pause"><i id="play-icon" class="fas fa-play ml-0.5"></i></button>
+                <button onclick="nextTrack(false)" class="text-gray-300 hover:text-white text-lg transition-colors" title="Next"><i class="fas fa-forward-step"></i></button>
+                <button id="b-repeat" onclick="cycleRepeat()" class="relative text-gray-400 hover:text-white transition-colors" title="Repeat"><i class="fas fa-repeat"></i></button>
+            </div>
+            <div class="flex items-center gap-3 w-full max-w-2xl text-xs text-gray-400">
+                <span id="t-cur" class="w-10 text-right">0:00</span>
+                <input id="seek" type="range" min="0" max="1000" value="0" class="flex-1 h-1">
+                <span id="t-dur" class="w-10">0:00</span>
+            </div>
+        </div>
+
+        <div class="w-[28%] flex items-center justify-end gap-3 text-gray-300">
+            <button id="b-queue" onclick="toggleQueue()" class="hover:text-white transition-colors" title="Queue"><i class="fas fa-list-ol"></i></button>
+            <button onclick="toggleAudioMute()" class="hover:text-white transition-colors" title="Mute"><i id="a-vol-icon" class="fas fa-volume-high text-sm w-4"></i></button>
+            <input id="vol" type="range" min="0" max="100" value="80" class="w-28 h-1">
+        </div>
+        <audio id="audio" preload="auto"></audio>
+    </div>
+    <div id="queue-panel" class="hidden fixed right-3 z-[65] w-80 max-h-[60vh] overflow-y-auto thin-scroll bg-[#181818] border border-white/10 rounded-xl shadow-2xl p-2" style="bottom:6.2rem"></div>
+
+    <!-- ================= SETTINGS MODAL ================= -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeSettings()">
+        <div class="w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-xl font-bold"><i class="fas fa-gear text-accent mr-2"></i>Settings</h3>
+                <button onclick="closeSettings()" class="h-8 w-8 rounded-full hover:bg-white/10" title="Close (Esc)"><i class="fas fa-xmark"></i></button>
+            </div>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">APPEARANCE</h4>
+                <div class="text-sm font-semibold">Background</div>
+                <div class="text-xs text-gray-500 mb-3">Stays the same on every screen</div>
+                <div id="set-bg" class="bg-opts mb-3">
+                    <button class="bg-opt" data-bg="dark" onclick="setPref({bg_mode:'dark'})"><span class="bg-sw sw-dark"></span>Dark</button>
+                    <button class="bg-opt" data-bg="light" onclick="setPref({bg_mode:'light'})"><span class="bg-sw sw-light"></span>Light</button>
+                    <button class="bg-opt" data-bg="colorful" onclick="setPref({bg_mode:'colorful'})"><span class="bg-sw sw-colorful"></span>Colorful</button>
+                    <button class="bg-opt" data-bg="time" onclick="setPref({bg_mode:'time'})"><span class="bg-sw sw-time"></span>Sync with time</button>
+                </div>
+                <div id="set-bg-img" class="hidden mb-4">
+                    <div class="text-xs text-gray-500 mb-2">Pick a picture or one of the presets</div>
+                    <div id="set-bg-pick" class="bg-presets"></div>
+                    <input id="bg-file" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="pickBgImage(this)">
+                </div>
+                <div class="text-sm font-semibold">Clock design</div>
+                <div class="text-xs text-gray-500 mb-3">Used for the Home clock and the corner clock</div>
+                <div id="set-clockstyle" class="ck-tiles mb-4"></div>
+
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Hover previews</div><div class="text-xs text-gray-500">The Home banner and private-library cards play a short muted preview when you hover them</div></div>
+                    <button id="set-hover" class="set-switch" onclick="setPref({hover_preview: prefs.hover_preview === false})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Moving picture on tile hover</div><div class="text-xs text-gray-500">Hover a movie, series or collection tile and a short muted clip plays inside the square. Off: tiles stay still</div></div>
+                    <button id="set-tilemotion" class="set-switch" role="switch" onclick="setPref({tile_motion: !prefs.tile_motion})" title="Toggle"></button>
+                </div>
+            </section>
+
+            <section class="mb-6" id="set-smartgenres">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">SMART GENRES</h4>
+                <div class="flex items-center justify-between gap-4 mb-2">
+                    <div><div class="text-sm font-semibold">Look genres up online</div><div class="text-xs text-gray-500">Finds each movie, series and artist once, then remembers it. Nothing is renamed or moved, and the private library is never sent anywhere</div></div>
+                    <button id="set-agonline" class="set-switch" role="switch" onclick="sgToggleOnline()" title="Toggle"></button>
+                </div>
+                <input id="sg-tmdb" class="sg-field" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your free TMDB key">
+                <div class="sg-note mt-1">Movies and series: a free key from themoviedb.org (Settings, API). Music needs no key; a Last.fm key is optional and improves results.</div>
+                <input id="sg-lfm" class="sg-field" type="password" autocomplete="off" spellcheck="false" placeholder="Optional: Last.fm key">
+                <div class="sg-btns">
+                    <button class="sg-btn" onclick="sgSaveKeys()">Save keys</button>
+                    <button class="sg-btn" onclick="sgClearKeys()">Remove keys</button>
+                </div>
+                <div class="sg-btns">
+                    <button id="sg-go-movies" class="sg-btn pri" onclick="sgStart('movies')"><i class="fas fa-film"></i> Detect movie genres</button>
+                    <button id="sg-go-music" class="sg-btn pri" onclick="sgStart('music')"><i class="fas fa-music"></i> Detect music genres</button>
+                    <button id="sg-pause" class="sg-btn hidden" onclick="sgPause()"><i class="fas fa-pause"></i> Pause</button>
+                    <button id="sg-stop" class="sg-btn hidden" onclick="sgStop()"><i class="fas fa-stop"></i> Stop</button>
+                </div>
+                <div id="sg-prog" class="hidden mt-3"><div id="sg-txt" class="text-xs text-gray-300"></div><div class="sg-barwrap"><div id="sg-bar"></div></div></div>
+                <div id="sg-counts" class="sg-note mt-3"></div>
+                <div class="sg-btns">
+                    <button id="sg-review" class="sg-btn hidden" onclick="sgReview()">Needs review</button>
+                    <button class="sg-btn" onclick="sgReset()">Forget detected genres</button>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">DISPLAY</h4>
+                <div id="set-mode" class="grid grid-cols-3 gap-2 mb-3">
+                    <button class="set-seg" data-mode="windowed" onclick="setPref({display_mode:'windowed'})"><i class="fas fa-window-maximize mr-1"></i>Windowed</button>
+                    <button class="set-seg" data-mode="maximized" onclick="setPref({display_mode:'maximized'})"><i class="fas fa-expand mr-1"></i>Maximized</button>
+                    <button class="set-seg" data-mode="fullscreen" onclick="setPref({display_mode:'fullscreen'})"><i class="fas fa-maximize mr-1"></i>Fullscreen</button>
+                </div>
+                <div id="set-res-row" class="flex items-center justify-between gap-4 mb-3 transition-opacity">
+                    <div><div class="text-sm font-semibold">Window size</div><div class="text-xs text-gray-500">Only used in Windowed mode</div></div>
+                    <select id="set-res" class="set-select text-sm" onchange="const r=this.value.split('x'); setPref({win_width:+r[0], win_height:+r[1]})"></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Remember window size</div><div class="text-xs text-gray-500">Saves the size when you close the app (Windowed mode)</div></div>
+                    <button id="set-remember" class="set-switch" onclick="setPref({remember_size: !prefs.remember_size})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Close to the system tray</div><div class="text-xs text-gray-500">The X button hides ULTRON next to the clock instead of quitting. Music keeps playing and the private library locks. Use Exit (or the tray menu) to really quit. Windows, restart to apply.</div></div>
+                    <button id="set-tray" class="set-switch" onclick="setPref({close_to_tray: !(prefs.close_to_tray !== false)})" title="Toggle"></button>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">PLAYBACK</h4>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Default volume</div><div class="text-xs text-gray-500">Where the music and video players start</div></div>
+                    <div class="flex items-center gap-2"><input id="set-vol" type="range" min="0" max="100" class="w-32 h-1" oninput="$('set-vol-val').textContent = this.value" onchange="setPref({default_volume: +this.value})"><span id="set-vol-val" class="text-sm text-gray-400 w-8 text-right"></span></div>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Default speed</div><div class="text-xs text-gray-500">Video speed when a video starts</div></div>
+                    <select id="set-speed" class="set-select text-sm" onchange="setPref({default_speed: +this.value})"><option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1">Normal</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="1.75">1.75x</option><option value="2">2x</option></select>
+                </div>
+                                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Show subtitles automatically</div><div class="text-xs text-gray-500">When a video has subtitle files</div></div>
+                    <button id="set-subs" class="set-switch" onclick="setPref({subs_auto: !prefs.subs_auto})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Subtitle size</div><div class="text-xs text-gray-500"></div></div>
+                    <select id="set-subsize" class="set-select text-sm" onchange="setPref({subs_size: +this.value})"><option value="90">Small</option><option value="115">Medium</option><option value="160">Large</option><option value="220">Extra large</option></select>
+                </div>
+                <div class="mt-5 mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">Auto subtitles (made on this PC)</div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Enable AI subtitles</div><div class="text-xs text-gray-500">Master switch. Off = the feature is gone: no progress pill, no "Generate subtitles" entry in the CC menu, nothing runs by itself</div></div>
+                    <button id="set-asubon" class="set-switch" role="switch" onclick="setPref({asub_enabled: prefs.asub_enabled === false})" title="Toggle"></button>
+                </div>
+                <div id="set-asubbox">
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Make subtitles automatically</div><div class="text-xs text-gray-500">Off by default. When on, a video with no subtitles at all is listened to and translated as soon as it starts. When off, nothing happens until you choose CC &gt; Generate subtitles</div></div>
+                    <button id="set-asubauto" class="set-switch" role="switch" onclick="setPref({asub_auto: prefs.asub_auto !== true}).then(function(){ if (window.asubAuto) window.asubAuto(); })" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Subtitle language</div><div class="text-xs text-gray-500">What generated subtitles are translated into. The spoken language is detected by itself</div></div>
+                    <select id="set-asublang" class="set-select text-sm" onchange="setPref({asub_lang: this.value})"></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Quality</div><div class="text-xs text-gray-500">Accurate is slower but understands accents and noise better</div></div>
+                    <select id="set-asubmode" class="set-select text-sm" onchange="setPref({asub_mode: this.value})"><option value="accurate">Accurate</option><option value="fast">Fast</option></select>
+                </div>
+                <div class="mb-3">
+                    <div id="set-asubstat" class="text-xs text-gray-400 mb-2">Checking...</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="set-asubdl" class="set-seg hidden" onclick="asubDownload()">Download models (about 2.8 GB)</button>
+                        <button class="set-seg" onclick="asubQueueAll()" title="Makes subtitles for every public video that has none, one after another">Generate for all videos</button>
+                        <button class="set-seg" onclick="asubStopAll()">Stop</button>
+                    </div>
+                    <div id="set-asubq" class="text-xs text-gray-500 mt-2"></div>
+                </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Next episode countdown</div><div class="text-xs text-gray-500">Seconds before the next episode starts</div></div>
+                    <select id="set-next" class="set-select text-sm" onchange="setPref({next_countdown: +this.value})"><option value="3">3 s</option><option value="5">5 s</option><option value="8">8 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">LIBRARY</h4>
+                <div class="space-y-3 mb-3">
+                    <div><div class="text-sm font-semibold mb-1">Video folder</div><div class="flex gap-2"><input id="set-f-video" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('video', this.value)"><button class="set-seg" onclick="browseFolder('video')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('video', '')" title="Back to the default folder"><i class="fas fa-rotate-left"></i></button></div></div>
+                    <div><div class="text-sm font-semibold mb-1">Music folder</div><div class="flex gap-2"><input id="set-f-music" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('music', this.value)"><button class="set-seg" onclick="browseFolder('music')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('music', '')" title="Back to the default folder"><i class="fas fa-rotate-left"></i></button></div></div>
+                    <div><div class="text-sm font-semibold mb-1">Private folder</div><div class="flex gap-2"><input id="set-f-private" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('private', this.value)"><button class="set-seg" onclick="browseFolder('private')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('private', '')" title="Back to the default folder"><i class="fas fa-rotate-left"></i></button></div></div>
+                    <div><div class="text-sm font-semibold mb-1">Photos folder</div><div class="flex gap-2"><input id="set-f-photos" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('photos', this.value)"><button class="set-seg" onclick="browseFolder('photos')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('photos', '')" title="Back to the default folder"><i class="fas fa-rotate-left"></i></button></div></div>
+                    <div><div class="text-sm font-semibold mb-1">Clips folder (trimmer)</div><div class="flex gap-2"><input id="set-f-clips" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('clips', this.value)"><button class="set-seg" onclick="browseFolder('clips')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('clips', '')" title="Back to the default: Clips inside the video folder"><i class="fas fa-rotate-left"></i></button></div></div>
+                    <div><div class="text-sm font-semibold mb-1">Screenshots folder</div><div class="flex gap-2"><input id="set-f-shots" class="set-select text-xs flex-1 min-w-0" spellcheck="false" onchange="setFolder('shots', this.value)"><button class="set-seg" onclick="browseFolder('shots')" title="Browse"><i class="fas fa-folder-open"></i></button><button class="set-seg" onclick="setFolder('shots', '')" title="Back to the default: Pictures\ULTRON"><i class="fas fa-rotate-left"></i></button></div></div>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Artist rules</div><div class="text-xs text-gray-500">Names that must not be split into collaborators. Rescan after editing.</div></div>
+                    <button class="set-seg px-3" onclick="openArtistRules()"><i class="fas fa-file-pen mr-1"></i>Edit</button>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">PHOTOS</h4>
+                <div id="set-photolock"></div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Favorites in Photos</div><div class="text-xs text-gray-500">A heart in the viewer (press F) and a Favorites album</div></div>
+                    <button id="set-fav-public" class="set-switch" role="switch" onclick="setPref({fav_public: prefs.fav_public === false})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Favorites in Private photos</div><div class="text-xs text-gray-500">Hearted private photos stay behind the lock</div></div>
+                    <button id="set-fav-private" class="set-switch" role="switch" onclick="setPref({fav_private: prefs.fav_private === false})" title="Toggle"></button>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">DOWNLOADER (YT-DLP)</h4>
+                <div class="mb-3">
+                    <div class="text-sm font-semibold mb-1">yt-dlp folder</div>
+                    <div class="text-xs text-gray-500 mb-2">The folder that holds yt-dlp.exe, ffmpeg.exe and ffprobe.exe (and VARS.txt).</div>
+                    <div class="flex gap-2"><input id="set-ytdlp" class="set-select text-xs flex-1 min-w-0" spellcheck="false" placeholder="e.g. F:\Files\YOUTUBEDLP\EXE" onchange="setYtdlpDir(this.value)"><button class="set-seg px-3" onclick="browseYtdlp()" title="Browse"><i class="fas fa-folder-open"></i></button></div>
+                    <div id="set-yt-status" class="text-xs mt-2 text-gray-400"></div>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <button class="set-seg px-3 text-xs" onclick="importVars()"><i class="fas fa-file-import mr-1"></i>Import from VARS.txt</button>
+                        <button id="set-yt-update" class="set-seg px-3 text-xs" onclick="updateYtdlp()"><i class="fas fa-cloud-arrow-down mr-1"></i>Update yt-dlp</button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">Video codec</div><div class="text-xs text-gray-500">h264 plays everywhere</div></div><input id="set-vcodec" class="set-select text-sm w-28" spellcheck="false" onchange="setPref({dl_vcodec: this.value})"></div>
+                <div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">Audio codec</div><div class="text-xs text-gray-500">Used for Video and MP3 downloads</div></div><input id="set-acodec" class="set-select text-sm w-28" spellcheck="false" onchange="setPref({dl_acodec: this.value})"></div>
+                <div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">Music codec</div><div class="text-xs text-gray-500">FLAC downloads</div></div><input id="set-mcodec" class="set-select text-sm w-28" spellcheck="false" onchange="setPref({dl_mcodec: this.value})"></div>
+                <div class="space-y-3 mb-3">
+                    <div><div class="text-sm font-semibold mb-1">Extra yt-dlp arguments: Video</div><input id="set-vargs" class="set-select text-xs w-full" spellcheck="false" onchange="setPref({dl_vargs: this.value})"></div>
+                    <div><div class="text-sm font-semibold mb-1">Extra yt-dlp arguments: Audio (MP3)</div><input id="set-aargs" class="set-select text-xs w-full" spellcheck="false" onchange="setPref({dl_aargs: this.value})"></div>
+                    <div><div class="text-sm font-semibold mb-1">Extra yt-dlp arguments: Music (FLAC)</div><input id="set-margs" class="set-select text-xs w-full" spellcheck="false" onchange="setPref({dl_margs: this.value})"></div>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">MP3 folder</div><div class="text-xs text-gray-500">Inside your music folder</div></div><input id="set-asub" class="set-select text-sm w-28" spellcheck="false" onchange="setPref({dl_audio_sub: this.value})"></div>
+                <div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">FLAC folder</div><div class="text-xs text-gray-500">Inside your music folder</div></div><input id="set-msub" class="set-select text-sm w-28" spellcheck="false" onchange="setPref({dl_music_sub: this.value})"></div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">PRIVACY</h4>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Auto-lock private library</div><div class="text-xs text-gray-500">After this much inactivity</div></div>
+                    <select id="set-idle" class="set-select text-sm" onchange="setPref({idle_lock_minutes: +this.value})"><option value="1">1 min</option><option value="2">2 min</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select>
+                </div>
+                            <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Headphones prompt</div><div class="text-xs text-gray-500">Asks you to put headphones on before a private video starts</div></div>
+                    <select id="set-hp" class="set-select text-sm" onchange="setPref({private_headphones: this.value})"><option value="once">Once per unlock</option><option value="always">Before every video</option><option value="off">Off</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Private videos start muted</div><div class="text-xs text-gray-500">Press M in the player to turn the sound on</div></div>
+                    <button id="set-privmute" class="set-switch" role="switch" onclick="setPref({private_start_muted: prefs.private_start_muted === false})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Blur private covers</div><div class="text-xs text-gray-500">Posters and thumbnails stay blurred until you hover them</div></div>
+                    <button id="set-privblur" class="set-switch" role="switch" onclick="setPref({private_blur_covers: prefs.private_blur_covers === false})" title="Toggle"></button>
+                </div>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">INTERFACE</h4>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Start on</div><div class="text-xs text-gray-500">Which tab opens when the app starts</div></div>
+                    <select id="set-tab" class="set-select text-sm" onchange="setPref({start_tab: this.value})"><option value="last">Where I left off</option><option value="home">Home</option><option value="video">Cinema</option><option value="music">Music</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Show clock</div><div class="text-xs text-gray-500">Small time display in the top-right corner</div></div>
+                    <button id="set-clock" class="set-switch" role="switch" onclick="setPref({show_clock: !prefs.show_clock})" title="Toggle"></button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Home clock</div><div class="text-xs text-gray-500">Big clock, day, date and greeting on the Home screen</div></div>
+                    <button id="set-homeclock" class="set-switch" role="switch" onclick="setPref({home_clock: !prefs.home_clock})" title="Toggle"></button>
+                </div>
+                <div class="hidden items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Cinema bar</div><div class="text-xs text-gray-500">Movies / Series / All videos. Press B to collapse it</div></div>
+                    <select id="set-browse" class="set-select text-sm" onchange="setPref({browse_bar: this.value})"><option value="always">Always show</option><option value="auto">Auto-hide</option><option value="hidden">Hidden</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Mouse wheel scrolls video rows</div><div class="text-xs text-gray-500">Hold Alt to scroll the page instead</div></div>
+                    <button id="set-wheel" class="set-switch" onclick="setPref({wheel_rows: !wheelRows})" title="Toggle"></button>
+                </div>
+            </section>
+
+            <section class="mb-6" id="set-backup">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">YOUR DATA</h4>
+                <div class="text-xs text-gray-500 mb-3">Your database: favorites, hearts, watch progress, ratings, playlists, plays, settings, your private-library password and your own tile pictures. Export it to one .zip to keep it safe or to carry it to another PC or version, and restore it there. Posters and thumbnails are not included, they rebuild by themselves. Keep the file private: it also holds your password lock and any API keys.</div>
+                <div class="flex gap-2">
+                    <button class="flex-1 set-seg py-2.5" onclick="exportBackup()"><i class="fas fa-file-export mr-1"></i>Export database</button>
+                    <button class="flex-1 set-seg py-2.5" onclick="$('backup-file').click()"><i class="fas fa-file-import mr-1"></i>Import database</button>
+                    <input id="backup-file" type="file" accept=".zip,application/zip" class="hidden" onchange="importBackup(this)">
+                </div>
+                <div class="text-xs text-gray-500 mt-2">Importing first saves a safety copy of what you have now in data/backups. Your media folder locations and, if the file has none, your current password are kept.</div>
+                <div class="flex items-center gap-2 mt-3">
+                    <div class="min-w-0 flex-1"><div class="text-[11px] text-gray-500">Data folder</div><div id="data-home-path" class="text-xs break-all select-text" style="text-transform:none;letter-spacing:0">...</div><div id="data-home-why" class="text-[11px] text-gray-500 mt-1"></div></div>
+                    <button class="set-seg py-2 px-3 flex-none" onclick="openDataFolder()"><i class="far fa-folder-open mr-1"></i>Open</button>
+                </div>
+            </section>
+
+            <button id="set-reset" class="w-full set-seg py-2.5" onclick="resetPrefs()"><i class="fas fa-rotate-left mr-1"></i>Reset settings to defaults</button>
+            <p class="text-xs text-gray-500 text-center mt-2">Your folders are not changed by this.</p>
+        </div>
+    </div>
+
+    <!-- ================= PASSWORD MODAL ================= -->
+    <!-- ================= PRIVATE VIDEO: HEADPHONES PROMPT ================= -->
+    <div id="hp-modal" class="hidden fixed inset-0 z-[400] bg-black/95 items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-[#181818] border border-white/10 rounded-2xl p-8 shadow-2xl">
+            <div class="text-center mb-5">
+                <div class="mx-auto h-14 w-14 rounded-full bg-accent/15 flex items-center justify-center text-accent text-xl mb-4"><i class="fas fa-headphones"></i></div>
+                <h3 class="text-xl font-bold">Put your headphones on</h3>
+                <p class="text-sm text-gray-400 mt-1">Nothing plays until you choose. The sound stays off unless you confirm.</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer select-none mb-5"><input id="hp-check" type="checkbox" class="h-5 w-5 accent-red-600" onchange="$('hp-sound').disabled = !this.checked"><span class="text-sm font-semibold">I am wearing headphones</span></label>
+            <div class="flex gap-2">
+                <button id="hp-sound" disabled onclick="hpPick('sound')" class="flex-1 bg-accent hover:bg-red-700 font-bold py-3 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Play with sound</button>
+                <button id="hp-muted" onclick="hpPick('muted')" class="flex-1 bg-white/10 hover:bg-white/20 font-bold py-3 rounded-lg transition-colors">Play muted</button>
+            </div>
+            <button onclick="hpPick(null)" class="w-full mt-2 text-gray-400 hover:text-white text-sm py-2 transition-colors">Cancel</button>
+        </div>
+    </div>
+
+    <div id="lock-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeLockModal()">
+        <div id="lock-card" class="w-full max-w-sm bg-[#181818] border border-white/10 rounded-2xl p-8 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="mx-auto h-14 w-14 rounded-full bg-accent/15 flex items-center justify-center text-accent text-xl mb-4"><i class="fas fa-lock"></i></div>
+                <h3 id="lock-title" class="text-xl font-bold">Private Library</h3>
+                <p id="lock-sub" class="text-sm text-gray-400 mt-1"></p>
+            </div>
+            <div class="space-y-3">
+                <input id="lock-old" type="password" placeholder="Current password" autocomplete="off" class="hidden w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+                <input id="lock-pass" type="password" placeholder="Password" autocomplete="off" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+                <input id="lock-pass2" type="password" placeholder="Confirm password" autocomplete="off" class="hidden w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            </div>
+            <p id="lock-error" class="text-sm text-red-400 min-h-[1.25rem] mt-3"></p>
+            <button id="lock-submit" onclick="submitLock()" class="w-full mt-2 bg-accent hover:bg-red-700 font-bold py-3 rounded-lg transition-colors">Unlock</button>
+            <button onclick="closeLockModal()" class="w-full mt-2 text-gray-400 hover:text-white text-sm py-2 transition-colors">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ================= RENAME VIDEO MODAL ================= -->
+    <div id="title-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeTitleModal()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">Rename video</h3>
+            <p class="text-sm text-gray-400 mb-4">Only the display name changes. Your file isn't touched.</p>
+            <input id="title-input" type="text" maxlength="120" autocomplete="off" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <p id="title-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-between mt-2">
+                <button onclick="saveTitle(true)" class="text-sm text-gray-400 hover:text-white transition-colors">Reset to file name</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeTitleModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                    <button onclick="saveTitle(false)" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= NEW GENRE MODAL ================= -->
+    <div id="genre-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeGenreModal()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">New genre</h3>
+            <p class="text-sm text-gray-400 mb-4">Makes a folder with this name inside your videos folder, and a row for it on this page.</p>
+            <input id="genre-input" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Anime, Movies, Documentaries" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveGenre(); }" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <p id="genre-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-end gap-2 mt-2">
+                <button onclick="closeGenreModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button onclick="saveGenre()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Create genre</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ORGANIZE / SERIES MODALS ================= -->
+    <div id="org-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeOrganize()">
+        <div class="w-full max-w-3xl max-h-[90vh] flex flex-col bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 id="org-title" class="text-lg font-bold mb-1">Organize videos</h3>
+            <p id="org-sub" class="text-sm text-gray-400 mb-4">Tick the videos you want, choose where they go, and they are moved there. Views, ratings and progress are kept.</p>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div><label class="text-xs text-gray-400 mb-1 block uppercase tracking-wider font-semibold">Genre</label>
+                    <input id="org-genre" list="org-genres" autocomplete="off" oninput="orgFillSeries()" placeholder="e.g. Anime" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 outline-none focus:border-accent transition-colors"><datalist id="org-genres"></datalist></div>
+                <div><label class="text-xs text-gray-400 mb-1 block uppercase tracking-wider font-semibold">Series (optional)</label>
+                    <input id="org-series" list="org-series-list" autocomplete="off" placeholder="Leave empty for standalone videos" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 outline-none focus:border-accent transition-colors"><datalist id="org-series-list"></datalist></div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+                <div class="relative flex-1 min-w-[10rem]"><i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500"></i>
+                    <input id="org-q" oninput="orgCtx.q=this.value.toLowerCase();paintOrg()" placeholder="Search videos" autocomplete="off" class="w-full bg-white/10 rounded-md pl-8 pr-3 py-1.5 text-sm outline-none focus:bg-white/15 placeholder-gray-500"></div>
+                <button id="org-m-loose" class="chip !py-1" onclick="orgMode('loose')">Not in a series</button>
+                <button id="org-m-all" class="chip !py-1" onclick="orgMode('all')">Everything</button>
+                <button class="text-xs text-gray-400 hover:text-white px-2" onclick="orgSelectShown()">Select shown</button>
+                <button class="text-xs text-gray-400 hover:text-white px-2" onclick="orgClear()">Clear</button>
+            </div>
+            <div id="org-list" class="flex-1 min-h-[12rem] overflow-y-auto thin-scroll rounded-lg bg-black/30 p-1"></div>
+            <p id="org-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-between mt-1">
+                <span id="org-count" class="text-sm text-gray-400"></span>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeOrganize()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                    <button id="org-go" onclick="submitOrganize()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-60">Move</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="ren-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeRename()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-3">Rename series</h3>
+            <input id="ren-input" type="text" maxlength="60" autocomplete="off" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveRename(); } else if (event.key === 'Escape') closeRename()" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <p id="ren-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-end gap-2 mt-2">
+                <button onclick="closeRename()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button onclick="saveRename()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ADD VIDEOS MODAL ================= -->
+    <div id="add-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeAddModal()">
+        <div class="w-full max-w-lg bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 id="add-title" class="text-lg font-bold mb-1">Add videos</h3>
+            <p class="text-sm text-gray-400 mb-4">Files are copied into the genre folder. Leave the series name empty for standalone videos; fill it in to group episodes under one card.</p>
+            <label class="text-xs text-gray-400 mb-1 block uppercase tracking-wider font-semibold">Series name (optional)</label>
+            <input id="add-series" list="series-choices" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Double King" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors mb-4">
+            <datalist id="series-choices"></datalist>
+            <label id="add-drop" class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-accent rounded-xl py-8 px-4 text-center cursor-pointer transition-colors">
+                <i class="fas fa-cloud-arrow-up text-2xl text-accent"></i>
+                <span id="add-pick" class="text-sm text-gray-300">Click to choose files, or drop them here</span>
+                <span class="text-xs text-gray-500">Videos, plus .srt/.vtt subtitles and a poster image if you have them</span>
+                <input id="add-files" type="file" multiple accept=".mp4,.mkv,.webm,.mov,.m4v,.avi,.wmv,.flv,.srt,.vtt,.jpg,.jpeg,.png,.webp" class="hidden">
+            </label>
+            <div id="add-prog" class="hidden mt-4"><div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="add-bar" class="h-full bg-accent transition-all" style="width:0"></div></div><p id="add-pct" class="text-xs text-gray-400 mt-1"></p></div>
+            <p id="add-error" class="text-sm text-red-400 min-h-[1.25rem] mt-3"></p>
+            <div class="flex items-center justify-between mt-1">
+                <button onclick="openFolder()" class="text-sm text-gray-400 hover:text-white transition-colors"><i class="fas fa-folder-open mr-1"></i>Open folder instead</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeAddModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                    <button id="add-go" onclick="submitAdd()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-60">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pl-menu" class="hidden fixed z-[220] w-64 max-h-80 overflow-y-auto bg-[#181818] border border-white/10 rounded-lg shadow-2xl py-2 text-sm"></div>
+
+    <!-- ================= PLAYLIST NAME MODAL ================= -->
+    <div id="name-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeNameModal()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 id="name-title" class="text-lg font-bold mb-1">New playlist</h3>
+            <p id="name-sub" class="text-sm text-gray-400 mb-4"></p>
+            <input id="name-input" type="text" maxlength="60" autocomplete="off" placeholder="Playlist name" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveName(); } else if (event.key === 'Escape') closeNameModal()" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <p id="name-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-end gap-2 mt-2">
+                <button onclick="closeNameModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button onclick="saveName()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= MAKE INTO ALBUM MODAL ================= -->
+    <div id="album-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeAlbumModal()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-1"><i class="fas fa-compact-disc text-accent mr-2"></i>Make into album</h3>
+            <p id="album-modal-sub" class="text-sm text-gray-400 mb-4"></p>
+            <label class="text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold block" for="album-name">Album name</label>
+            <input id="album-name" list="album-names" type="text" maxlength="80" autocomplete="off" placeholder="Type a new name, or pick one of yours to add to it" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveAlbum(); } else if (event.key === 'Escape') closeAlbumModal()" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <datalist id="album-names"></datalist>
+            <label class="text-xs text-gray-400 mt-4 mb-1 uppercase tracking-wider font-semibold block" for="album-artist">Album artist</label>
+            <input id="album-artist" type="text" maxlength="80" autocomplete="off" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveAlbum(); } else if (event.key === 'Escape') closeAlbumModal()" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <label class="text-xs text-gray-400 mt-4 mb-1 uppercase tracking-wider font-semibold block" for="album-order">Track order</label>
+            <select id="album-order" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors cursor-pointer">
+                <option value="listed">As they are listed now</option>
+                <option value="title">A to Z by title</option>
+                <option value="file">By file name (01 -, 02 - ...)</option>
+            </select>
+            <p id="album-error" class="text-sm text-red-400 min-h-[1.25rem] mt-3"></p>
+            <div class="flex items-center justify-end gap-2 mt-2">
+                <button onclick="closeAlbumModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button onclick="saveAlbum()" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Make album</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- selection bar (Select songs) -->
+    <div id="sel-bar" class="sel-bar" role="toolbar" aria-label="Selected songs">
+        <div class="sel-count"><b id="sel-n">0</b> <span id="sel-word">songs selected</span></div>
+        <button onclick="selAll()">Select all</button>
+        <button onclick="selNone()">None</button>
+        <span class="sel-sep"></span>
+        <button class="sel-main" data-need onclick="openAlbumModal()"><i class="fas fa-compact-disc"></i> Make into album</button>
+        <button data-need onclick="selAddToPlaylist(event)"><i class="fas fa-plus"></i> Add to playlist</button>
+        <button id="sel-remove" class="hidden" onclick="selRemoveFromAlbum()"><i class="fas fa-link-slash"></i> Remove from album</button>
+        <button onclick="exitSel()">Done</button>
+    </div>
+
+    <!-- ================= SET LANGUAGE MODAL ================= -->
+    <div id="lang-modal" class="hidden fixed inset-0 z-[210] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if (event.target === this) closeLangModal()">
+        <div class="w-full max-w-md bg-[#181818] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-1">Set language</h3>
+            <p id="lang-modal-sub" class="text-sm text-gray-400 mb-4"></p>
+            <input id="lang-input" list="lang-choices" type="text" maxlength="40" autocomplete="off" placeholder="e.g. English, Filipino, Japanese, Instrumental" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); saveLang(false); } else if (event.key === 'Escape') closeLangModal()" class="w-full bg-black border border-gray-700 rounded-lg p-3 outline-none focus:border-accent transition-colors">
+            <datalist id="lang-choices"></datalist>
+            <p id="lang-modal-error" class="text-sm text-red-400 min-h-[1.25rem] mt-2"></p>
+            <div class="flex items-center justify-between mt-2">
+                <button onclick="saveLang(true)" class="text-sm text-gray-400 hover:text-white transition-colors">Remove my setting</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeLangModal()" class="text-sm text-gray-300 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                    <button onclick="saveLang(false)" class="bg-accent hover:bg-red-700 font-bold text-sm px-5 py-2 rounded-lg transition-colors">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="nowplaying" class="hidden fixed inset-0 z-[85] overflow-hidden text-white select-none" style="background:#08080a">
+        <img id="npg-bgimg" alt="" class="absolute inset-0 h-full w-full object-cover opacity-50 scale-125" style="filter:blur(70px) saturate(1.4)">
+        <div id="npg-glow" class="absolute inset-0 transition-all duration-700"></div>
+        <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.45) 55%,rgba(0,0,0,.85))"></div>
+        <button onclick="closeNowPlaying()" class="npg-close" title="Close (Esc)" aria-label="Close"><i class="fas fa-chevron-down"></i></button>
+        <div class="absolute top-6 left-1/2 -translate-x-1/2 z-20 text-[11px] font-bold tracking-[0.3em] uppercase text-white/60">Now Playing</div>
+        <div class="relative z-10 h-full flex items-center justify-center gap-16 px-14 pb-4 pt-16">
+            <img id="npg-cover" alt="" class="flex-none aspect-square object-cover rounded-2xl" style="width:min(32rem,56vh,38vw);box-shadow:0 30px 90px rgba(0,0,0,.65)" crossorigin="anonymous">
+            <div class="min-w-0 npg-col" style="width:min(34rem,42vw)">
+                <div id="npg-title" class="font-black leading-[1.08] line-clamp-3 break-words" style="font-size:clamp(1.7rem,3.1vw,3.2rem)"></div>
+                <div id="npg-artist" class="text-xl text-white/75 mt-2 truncate"></div>
+                <div id="npg-album" class="text-sm text-white/45 mt-1 truncate"></div>
+                <div class="mt-8">
+                    <input id="npg-seek" type="range" min="0" max="1000" value="0">
+                    <div class="flex justify-between text-xs text-white/55 mt-1"><span id="npg-cur">0:00</span><span id="npg-dur">0:00</span></div>
+                </div>
+                <div class="flex items-center justify-between mt-3">
+                    <button id="npg-shuffle" class="npg-btn" onclick="toggleShuffle()" title="Shuffle"><i class="fas fa-shuffle"></i></button>
+                    <button class="npg-btn !text-2xl" onclick="prevTrack()" title="Previous"><i class="fas fa-backward-step"></i></button>
+                    <button id="npg-play" class="npg-btn" onclick="togglePlay()" title="Play / pause (Space)"><i id="npg-play-icon" class="fas fa-play ml-1"></i></button>
+                    <button class="npg-btn !text-2xl" onclick="nextTrack(false)" title="Next"><i class="fas fa-forward-step"></i></button>
+                    <button id="npg-repeat" class="npg-btn" onclick="cycleRepeat()" title="Repeat"><i class="fas fa-repeat"></i></button>
+                </div>
+                <div class="flex items-center gap-3 mt-4"><span id="npg-heart"></span><i class="fas fa-volume-low text-white/50 text-sm"></i><input id="npg-vol" type="range" min="0" max="100" value="80" style="max-width:10rem"></div>
+                <div id="npg-up" class="mt-6"></div>
+            </div>
+        </div>
+    </div>
+    <div id="palette" class="hidden fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] px-4" onmousedown="if (event.target === this) closePalette()">
+        <div class="w-full max-w-2xl rounded-2xl bg-[#121214] border border-white/10 shadow-2xl overflow-hidden">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-white/[.07]"><i class="fas fa-magnifying-glass text-gray-500"></i>
+                <input id="pal-q" autocomplete="off" spellcheck="false" placeholder="Search videos, series, songs, playlists - or jump anywhere" class="flex-1 bg-transparent outline-none text-lg placeholder-gray-600"><kbd>Esc</kbd></div>
+            <div id="pal-list" class="max-h-[52vh] overflow-y-auto thin-scroll p-2"></div>
+            <div class="px-5 py-2.5 border-t border-white/[.07] text-xs text-gray-500 flex gap-5"><span><kbd>&uarr;</kbd> <kbd>&darr;</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>?</kbd> shortcuts</span></div>
+        </div>
+    </div>
+    <div id="shortcuts" class="hidden fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onmousedown="if (event.target === this) closeShortcuts()">
+        <div class="w-full max-w-xl max-h-[85vh] overflow-y-auto thin-scroll rounded-2xl bg-[#121214] border border-white/10 shadow-2xl p-7">
+            <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-extrabold">Keyboard shortcuts</h3><button onclick="closeShortcuts()" class="sb-tool"><i class="fas fa-xmark"></i></button></div>
+            <div id="sc-body"></div>
+        </div>
+    </div>
+
+    <!-- private photo lightbox -->
+    <div id="lightbox" class="hidden">
+        <div id="lb-bg"></div>
+        <img id="lb-img" alt="" draggable="false">
+        <button id="lb-prev" class="lb-nav" onclick="lbGo(-1)" title="Previous"><i class="fas fa-chevron-left"></i></button>
+        <button id="lb-next" class="lb-nav" onclick="lbGo(1)" title="Next"><i class="fas fa-chevron-right"></i></button>
+        <div id="lb-top">
+            <span id="lb-count"></span>
+            <span class="lb-acts"><button id="lb-fav" class="lb-btn" hidden onclick="lbFav()" title="Favorite (F)" aria-label="Favorite" aria-pressed="false"><i class="far fa-heart"></i></button><button class="lb-btn" onclick="lbToggleFS()" title="Fullscreen (Enter)"><i id="lb-fs-icon" class="fas fa-expand"></i></button><button class="lb-btn" onclick="closePhoto()" title="Close (Esc)"><i class="fas fa-xmark"></i></button></span>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-28 left-1/2 -translate-x-1/2 z-[250] max-w-[90vw] bg-white text-black text-sm font-semibold px-5 py-3 rounded-full shadow-2xl break-words"></div>
+
+    <script src="/assets/js/app.js"></script>
+
+    <script src="/assets/js/menu.js"></script>
+    <script src="/assets/js/smart-genres.js"></script>
+<script src="/assets/js/browse.js"></script>
+
+<script id="time-section" src="/assets/js/time.js"></script>
+<script>
+/* tiny helpers: purple accent while the private library is open */
+(function () {
+    function paint() { document.body.classList.toggle('is-private', (typeof currentView !== 'undefined' ? currentView : '') === 'private-view'); }
+    var sw = window.switchTab;
+    if (typeof sw === 'function') window.switchTab = function () { var r = sw.apply(this, arguments); paint(); return r; };
+    paint();
+})();
+</script>
+
+<div id="lm-intro" aria-hidden="true"><div class="t">ULTRON</div><div class="s">THE BOOTH</div></div>
+<div id="lm-spot" aria-hidden="true"></div>
+<script>
+(function(){try{
+  var rm=function(){var i=document.getElementById('lm-intro');if(i)i.remove();};
+  try{if(sessionStorage.getItem('lmpv9_intro'))rm();else{sessionStorage.setItem('lmpv9_intro','1');setTimeout(rm,2500);}}catch(e){setTimeout(rm,2500);}
+  document.title='ULTRON';
+  var spot=document.getElementById('lm-spot'),root=document.documentElement,raf=0,ev=null;
+  document.addEventListener('mousemove',function(e){ev=e;if(raf)return;raf=requestAnimationFrame(function(){raf=0;var e2=ev;
+    root.style.setProperty('--mx',e2.clientX+'px');root.style.setProperty('--my',e2.clientY+'px');if(spot)spot.classList.add('on');
+    var c=e2.target&&e2.target.closest?e2.target.closest('.video-card'):null;if(!c)return;
+    var r=c.getBoundingClientRect();var x=(e2.clientX-r.left)/r.width-.5,y=(e2.clientY-r.top)/r.height-.5;
+    c.style.setProperty('--lm-ry',(x*8).toFixed(2)+'deg');c.style.setProperty('--lm-rx',(-y*8).toFixed(2)+'deg');
+    c.style.setProperty('--lm-px',((x+.5)*100).toFixed(1)+'%');c.style.setProperty('--lm-py',((y+.5)*100).toFixed(1)+'%');});
+  },{passive:true});
+  document.addEventListener('mouseout',function(e){var c=e.target&&e.target.closest?e.target.closest('.video-card'):null;if(c&&!c.contains(e.relatedTarget)){['--lm-rx','--lm-ry','--lm-px','--lm-py'].forEach(function(p){c.style.removeProperty(p);});}},{passive:true});
+}catch(e){}})();
+(function(){try{
+  var panel=document.querySelector('#settings-modal > div');if(!panel)return;
+  var secs=[].slice.call(panel.querySelectorAll(':scope > section'));if(!secs.length)return;
+  var pals=[['prism','Prism','#ffc371,#ff5f8f,#8b6bff'],['ember','Ember','#ffd166,#ff6b35,#d62e4f'],['tide','Tide','#8ff3ff,#3ea6ff,#7a5cff'],['moss','Moss','#dcf56f,#4fd1a5,#2b8aa0'],['mono','Mono','#ffffff,#c9c9d1,#8a8a96'],['chrome','ULTRON STAR','#f7f7f5,#8e8e8d,#5c5c5e']];
+  var cur=document.documentElement.getAttribute('data-pal')||'prism';
+  var box=document.createElement('div');box.className='lm-pal';
+  box.innerHTML='<div class="lm-pal-t">Accent palette</div><div class="lm-pal-d">Colors the rail, buttons, hairlines and background light</div>';
+  pals.forEach(function(p){var b=document.createElement('button');b.type='button';b.dataset.pal=p[0];
+    b.innerHTML='<b style="background:linear-gradient(135deg,'+p[2]+')"></b><span>'+p[1]+'</span>';if(p[0]===cur)b.classList.add('on');
+    b.addEventListener('click',function(){document.documentElement.setAttribute('data-pal',p[0]);try{localStorage.setItem('lmpv9_pal',p[0]);}catch(e){}
+      [].forEach.call(box.querySelectorAll('button'),function(x){x.classList.toggle('on',x===b);});});box.appendChild(b);});
+  var h4=secs[0].querySelector('h4');if(h4)h4.insertAdjacentElement('afterend',box);else secs[0].insertBefore(box,secs[0].firstChild);
+  var nav=document.createElement('div');nav.id='lm-set-nav';
+  var pane=document.createElement('div');pane.id='lm-set-pane';
+  function pick(i){secs.forEach(function(s,k){s.classList.toggle('lm-on',k===i);});[].forEach.call(nav.children,function(b){b.classList.toggle('on',b.__si===i);});pane.scrollTop=0;}
+  secs.forEach(function(s,i){
+    var hh=s.querySelector('h4');var t=hh?hh.textContent.trim():('Section '+(i+1));
+    t=t.charAt(0)+t.slice(1).toLowerCase();if(hh)hh.textContent=t;
+    var b=document.createElement('button');b.type='button';b.innerHTML='<i>'+(i<9?'0':'')+(i+1)+'</i><span></span>';b.lastChild.textContent=t;
+    b.__si=i;b.addEventListener('click',function(){pick(i);});nav.appendChild(b);pane.appendChild(s);
+  });
+  panel.appendChild(nav);panel.appendChild(pane);pick(0);
+}catch(e){}})();
+</script>
+<script>
+(function(){try{
+  var np=document.getElementById('nowplaying'),img=document.getElementById('npg-cover'),ic=document.getElementById('npg-play-icon');
+  if(!np||!img)return;
+  var deck=document.createElement('div');deck.id='lm-deck';
+  var disc=document.createElement('div');disc.className='disc';
+  var arm=document.createElement('div');arm.className='arm';
+  img.parentNode.insertBefore(deck,img);disc.appendChild(img);deck.appendChild(disc);deck.appendChild(arm);
+  var al=document.getElementById('npg-album');
+  if(al){var eq=document.createElement('div');eq.id='lm-eq';eq.setAttribute('aria-hidden','true');
+    for(var i=0;i<30;i++){var b=document.createElement('i');b.style.setProperty('--h',(25+Math.round(Math.random()*75))+'%');b.style.animationDelay=(-Math.random()*1.1).toFixed(2)+'s';b.style.animationDuration=(0.7+Math.random()*0.9).toFixed(2)+'s';eq.appendChild(b);}
+    al.insertAdjacentElement('afterend',eq);}
+  function sync(){var playing=ic&&/fa-pause/.test(ic.className);np.classList.toggle('lm-playing',!!playing);}
+  if(ic)new MutationObserver(sync).observe(ic,{attributes:true,attributeFilter:['class']});sync();
+}catch(e){}})();
+</script>
+<div id="lm-sp" aria-hidden="true"></div>
+<script>
+(function(){try{
+  var sp=document.getElementById('lm-sp'),t=0;
+  function upd(){t=0;var d=document.documentElement,max=d.scrollHeight-window.innerHeight;document.documentElement.style.setProperty('--sp',max>8?Math.min(1,Math.max(0,window.scrollY/max)).toFixed(4):0);}
+  window.addEventListener('scroll',function(){if(!t)t=requestAnimationFrame(upd);},{passive:true});
+  window.addEventListener('resize',upd);upd();
+}catch(e){}})();
+</script>
+<link id="lmpv9-booth" rel="stylesheet" href="/assets/css/booth.css?v=ultron-update">
+<script id="ultron-mpv-js" src="/assets/js/mpv-player.js?v=1"></script>   <!-- libmpv: must load after app.js and before studio.js / movies.js -->
+<script id="lmpv9-booth-js" src="/assets/js/dj-deck.js"></script>
+<link id="lmpv9-studio" rel="stylesheet" href="/assets/css/studio.css">
+<link id="lmpv9-player" rel="stylesheet" href="/assets/css/player.css">
+<script id="lmpv9-studio-js" src="/assets/js/studio.js"></script>
+<link id="lmpv9-flair" rel="stylesheet" href="/assets/css/flair.css">
+<link id="lmpv9-chrome" rel="stylesheet" href="/assets/css/ultron-chrome.css?v=star">
+<script id="lmpv9-flair-js" src="/assets/js/flair.js"></script>
+<script id="ultron-star-js" src="/assets/js/ultron-star.js"></script>
+<link id="lmpv9-plain" rel="stylesheet" href="/assets/css/plain.css">
+<script id="lmpv9-plain-js" src="/assets/js/plain.js"></script>
+<link id="lmpv9-photos-pro" rel="stylesheet" href="/assets/css/photos-pro.css?v=1">
+<script id="lmpv9-photos-pro-js" src="/assets/js/photos-pro.js?v=1"></script>
+<script id="lmpv9-photos-lock-js" src="/assets/js/photos-lock.js?v=1"></script>
+<script id="zeno-private-search-js" src="/assets/js/private-search.js?v=1"></script>
+<script id="zeno-data-home-js" src="/assets/js/data-home.js?v=1"></script>
+<link id="lmpv9-movies" rel="stylesheet" href="/assets/css/movies.css?v=1">
+<link id="ultron-mpv-css" rel="stylesheet" href="/assets/css/mpv.css?v=1">
+<script id="lmpv9-movies-js" src="/assets/js/movies.js?v=1"></script>
+<script id="lmpv9-browse-hub-js" src="/assets/js/browse-hub.js?v=2"></script>
+<script id="ultron-tiles-js" src="/assets/js/tiles.js?v=1"></script>
+<script id="ultron-tray-js" src="/assets/js/ultron-tray.js?v=1"></script>
+<script id="ultron-ffmpeg-js" src="/assets/js/ffmpeg-gate.js?v=1"></script>
+<script id="ultron-asub-js" src="/assets/js/autosubs.js?v=1"></script>
+<link id="zeno-fix" rel="stylesheet" href="/assets/css/zeno-fix.css?v=2">
+    <link id="lmpv9-browse-hub" rel="stylesheet" href="/assets/css/browse-hub.css?v=2">
+    <link id="ultron-tiles" rel="stylesheet" href="/assets/css/tiles.css?v=2">
+</body>
+</html>
+{% endraw %}

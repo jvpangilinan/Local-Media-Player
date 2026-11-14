@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Build output
+build/
+dist/
+*.spec
+app.ico
+ULTRON.exe
+
+# Large binaries and downloaded models (see SETUP.txt for where to get them)
+*.dll
+models/
+ffmpeg/
+mpv/
+
+# User data and media (never commit)
+data/
+media/
+
+# Logs
+*.log
+download_log.txt

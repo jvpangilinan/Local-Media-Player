@@ -1,0 +1,15 @@
+flask
+pywebview
+python-mpv
+mutagen
+langdetect
+opencv-python-headless
+numpy
+pillow
+pyinstaller
+pystray
+faster-whisper
+ctranslate2
+sentencepiece
+huggingface_hub
+PySide6

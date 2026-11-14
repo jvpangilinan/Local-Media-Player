@@ -1,0 +1,15 @@
+/* ULTRON native player (libmpv).
+   mpv draws the picture in a child window inside the ULTRON window that sits exactly over #p-stage (between the title bar and the control bar).
+   The page keeps drawing everything around it. In fullscreen mpv covers the whole window and shows its own on-screen controls. */
+#p-stage { position: absolute; left: 0; right: 0; top: 0; height: 0; background: #000; pointer-events: none; z-index: 0; }
+html:not(.mpv-on) #p-stage, #player-modal.hidden #p-stage { display: none; }
+
+/* the web <video> has no picture while mpv plays */
+html.mpv-on #player-modal #player { visibility: hidden; }
+html.mpv-on #sx-glow { display: none !important; }
+
+/* fullscreen: the native window is over everything, so keep the page's own bars out of the way */
+html.mpv-fs.mpv-classic #p-top, html.mpv-fs.mpv-classic #p-bottom, html.mpv-fs.mpv-classic #p-titlecard, html.mpv-fs.mpv-classic #p-hint { visibility: hidden; }
+
+/* settings panel (Settings > Subtitles section, added by mpv-player.js) */
+#mpv-settings #mpv-diag { line-height: 1.5; }

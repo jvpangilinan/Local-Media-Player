@@ -1,0 +1,75 @@
+/* ===== v2: fixes + the unique music deck + settings control room ===== */
+/* dock: smooth, rounded highlights */
+html body #sidebar .sb-item { border-radius: 1.25rem !important; transition: background .35s var(--ease), color .25s, box-shadow .35s var(--ease), transform .25s var(--ease) !important; }
+html body #sidebar .sb-item:hover { transform: translateX(2px); }
+html body #sidebar .sb-item.active { transform: none; background: var(--prism) !important; }
+html body #sidebar .sb-search { border-radius: 1.25rem !important; }
+html body #sidebar .sb-tools .sb-row { display: grid !important; grid-template-columns: repeat(2, 2.15rem); justify-content: center; gap: .15rem !important; width: 100%; }
+html body #sidebar:hover .sb-tools .sb-row, html body.menu-open #sidebar .sb-tools .sb-row { grid-template-columns: repeat(4, 2.15rem); justify-content: start; padding-left: .3rem; }
+html body #sidebar .sb-tools .sb-tool { width: 2.15rem !important; height: 2.15rem !important; min-width: 0; margin: 0 !important; padding: 0 !important; border-radius: 9999px !important; justify-self: center; transition: background .3s var(--ease), color .2s, transform .25s var(--ease); }
+html body #sidebar .sb-tools .sb-tool:hover { transform: scale(1.1); }
+html body #sidebar .sb-tools .sb-exit { grid-column: span 1; }
+html body #sidebar:hover .sb-tools .sb-exit { grid-column: span 3; width: auto !important; border-radius: 9999px !important; padding: 0 .9rem !important; justify-self: start; gap: .5rem; }
+html body #sidebar > .relative, html body #sidebar .sb-tools { overflow: visible; }
+
+/* headings: beat the old uppercase rule */
+html body :is(#home-view, #video-view, #videos-view, #series-view, #photos-view, #private-view, #dl-view) h2 {
+  font-size: clamp(1.5rem, 2.2vw, 2.1rem) !important; letter-spacing: -.015em !important; text-transform: none !important; color: var(--ink) !important; font-weight: 500 !important; }
+html body .hero-sec h2 { font-family: var(--serif) !important; font-style: italic; font-weight: 500 !important; letter-spacing: -.03em !important; text-transform: none !important; font-size: clamp(2.4rem, 5vw, 5rem) !important; line-height: 1 !important; }
+html body .hero-sec h2::before, html body .hero-sec h2::after { display: none !important; }
+html body .hero-sec button.bg-white, html body .hero-sec button:first-of-type { background: var(--prism) !important; color: #1b0f1a !important; box-shadow: 0 14px 34px -12px rgba(var(--pr2rgb), .8); }
+html body .hero-sec { border-radius: 0 0 3rem 1rem !important; }
+
+/* cards: leaf shape + tilt that actually wins over the old !important zoom */
+html body .video-card { border-radius: 1.7rem .55rem 1.7rem .55rem !important; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .7) !important; transition: transform .18s ease-out, box-shadow .4s var(--ease) !important; }
+html body .video-card img, html body .video-card video, html body .video-card > div:first-child { border-radius: inherit !important; }
+html body .video-card:hover {
+  transform: perspective(900px) rotateX(var(--lm-rx, 0deg)) rotateY(var(--lm-ry, 0deg)) translateY(-8px) scale(1.03) !important;
+  box-shadow: 0 0 0 1px rgba(var(--pr1rgb), .6), 0 32px 60px -22px rgba(var(--pr2rgb), .55), 0 0 90px -34px rgba(var(--pr3rgb), .8) !important; }
+
+/* settings: control room with a tab rail, one clean scroll */
+html body #settings-modal > div { display: grid !important; grid-template-columns: 15.5rem minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-count: auto !important;
+  padding: 0 !important; overflow: hidden !important; height: min(46rem, 88vh) !important; max-width: min(64rem, 95vw) !important; }
+html body #settings-modal > div > div:first-child { grid-column: 1 / -1; column-span: none; margin: 0 !important; padding: 1.3rem 1.8rem 1.1rem; border-bottom: 1px solid var(--glass-line); }
+#lm-set-nav { grid-row: 2; grid-column: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem .8rem 1.5rem 1.2rem; border-right: 1px solid var(--glass-line); display: flex; flex-direction: column; gap: .3rem; }
+#lm-set-nav button { display: flex; align-items: baseline; gap: .8rem; width: 100%; text-align: left; padding: .8rem 1rem; border-radius: 1.1rem; color: var(--mute); font-size: .95rem; font-weight: 500;
+  transition: background .3s var(--ease), color .2s, transform .25s var(--ease); }
+#lm-set-nav button i { font-style: normal; font-family: var(--mono); font-size: .6rem; letter-spacing: .15em; color: var(--pr1); }
+#lm-set-nav button:hover { background: var(--glass-hi); color: var(--ink); transform: translateX(3px); }
+#lm-set-nav button.on { background: var(--prism); color: #1b0f1a; font-weight: 700; box-shadow: 0 10px 26px -12px rgba(var(--pr2rgb), .8); }
+#lm-set-nav button.on i { color: #1b0f1a; }
+#lm-set-pane { grid-row: 2; grid-column: 2; overflow-y: auto; overflow-x: hidden; padding: 1.5rem 2rem 2.5rem; scrollbar-gutter: stable; }
+html body #settings-modal #lm-set-pane > section { display: none; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; border-radius: 0; overflow: visible; }
+html body #settings-modal #lm-set-pane > section.lm-on { display: block; animation: lm-pop .38s var(--ease) both; }
+html body #settings-modal #lm-set-pane > section::before { display: none; }
+html body #settings-modal #lm-set-pane > section h4 { font-family: var(--serif) !important; font-style: italic; font-weight: 500; font-size: 1.9rem !important; letter-spacing: -.02em !important; text-transform: none; color: var(--ink) !important; margin-bottom: 1.4rem !important; }
+html body #settings-modal #lm-set-pane > section h4::before { display: none; }
+html body #settings-modal #lm-set-pane > section > div.flex, html body #settings-modal #lm-set-pane > section > div > div.flex { padding: .85rem 0; border-bottom: 1px solid var(--glass-line); margin-bottom: 0 !important; }
+@media (max-width: 860px) { html body #settings-modal > div { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
+  #lm-set-nav { grid-row: 2; grid-column: 1; flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--glass-line); padding: .6rem 1rem; }
+  #lm-set-nav button { width: auto; white-space: nowrap; } #lm-set-pane { grid-row: 3; grid-column: 1; padding: 1rem 1.2rem 2rem; } }
+
+/* music: "the deck" - crate on the right, floating command pill, vinyl covers. Own layout only. */
+html body #music-grid { grid-template-columns: minmax(0, 1fr) 19.5rem; gap: 1rem; padding: 0 1rem 0 0; }
+html body #music-view aside { order: 2; border-radius: 2rem 0 0 2rem !important; background: linear-gradient(200deg, rgba(var(--pr1rgb), .07), rgba(var(--pr3rgb), .09) 60%, rgba(20, 17, 28, .6)) !important; border: 0 !important; border-left: 1px solid var(--glass-line) !important; margin: .9rem 0; }
+html body #music-view aside > div:first-child button { font-family: var(--serif); font-style: italic; font-size: 1.15rem; letter-spacing: -.01em; }
+html body #m-main { background: transparent !important; border: 0 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border-radius: 0 !important; }
+html body #music-grid #m-main > .sticky, html body #music-grid.lib-off #m-main > .sticky, html body #music-grid:not(.lib-off) #m-main > .sticky {
+  top: .9rem !important; margin: .9rem auto 1.4rem; width: fit-content; max-width: calc(100% - 3rem); padding: .4rem .5rem !important; gap: .5rem !important;
+  border-radius: 9999px; background: var(--glass) !important; border: 1px solid var(--glass-line); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); box-shadow: 0 18px 50px -20px rgba(0, 0, 0, .8); }
+html body #m-search { background: var(--glass-hi) !important; border: 1px solid var(--glass-line) !important; border-radius: 9999px !important; min-width: 18rem; }
+html body #m-main > .sticky > button { background: var(--glass-hi) !important; border: 1px solid var(--glass-line); transition: background .3s var(--ease), transform .25s var(--ease); }
+html body #m-main > .sticky > button:hover { background: var(--prism) !important; color: #1b0f1a; transform: scale(1.08); }
+html body #music-view h1 { font-family: var(--serif); font-style: italic; font-weight: 500 !important; letter-spacing: -.035em; }
+/* vinyl: round records with a spindle hole that spin on hover */
+html body :is(#mv-home, #mv-albums, #mv-playlists) .aspect-square.rounded-md { border-radius: 50% !important; box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .9), inset 0 0 0 .35rem rgba(0, 0, 0, .35); transition: box-shadow .4s var(--ease); }
+html body :is(#mv-home, #mv-albums, #mv-playlists) .aspect-square.rounded-md::after { content: ''; position: absolute; left: 50%; top: 50%; width: 15%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #0c0a12; box-shadow: 0 0 0 .3rem rgba(255, 255, 255, .16), 0 0 0 .55rem rgba(0, 0, 0, .35); z-index: 3; }
+html body :is(#mv-home, #mv-albums, #mv-playlists) .group:hover .aspect-square.rounded-md { animation: lm-spin 9s linear infinite; box-shadow: 0 0 0 2px rgba(var(--pr1rgb), .6), 0 28px 60px -20px rgba(var(--pr2rgb), .6); }
+@keyframes lm-spin { to { transform: rotate(360deg); } }
+html body #music-view .group { border-radius: 2rem !important; background: none !important; transition: background .35s var(--ease), transform .3s var(--ease); }
+html body #music-view .group:hover { background: var(--glass-hi) !important; transform: translateY(-4px); }
+html body #tracklist tr, html body #music-view .org-row { transition: background .3s var(--ease); }
+html body #tracklist tr:hover { background: linear-gradient(90deg, rgba(var(--pr2rgb), .16), transparent 80%) !important; }
+html body #music-view .bg-accent { background: var(--prism) !important; color: #1b0f1a !important; }
+html body #music-view .bg-accent i { color: #1b0f1a !important; }
+@media (prefers-reduced-motion: reduce) { html body .group:hover .aspect-square.rounded-md { animation: none !important; } }

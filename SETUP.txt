@@ -1,0 +1,157 @@
+ULTRON - SETUP
+==============
+
+What you need so everything works. Only Python and the packages are required to start the app.
+The rest switches on one feature each; the app tells you what is missing and keeps working without it.
+
+
+1. QUICK CHECKLIST
+------------------
+  [ ] Windows 10 / 11, 64-bit
+  [ ] Python 3.12 (64-bit) from python.org, "Add Python to PATH" ticked   (only to run from source or build the .exe)
+  [ ] Python packages                     pip install -r requirements.txt
+  [ ] PySide6 (in requirements.txt)       the native player window (if it is missing the app falls back to the web player)
+  [ ] winsdk (optional)                   py -3.12 -m pip install winsdk : shows the video title in the Windows volume / media flyout
+  [ ] libmpv-2.dll (64-bit)               the native video player (MKV, HEVC, AV1, AC3, DTS ... played as they are)
+  [ ] ffmpeg.exe + ffprobe.exe            auto subtitles, trimmer, clips, black-bar detection, downloader
+  [ ] models folder (about 2.8 GB)        auto subtitles (speech recognition + translation)
+  [ ] yt-dlp.exe                          only for the Downloader tab
+  [ ] logo.png                            optional, your own logo
+
+
+2. PYTHON AND PACKAGES  (required)
+----------------------------------
+Python 3.12 is the safest version. Very new Python versions often lack wheels for some packages.
+
+    py -3.12 -m pip install --upgrade -r requirements.txt
+
+requirements.txt installs: PySide6 (native player window), flask, pywebview, python-mpv, mutagen, langdetect, opencv-python-headless, numpy, pillow,
+pyinstaller, pystray, faster-whisper, ctranslate2, sentencepiece, huggingface_hub.
+
+The app window uses Microsoft Edge WebView2. Windows 11 and up-to-date Windows 10 already have it.
+If the window stays blank or the app says it cannot start, install the "WebView2 Runtime" from Microsoft.
+
+To run without building:      py -3.12 app.py
+To debug in your browser:     py -3.12 app.py --browser
+Other folders:                py -3.12 app.py --videos "D:\Videos" --music "E:\Music"
+
+
+3. LIBMPV  (the native player)
+------------------------------
+You need ONE file: libmpv-2.dll, 64-bit (it must match your 64-bit Python / the 64-bit .exe).
+
+Where to get it:
+  - Download an "mpv-dev-x86_64-*.7z" archive from the shinchiro or zhongfly mpv Windows builds
+    (search: "mpv windows builds shinchiro" or "zhongfly mpv-winbuild").
+  - Open the archive and take libmpv-2.dll out of it. (Do NOT use the 32-bit "i686" archive.)
+
+Where to put it (the app looks in these places, in this order):
+  1. a folder you picked in Settings (if you did)
+  2. <app folder>\data\mpv\
+  3. next to ULTRON.exe  (or next to app.py when you run from source)
+  4. <app folder>\mpv\
+  5. any folder on your PATH
+
+Simplest: put libmpv-2.dll right next to ULTRON.exe.
+Do not pack it inside the .exe: it is 100+ MB and would be unpacked on every start.
+
+Without it ULTRON still works, but with the built-in web player (no MKV/HEVC/AV1/AC3/DTS support, no GPU decoding).
+Messages you may see:
+  "libmpv was not found"          the DLL is not in any of the places above
+  "libmpv could not be loaded"    wrong bitness (32-bit DLL), or a corrupt file. Get the 64-bit one again.
+  "python-mpv is not installed"   run: pip install python-mpv
+
+
+4. FFMPEG  (needed for auto subtitles)
+--------------------------------------
+Needs BOTH ffmpeg.exe and ffprobe.exe.
+
+Easiest: on first launch ULTRON offers a one-click download (it saves them to data\ffmpeg). You can press "Skip for now".
+Manual: download an ffmpeg "release essentials" build (gyan.dev) and put ffmpeg.exe + ffprobe.exe in any of:
+  - <app folder>\data\ffmpeg\
+  - <app folder>\ffmpeg\
+  - next to ULTRON.exe
+  - the yt-dlp folder (see section 6)
+  - a folder you choose on the app's setup screen / in Settings
+  - any folder on your PATH
+
+What needs ffmpeg: auto subtitles (required), precision trimmer, clips, black-bar detection, the Downloader.
+Playback itself does NOT need it.
+
+
+5. AUTO SUBTITLE MODELS  (about 2.8 GB, one time, then fully offline)
+---------------------------------------------------------------------
+Folder:  <app folder>\models\        (keep it next to ULTRON.exe)
+
+    models\whisper-large-v3-turbo\   speech recognition, "Accurate"   about 1.6 GB
+    models\whisper-small\            speech recognition, "Fast"       about 0.5 GB
+    models\nllb-600m\                translation (NLLB-200, 200 languages)   about 0.65 GB
+
+How to get them (pick one):
+  - In the app:   the auto subtitle settings (Settings > Playback) or the "Download now" button in the subtitle panel (CC menu)
+  - By script:    py -3.12 download_models.py            (all three)
+                  py -3.12 download_models.py nllb       (only the translator; also: accurate, fast)
+  - build_exe.bat downloads them for you while building.
+The download is the ONLY thing in the app that uses the internet. It needs a connection once.
+
+Each model folder must contain its vocabulary file (the translator needs shared_vocabulary.txt next to model.bin).
+If a folder is incomplete the app counts the model as "not installed" and offers to download it again.
+You need at least one speech model; the translator is only needed when you translate (not for "Original language").
+
+Notes:
+  - It runs on the CPU and uses a lot of RAM while it works. "Fast" is quicker but less accurate.
+  - Subtitles appear in the player while they are still being made (the first ~5 minutes, then every 10 minutes).
+  - Made subtitles and transcripts are stored in data\autosubs\.
+
+
+6. YT-DLP  (only for the Downloader tab)
+----------------------------------------
+Put yt-dlp.exe in one of:
+  - <app folder>\ytdlp\      or   <app folder>\EXE\      or   <app folder>\yt-dlp\
+  - a folder you choose in Settings > Downloader
+  - any folder on your PATH
+ffmpeg + ffprobe are used from the same places as in section 4. Update yt-dlp.exe now and then, sites change often.
+
+
+7. FOLDERS  (created on first run, next to the app)
+---------------------------------------------------
+    media\videos\                your videos (scanned inside subfolders too)
+    media\videos\<Genre>\<video>             a video in that genre
+    media\videos\<Genre>\<Series>\<episodes> one series card
+    media\music\                 your music
+    media\Photos\                public photos; every subfolder is an album
+    media\private\               videos behind the password   (media\private\Photos = private photo albums)
+    data\                        database, posters, made subtitles, ffmpeg and mpv settings   (safe to keep when you update)
+    models\                      the auto-subtitle models
+    logo.png                     optional: shown as the app logo and used for the .exe icon
+    artist_rules.txt             artist names that must not be split into several artists (made for you)
+    error.log                    appears next to the app only if it ever fails to start - send it to me
+
+Subtitle files: put <video name>.srt or .vtt (or <video name>.en.srt ...) next to the video.
+
+
+8. BUILDING THE .EXE
+--------------------
+Double-click build_exe.bat. It installs the packages, downloads the models if they are missing, and builds ULTRON.exe
+(a few minutes). Needs the files in this folder: vendor\, assets\, index.html, app.py and the other .py files.
+Afterwards keep these NEXT TO ULTRON.exe:  libmpv-2.dll, models\, artist_rules.txt (and your media\ and data\ folders).
+Updating: replace ULTRON.exe, keep everything else.
+
+
+9. IF SOMETHING GOES WRONG
+--------------------------
+  "open() got an unexpected keyword argument 'metadata_errors'"
+        Fixed in this version (the audio is read without PyAV). If it still shows: pip install --upgrade av
+  "cannot load the target vocabulary from the model directory"
+        shared_vocabulary.txt is missing in models\nllb-600m\. Press "Download now" again, or download that file from
+        huggingface.co/JustFrederik/nllb-200-distilled-600M-ct2-int8 and put it there.
+  "ffmpeg was not found"
+        See section 4. Both ffmpeg.exe and ffprobe.exe must be there.
+  "The AI packages are missing"
+        pip install faster-whisper ctranslate2 sentencepiece huggingface_hub   (then restart the app / rebuild the .exe)
+  Video plays but no picture / the web player is used
+        libmpv-2.dll is missing or is the wrong bitness (section 3).
+  Window stays blank
+        Install the Microsoft Edge WebView2 Runtime (section 2).
+  Anything else
+        Look for error.log next to the app, or run  py -3.12 app.py --debug  and read the console.
