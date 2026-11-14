@@ -225,6 +225,7 @@ VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".wmv", ".flv"}
 MUSIC_EXTS = {".mp3", ".flac", ".ogg", ".m4a", ".wav", ".opus"}
 SUB_EXTS = {".srt", ".vtt"}
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
+SIDE_IMAGE_EXTS = set(IMAGE_EXTS)                     # images noted next to videos during a scan (posters, series art)
 PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}   # the private photo gallery
 PHOTO_FOLDER = "Photos"      # media/private/Photos is the gallery's own folder (made for you)
 PHOTO_SKIP = {"poster", "cover", "folder", "thumb", "thumbnail", "backdrop", "fanart", "banner", "series"}   # artwork, not photos
@@ -450,11 +451,18 @@ def item_id(rel):
     return hashlib.sha1(rel.encode("utf-8")).hexdigest()[:12]
 
 
-def walk_entries(root, exts):
+def dir_key(path):
+    """Key for a folder in the `side` maps of walk_entries (case- and slash-insensitive, like Windows paths)."""
+    return os.path.normcase(os.path.normpath(str(path)))
+
+
+def walk_entries(root, exts, side_exts=None, side=None):
     """Yield (Path, os.DirEntry) for every file under root with one of exts, skipping dot-files and dot-folders.
     Same order as os.walk (a folder's files first, then its subfolders), symlinked folders are not followed.
     Call entry.stat() for the file's size / mtime: on Windows it comes from the folder listing itself, so a scan
-    costs one disk call per folder instead of one per file (it matters on a big library on a separate HDD)."""
+    costs one disk call per folder instead of one per file (it matters on a big library on a separate HDD).
+    With side_exts and a side dict, files with those extensions are also noted (no extra disk calls):
+    side[dir_key(folder)] = {lowercase file name: Path}. The scanner uses it for posters and series art."""
     if not root.is_dir():
         return
     stack = [str(root)]
@@ -477,7 +485,10 @@ def walk_entries(root, exts):
                     continue
             except OSError:
                 continue
-            if Path(name).suffix.lower() in exts:
+            ext = Path(name).suffix.lower()
+            if side_exts and ext in side_exts:
+                side.setdefault(dir_key(d), {})[name.lower()] = Path(e.path)
+            if ext in exts:
                 yield Path(e.path), e
         stack.extend(reversed(subdirs))              # keep the listing order when popping
 
@@ -586,8 +597,9 @@ def schedule_scan():
 def _scan_videos():
     """Public videos live in media/videos, private ones in media/private (hidden until unlocked)."""
     found = {}
+    side = {}                                                       # image files per folder, noted during the same walk
     for root, private in ((CFG["video_dir"], False), (CFG["private_dir"], True)):
-        for p, entry in walk_entries(root, VIDEO_EXTS):
+        for p, entry in walk_entries(root, VIDEO_EXTS, SIDE_IMAGE_EXTS, side):
             parts = p.relative_to(root).parts
             rel = "/".join(parts)
             prefix = "private/" if private else ""
@@ -667,6 +679,9 @@ def _scan_videos():
     for s in series.values():
         s["episodes"].sort(key=(lambda e: e.get("ep") or (0, 0)) if s.get("virtual") else (lambda e: (natkey(e["season"]), natkey(e["path"].name))))
         s["episodes"] = [e["id"] for e in s["episodes"]]
+        s["art"] = pick_image(side.get(dir_key(s["folder"])), series_art_names(s))
+    for v in found.values():                                  # your own poster next to the video, found without touching the disk again
+        v["side_poster"] = pick_image(side.get(dir_key(v["path"].parent)), sidecar_names(v["path"]))
     with LIB_LOCK:
         LIB["videos"] = found
         LIB["series"] = series
@@ -1286,13 +1301,33 @@ def run_language_detection(online):
 
 
 # ----------------------------------------------------------------------------- video posters
-def find_sidecar_poster(video):
-    """A poster you supplied: <video name>.jpg/.png/.webp or <video name>-poster.jpg next to the video."""
-    for suffix in ("", "-poster", ".poster", "_poster"):
-        for ext in IMAGE_EXTS:
-            p = video.with_name(video.stem + suffix + ext)
+def sidecar_names(video):
+    """File names a poster you supplied may have, best first: <video name>.jpg/.png/.webp or <video name>-poster.jpg ..."""
+    return [video.stem + suffix + ext for suffix in ("", "-poster", ".poster", "_poster") for ext in IMAGE_EXTS]
+
+
+def pick_image(names_in_dir, wanted):
+    """The first of `wanted` file names present in a folder listing ({lowercase name: Path} from walk_entries), else None.
+    Case-insensitive, like Windows."""
+    if not names_in_dir:
+        return None
+    for n in wanted:
+        p = names_in_dir.get(n.lower())
+        if p is not None:
+            return p
+    return None
+
+
+def find_sidecar_poster(v):
+    """Your own poster for a library video (dict from LIB["videos"]). It was found by the scan, so this costs no disk work
+    for the many videos without one; for those with one, a single check that the file is still there."""
+    p = v.get("side_poster")
+    if p is not None:
+        try:
             if p.is_file():
                 return p
+        except OSError:
+            pass
     return None
 
 
@@ -1535,16 +1570,17 @@ def ensure_tile(vid, video):
 
 def pregenerate_posters():
     with LIB_LOCK:
-        todo = [(v["id"], v["path"]) for v in LIB["videos"].values()]
+        todo = [(v["id"], v["path"], v.get("side_poster") is not None) for v in LIB["videos"].values()]
     background_io(True)                                       # low disk priority: torrents and playback come first
     try:
-        for vid, path in todo:
+        for vid, path, has_side in todo:
+            if has_side:
+                continue                                      # your own poster is used instead (the scan found it)
             if (POSTER_DIR / f"{vid}.jpg").exists() and (TILE_DIR / f"{vid}.jpg").exists():
                 continue                                      # already made: no disk work at all
-            if not find_sidecar_poster(path):
-                ensure_poster(vid, path)
-                ensure_tile(vid, path)
-                time.sleep(0.25)                              # a breather between files
+            ensure_poster(vid, path)
+            ensure_tile(vid, path)
+            time.sleep(0.25)                                  # a breather between files
     finally:
         background_io(False)
 
@@ -2395,14 +2431,20 @@ def get_series_checked(sid):
     return s
 
 
+def series_art_names(s):
+    """File names your own series image may have, best first: poster / cover / folder / thumb / <series name> (.jpg .png .webp)."""
+    return [n + ext for n in ("poster", "cover", "folder", "thumb", s["folder"].name, s["name"]) for ext in IMAGE_EXTS]
+
+
 def find_series_art(s):
-    """Your own series image: poster / cover / folder / <series name> (.jpg .png .webp) inside the series folder."""
-    folder = s["folder"]
-    for n in ("poster", "cover", "folder", "thumb", folder.name, s["name"]):
-        for ext in IMAGE_EXTS:
-            p = folder / (n + ext)
+    """Your own series image inside the series folder. Found by the scan (see _scan_videos), so no disk search here."""
+    p = s.get("art")
+    if p is not None:
+        try:
             if p.is_file():
                 return p
+        except OSError:
+            pass
     return None
 
 
@@ -2447,7 +2489,7 @@ def series_art(sid):
     with LIB_LOCK:
         first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
     if first:
-        side = find_sidecar_poster(first["path"])
+        side = find_sidecar_poster(first)
         if side:
             return send_file(side, max_age=3600)
         if ensure_poster(first["id"], first["path"]):
@@ -4147,7 +4189,7 @@ def api_pphoto_edit():
 @app.get("/poster/<vid>")
 def poster(vid):
     v = get_video_checked(vid)
-    side = find_sidecar_poster(v["path"])
+    side = find_sidecar_poster(v)
     if side:
         return send_file(side, max_age=86400)
     if ensure_poster(vid, v["path"]):
@@ -4230,7 +4272,7 @@ def tile(vid):
     mine = custom_tile("video", vid)
     if mine:
         return send_file(mine, max_age=0)
-    side = find_sidecar_poster(v["path"])
+    side = find_sidecar_poster(v)
     if side:
         return send_file(side, max_age=86400)
     if ensure_tile(vid, v["path"]):
@@ -4250,7 +4292,7 @@ def series_tile(sid):
     with LIB_LOCK:
         first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
     if first:
-        side = find_sidecar_poster(first["path"])
+        side = find_sidecar_poster(first)
         if side:
             return send_file(side, max_age=3600)
         if ensure_tile(first["id"], first["path"]):
@@ -5035,7 +5077,8 @@ def weekly_auto_backup():
 
 
 def _folder_signature():
-    """Cheap fingerprint of the video folders: folder names, and how many video files have finished being written.
+    """Cheap fingerprint of the video folders: folder names, how many video files have finished being written, and the
+    names of the poster / series-art images (the scan is what finds those, so adding one must trigger a rescan).
     Files still downloading are not counted, so a torrent in progress does not keep re-triggering rescans; the signature
     changes once when each file settles. (os.scandir gives file times without extra disk calls on Windows.)"""
     sig, now = [], time.time()
@@ -5045,7 +5088,7 @@ def _folder_signature():
         stack = [str(root)]
         while stack:
             d = stack.pop()
-            n = 0
+            n, imgs = 0, []
             try:
                 with os.scandir(d) as it:
                     for e in it:
@@ -5053,11 +5096,15 @@ def _folder_signature():
                             continue
                         if e.is_dir(follow_symlinks=False):
                             stack.append(e.path)
-                        elif Path(e.name).suffix.lower() in VIDEO_EXTS and now - e.stat().st_mtime >= SETTLE_SECS:
+                            continue
+                        ext = Path(e.name).suffix.lower()
+                        if ext in VIDEO_EXTS and now - e.stat().st_mtime >= SETTLE_SECS:
                             n += 1
+                        elif ext in SIDE_IMAGE_EXTS:
+                            imgs.append(e.name.lower())
             except OSError:
                 continue
-            sig.append((d, n))
+            sig.append((d, n, hash(frozenset(imgs))))
     return hash(tuple(sorted(sig)))
 
 
