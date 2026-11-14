@@ -1,14 +1,56 @@
-# ULTRON - The Booth (Darkroom Edition)
+<p align="center"><img src="docs/logo.png" width="140" alt="ULTRON logo"></p>
 
-A desktop player for your own videos, music and photos. A Flask backend serves a single-page
-frontend inside a native window (pywebview). Everything runs locally and works **offline**: Tailwind CSS,
-Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
+<h1 align="center">ULTRON</h1>
 
-**First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
+<p align="center"><b>Your own movies, shows, music and photos in one offline Windows app.<br>And your phone is the remote.</b></p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0b0b0e?style=for-the-badge&logo=windows&logoColor=white" alt="Windows 10%20%7C%2011">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/Playback-libmpv-691f69?style=for-the-badge&logo=mpv&logoColor=white" alt="Playback libmpv">
+  <img src="https://img.shields.io/badge/Android-remote%20app-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android remote%20app">
+  <img src="https://img.shields.io/badge/Works-offline-f97316?style=for-the-badge" alt="Works offline">
+</p>
+
+<p align="center">
+  <a href="#highlights">Highlights</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#v6-your-phone-is-the-remote-and-a-second-screen">Phone remote</a> ·
+  <a href="#build-the-exe">Build the .exe</a> ·
+  <a href="SETUP.txt">Setup guide</a>
+</p>
+
+<p align="center"><img src="docs/screenshots/remote-pc.gif" width="820" alt="The phone starting a movie on the PC, changing the speed and taking the sound"><br>
+<sub>Tap on the phone, the PC follows: start a movie, change the speed, move the sound to your earphones, stop.</sub></p>
+
+## Highlights
+
+<table>
+<tr>
+<td width="33%" valign="top"><b>Plays everything</b><br>MKV, HEVC, AC3 / DTS, subtitles, chapters, through libmpv in its own native player. No converting, no codec packs.</td>
+<td width="33%" valign="top"><b>Phone as a remote</b><br>Scan a QR code: browse, play, skip, subtitles, speed, sleep timer. The volume buttons drive the PC, even with the screen off.</td>
+<td width="33%" valign="top"><b>Sound in your earphones</b><br>Picture on the monitor, sound on the phone, kept in sync to a few hundredths of a second. Or watch the whole thing on the phone.</td>
+</tr>
+<tr>
+<td valign="top"><b>A real library</b><br>Movies, series with seasons and resume points, music with albums, playlists and likes, and photos. Posters and genres are found for you.</td>
+<td valign="top"><b>Private library</b><br>Password-locked, auto-locks when idle, never shows up in search or on the phone.</td>
+<td valign="top"><b>Offline and light</b><br>No accounts, no cloud, no CDNs. Background work is throttled so the PC stays quiet, and USB drives stay safe to unplug.</td>
+</tr>
+</table>
+
+## Quick start
+
+1. Install **Python 3.12** (64-bit) and the packages: `py -3.12 -m pip install -r requirements.txt`
+2. Put `libmpv-2.dll` next to the app (see [SETUP.txt](SETUP.txt) for where to get it, plus the optional ffmpeg and subtitle models).
+3. Run `py -3.12 app.py`, or build the one-file `ULTRON.exe` with `build_exe.bat`.
+4. Phone remote: **Settings > Phone remote**, switch it on, scan the QR code with your phone (same Wi-Fi).
+
+---
+
+# What's new
+
 
 ## V6: your phone is the remote (and a second screen)
-
-<p align="center"><img src="docs/screenshots/remote-pc.gif" width="760" alt="The phone starting a movie on the PC, changing speed and taking the sound"><br><sub>Tap on the phone, the PC follows: start a movie, change the speed, move the sound to the phone, stop.</sub></p>
 
 <p align="center"><img src="docs/screenshots/remote-tour.gif" width="260" alt="A tour of the phone app"><br><sub>The phone app: Surprise me, series, watching on the phone, music, search.</sub></p>
 
