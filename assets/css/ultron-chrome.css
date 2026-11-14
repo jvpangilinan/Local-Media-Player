@@ -28,7 +28,7 @@ html[data-pal="chrome"] #fl-aurora, html[data-pal="chrome"] #lm-spot { display: 
 /* logo in the rail instead of the "LM" glyph */
 html[data-pal="chrome"] body #sidebar #lm-mark .glyph {
   background: #000 url('/logo.png') center / cover no-repeat; color: transparent; font-size: 0;
-  width: 2.6rem; height: 2.6rem; border-radius: 50%; transform: none; filter: none; box-shadow: 0 0 0 1px rgba(255,255,255,.28), 0 8px 26px -6px rgba(255,255,255,.35);
+  width: 2.6rem; height: 2.6rem; border-radius: 50%; transform: none; filter: none;
 }
 html[data-pal="chrome"] body #sidebar #lm-mark:hover .glyph { transform: scale(1.07); }
 

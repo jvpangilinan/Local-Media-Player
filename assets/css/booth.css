@@ -39,7 +39,7 @@ html body #mv-home section.mb-8{margin-bottom:1.2rem}
 #lm-deck .scr-rate{position:absolute;left:0;right:0;top:-2rem;text-align:center;font-family:var(--v-mono);font-size:.85rem;letter-spacing:.2em;color:var(--pr1);pointer-events:none}
 #dj-panel{margin-top:1rem;font-family:var(--v-mono);font-size:.62rem;letter-spacing:.12em}
 #dj-panel canvas{width:100%;height:44px;display:block;background:rgba(0,0,0,.35);cursor:pointer;border:1px solid var(--v-line2)}
-#dj-panel .djr{display:flex;align-items:center;gap:.35rem;margin-top:.45rem;flex-wrap:wrap}
+#dj-panel .djr{display:flex;gap:.35rem;margin-top:.45rem;flex-wrap:wrap}
 #dj-panel .sp{flex:1}#dj-panel .lb{color:var(--v-mute)}
 #dj-panel button{padding:.3rem .55rem;border:1px solid var(--v-line2);color:#ddd;background:rgba(255,255,255,.04);cursor:pointer;user-select:none;touch-action:none}
 #dj-panel button:hover,#dj-panel button.on{border-color:var(--pr1);color:var(--pr1)}
@@ -66,7 +66,7 @@ html.disco #main{animation:abdisco 1.2s linear infinite}
 .egg-chip{font-family:var(--v-mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;border:1px dashed rgba(255,255,255,.25);padding:.3rem .6rem;color:#777}
 .egg-chip.on{border-style:solid;border-color:var(--pr1);color:var(--pr1)}
 #nowplaying .npg-x{left:4.1rem}
-html body #private-view::after{content:'EYES ONLY'}
+
 html body #private-view .vault-door{position:absolute;top:.6rem;right:clamp(1.5rem,6vw,4rem);width:clamp(8rem,16vw,14rem);opacity:.75;pointer-events:none;z-index:0}
 html body #private-view .vault-door .spin{transform-origin:100px 100px;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
 html body #private-view:hover .vault-door .spin{transform:rotate(120deg)}

@@ -43,7 +43,7 @@ html body .utile:hover .ut-title, html body .ubh-coll.utile:focus-visible .ut-ti
 /* ---------- little things on the cover ---------- */
 html body .utile .ut-new { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .15rem .4rem; border-radius: 2px; background: var(--pr1, #e50914); color: var(--v-on, #fff);
   font: 800 .6rem/1 var(--v-mono, ui-monospace, monospace); letter-spacing: .12em; transition: opacity .2s; }
-html body .utile:hover .ut-new { opacity: 0; }
+
 html body .utile .ut-kind { position: absolute; z-index: 5; top: .45rem; left: .45rem; padding: .2rem .45rem; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff;
   font: 700 .58rem/1 var(--v-mono, ui-monospace, monospace); letter-spacing: .12em; text-transform: uppercase; }
 /* watched progress: one thin line along the bottom edge */

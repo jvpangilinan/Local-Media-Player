@@ -1,5 +1,5 @@
 /* ===== ULTRON video player: glass capsule controls, glowing accent, big play button. Loaded last. ===== */
-html body #player-modal{background:#000}
+
 html body #p-top{padding:1.3rem 1.8rem 5rem;background:linear-gradient(to bottom,rgba(0,0,0,.82),rgba(0,0,0,.35) 55%,transparent)!important}
 html body #p-top .p-pill{border-radius:9999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(14px);letter-spacing:.06em;transition:transform .2s,background .2s,border-color .2s}
 html body #p-top .p-pill:hover{background:var(--pr1);color:var(--v-on,#111);border-color:transparent;transform:translateY(-2px)}
@@ -17,7 +17,7 @@ html body #p-play:hover{transform:scale(1.1);color:#17101a}
 @keyframes lm8-pulse{0%,100%{box-shadow:0 10px 30px -8px rgba(var(--pr2rgb),.85)}50%{box-shadow:0 10px 38px -4px rgba(var(--pr2rgb),1)}}
 html body .p-skip span{color:inherit}
 html body #p-time{font-family:var(--v-mono);font-size:.78rem;letter-spacing:.06em}
-html body #p-flash{height:6.5rem;width:6.5rem;background:rgba(10,9,16,.55);border:1px solid rgba(255,255,255,.2);box-shadow:0 0 40px rgba(var(--pr2rgb),.5)}
+html body #p-flash{height:6.5rem;width:6.5rem;}
 html body #p-titlecard #tc-title{background:linear-gradient(90deg,#fff,var(--pr1));-webkit-background-clip:text;background-clip:text;color:transparent}
 html body #p-titlecard #tc-sub{font-family:var(--v-mono);letter-spacing:.3em;text-transform:uppercase;font-size:.7rem}
 html body #p-menu,html body #p-next{border-radius:1.2rem!important;border:1px solid rgba(255,255,255,.16)!important;background:rgba(14,12,20,.82)!important;backdrop-filter:blur(22px)}

@@ -360,8 +360,8 @@ html body { font-feature-settings: 'tnum' 1, 'ss01' 1; }
 html[data-bg="dark"] body::before { inset: 0; filter: none; opacity: 1; animation: none;
   background: radial-gradient(52rem 26rem at 92% -8%, rgba(var(--pr3rgb), .13), transparent 70%), radial-gradient(40rem 24rem at 4% 108%, rgba(var(--pr1rgb), .09), transparent 70%); }
 #lm-sp { height: 2px; background: var(--spec) !important; box-shadow: none !important; left: var(--side-w); }
-::selection { background: var(--pr1); color: var(--v-on); }
-:focus-visible { outline: 2px solid var(--pr1) !important; outline-offset: 2px; border-radius: 2px; }
+
+:focus-visible { border-radius: 2px; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--v-line2); border-radius: 0; border: 3px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pr1); background-clip: content-box; }
@@ -471,7 +471,7 @@ html body .video-card { outline: 0; }
 html body .carousel-btn { background: var(--v-panel) !important; border: 1px solid var(--v-line2); -webkit-backdrop-filter: none; backdrop-filter: none; }
 html body .carousel-btn:hover { background: var(--pr1) !important; color: var(--v-on); }
 html body .ph-tile { border-radius: 2px !important; }
-html body #ph-grid .ph-tile:hover { transform: none; box-shadow: 0 0 0 2px var(--pr1); }
+html body #ph-grid .ph-tile:hover { box-shadow: 0 0 0 2px var(--pr1); }
 
 /* ---------- HOME: a readout column (clock, greeting, actions) beside the content ---------- */
 html body #home-view > div { max-width: 96rem !important; margin: 0 auto; padding: 2.2rem clamp(1.2rem, 3.4vw, 3.4rem) 4rem !important;
@@ -614,7 +614,7 @@ html body #tracklist .text-gray-400:not(i) { font-family: var(--v-mono); font-si
 /* ---------- now-playing bar: a flat transport strip with a spectral hairline ---------- */
 html body #audio-bar { left: var(--side-w) !important; right: 0 !important; border-radius: 0 !important; border: 0 !important; border-top: 1px solid var(--v-line2) !important; background: var(--v-panel) !important;
   -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
-html body #audio-bar::before { content: ''; position: absolute; left: 0; top: -1px; width: calc(var(--ap, 0) * 1%); max-width: 100%; height: 2px; background: var(--spec); pointer-events: none; }
+html body #audio-bar::before { width: calc(var(--ap, 0) * 1%); max-width: 100%; }
 html body #audio-bar img, html body #audio-bar > div:first-child > div:first-child { border-radius: 2px !important; }
 html body #audio-bar button.bg-white, html body #audio-bar button.rounded-full.bg-white { background: var(--pr1) !important; color: var(--v-on) !important; border-radius: 2px !important; box-shadow: none; }
 html body #audio-bar #np-title { font-family: var(--v-display); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
@@ -696,31 +696,25 @@ html body .tm-sec-h h2 { font-family: var(--v-display) !important; text-transfor
 /* ---------- downloads / private / photos ---------- */
 html body #dl-kinds > .on, html body #dl-kinds > .active, html body #dl-kinds > [class*="on"] { background: var(--pr1) !important; color: var(--v-on) !important; }
 html body #dl-kinds > .on *, html body #dl-kinds > .active * { color: var(--v-on) !important; }
-html body #dl-kinds > * { font-family: var(--v-mono); letter-spacing: .08em; text-transform: uppercase; }
-html body #dl-list > * { border-radius: 3px !important; background: var(--v-panel) !important; }
+
 html body :is(#dl-view, #private-view) h1 { font-family: var(--v-display); text-transform: uppercase; letter-spacing: .02em; font-weight: 800 !important; }
 html body .ph-title b { font-family: var(--v-display) !important; font-style: normal !important; text-transform: uppercase; letter-spacing: .04em; font-weight: 800 !important; font-size: 1.6rem !important; }
 html body .ph-act.on, html body .ph-act:hover { color: var(--pr1) !important; }
 
 /* ---------- video player: a flat control strip ---------- */
-html body #p-bottom { left: 0 !important; right: 0 !important; bottom: 0 !important; border-radius: 0 !important; border: 0; border-top: 1px solid var(--v-line2); padding: .9rem 1.6rem .6rem !important;
-  background: linear-gradient(180deg, rgba(8, 7, 10, .55), rgba(8, 7, 10, .94)) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: none; }
-html body #p-played { background: var(--spec) !important; box-shadow: none !important; }
-html body #p-thumb { border-radius: 0 !important; width: 8px !important; height: 16px !important; background: var(--pr1) !important; box-shadow: none !important; }
+html body #p-bottom { border-top: 1px solid var(--v-line2); }
+
 html body #p-tip { border-radius: 2px !important; background: var(--v-panel2) !important; border: 1px solid var(--v-line2); font-family: var(--v-mono); }
-html body #p-time { font-family: var(--v-mono); letter-spacing: .04em; }
-html body .p-btn { border-radius: 2px; }
-html body .p-btn:hover { background: var(--v-fill) !important; transform: none; color: var(--pr1); }
-html body #p-play { border-radius: 2px !important; background: var(--pr1) !important; color: var(--v-on) !important; box-shadow: none !important; }
-html body #p-play:hover { transform: none; filter: brightness(1.1); }
+
+html body #p-play:hover { filter: brightness(1.1); }
 html body .p-pill { border-radius: 2px; font-family: var(--v-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; background: rgba(8, 7, 10, .6); border: 1px solid var(--v-line2); }
-html body #p-menu { bottom: 6rem !important; right: 1.6rem !important; background: var(--v-panel) !important; border: 1px solid var(--v-line2) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html body #p-menu { bottom: 6rem !important; right: 1.6rem !important; -webkit-backdrop-filter: none; }
 html body #p-menu button, html body #p-menu > * { border-radius: 0; }
 html body #p-menu button:hover { background: var(--v-fill) !important; box-shadow: inset 3px 0 0 var(--pr1); }
-html body #p-next { bottom: 6.5rem !important; right: 1.6rem !important; background: var(--v-panel) !important; border: 1px solid var(--v-line2) !important; }
+html body #p-next { bottom: 6.5rem !important; right: 1.6rem !important; }
 html body #p-next button.bg-white { background: var(--pr1) !important; color: var(--v-on) !important; border-radius: 2px !important; }
 html body #player-modal.mini { border-radius: 3px !important; border: 1px solid var(--v-line2) !important; box-shadow: 0 30px 70px -20px #000 !important; }
-html body #p-flash { border-radius: 3px; }
+
 html body .spinner { border-radius: 50%; border-top-color: var(--pr1); }
 html body #p-titlecard { font-family: var(--v-display); text-transform: uppercase; }
 
