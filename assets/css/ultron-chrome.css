@@ -40,12 +40,6 @@ html[data-pal="chrome"] body #sidebar { border-color: rgba(255,255,255,.18) !imp
 html[data-pal="chrome"] body #sidebar .sb-item.active, html[data-pal="chrome"] body #sidebar .sb-item.active .ico,
 html[data-pal="chrome"] body #sidebar .sb-tool:hover { color: #0b0b0c !important; }
 
-/* light mode: keep metal, but darker steel so it still shows on white */
-html[data-pal="chrome"][data-theme="light"] { --pr1: #8d8d8f; --pr2: #5f5f62; --pr3: #2f2f33; --pr1rgb: 141,141,143; --pr2rgb: 95,95,98; --pr3rgb: 47,47,51;
-  --prism: linear-gradient(115deg, #d8d8d8 0%, #7f7f81 35%, #c9c9c9 55%, #4a4a4d 100%); }
-html[data-pal="chrome"][data-theme="light"] body::after { display: none; }
-html[data-pal="chrome"][data-theme="light"] body #sidebar .sb-item.active { color: #0b0b0c !important; }
-
 /* =====================================================================================================
    LIQUID METAL: the reflective look from the logo (hard light/dark bands + a bright specular streak)
    ===================================================================================================== */

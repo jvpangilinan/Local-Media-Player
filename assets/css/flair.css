@@ -33,7 +33,7 @@ html:not(.fl-no-squish) button:not(:disabled):active,html:not(.fl-no-squish) .sb
 @keyframes fl-d1{to{transform:translate(32vmax,22vmax) scale(1.15)}}
 @keyframes fl-d2{to{transform:translate(-30vmax,26vmax) scale(.9)}}
 @keyframes fl-d3{to{transform:translate(26vmax,-24vmax) scale(1.2)}}
-html[data-theme="light"] #fl-aurora{display:none}
+
 html.fl-no-aurora #fl-aurora,html.in-player #fl-aurora,html.in-player #fl-dust{display:none}
 html.fl-rave #fl-aurora{opacity:1}
 

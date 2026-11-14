@@ -6,7 +6,7 @@
 html { background: var(--bg); }
 html body.bg-lm-base, html body { background: transparent !important; }
 
-/* ---------- background layer: Dark / Light show none, Colorful = picture, Sync with time = slow colour ---------- */
+/* ---------- background layer: Dark shows none, Colorful = picture, Sync with time = slow colour ---------- */
 @property --bgr { syntax: '<number>'; inherits: true; initial-value: 70; }
 @property --bgg { syntax: '<number>'; inherits: true; initial-value: 60; }
 @property --bgb { syntax: '<number>'; inherits: true; initial-value: 120; }
@@ -32,7 +32,7 @@ html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { backgroun
 .bg-opt:hover { background: #2c2c2f; color: #fff; }
 .bg-opt.on { border-color: #fff; color: #fff; background: #2a2a2d; }
 .bg-sw { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: .5rem; border: 1px solid rgba(255,255,255,.14); }
-.sw-dark { background: #0b0b0c; } .sw-light { background: #f2f2f4; }
+.sw-dark { background: #0b0b0c; }
 .sw-colorful { background: linear-gradient(135deg, #1b6b74, #4b3b8f 45%, #a24bb5 70%, #f08a5d); }
 .sw-time { background: linear-gradient(90deg, #3a4296, #ee8a7a, #f0bc6c, #6eb0e8, #f06c62, #4246a0); }
 .bg-presets { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
@@ -40,7 +40,6 @@ html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { backgroun
 .bg-thumb:hover { transform: scale(1.06); } .bg-thumb.on { border-color: #fff; }
 .bg-add { height: 2.4rem; padding: 0 .9rem; display: inline-flex; align-items: center; gap: .45rem; border-radius: .55rem; border: 1px dashed rgba(255,255,255,.3); color: #ddd; font-size: .8rem; font-weight: 600; }
 .bg-add:hover { background: rgba(255,255,255,.08); color: #fff; }
-html[data-theme="light"] :is(.bg-sw, .bg-thumb) { filter: invert(1) hue-rotate(180deg); }
 
 /* ---------- menu footer: always one tidy left-aligned block (the Music tab used to switch on a hidden "rail" mode) ---------- */
 #sidebar .sb-tools { align-items: flex-start !important; }
@@ -52,7 +51,7 @@ html[data-theme="light"] :is(.bg-sw, .bg-thumb) { filter: invert(1) hue-rotate(1
 .hc { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(1.4rem, 3vw, 3rem); margin: .2rem 0 .6rem; }
 .rx { display: block; filter: drop-shadow(0 16px 34px rgba(0,0,0,.5)); }
 .hc .rx { width: clamp(12.5rem, 19vw, 17rem); height: auto; flex: none; }
-html[data-theme="light"] .rx { filter: invert(1) hue-rotate(180deg) drop-shadow(0 14px 28px rgba(255,255,255,.35)); }
+
 .hc-greet { display: flex; align-items: center; gap: .7rem; font-size: clamp(1.7rem, 3vw, 2.7rem); font-weight: 800 !important; letter-spacing: -.025em; line-height: 1.05; }
 .hc-greet i { color: rgb(var(--tc, 232,196,112)); font-size: .78em; }
 .hc-date { margin-top: .55rem; font-size: 1.05rem; font-weight: 500; color: rgba(255,255,255,.62); letter-spacing: 0; text-transform: none; }
@@ -128,10 +127,6 @@ html #m-main > .sticky { background: var(--panel-solid) !important; -webkit-back
 #mv-gen > div:first-child { background: rgba(255,255,255,.05) !important; border: 1px solid var(--mu-hair) !important; border-radius: 1.1rem; box-shadow: none !important; }
 
 /* ---------- Alternate music look (legacy, unused): fixed sidebar + flat content ---------- */
-
-/* logo clock face: never colour-invert the photo in the light theme */
-html[data-theme="light"] .rx.rx-logo { filter: drop-shadow(0 14px 28px rgba(0,0,0,.35)) !important; }
-html[data-theme="light"] .ck-tile .rx.rx-logo, html[data-theme="light"] .tm-card .rx.rx-logo { filter: none !important; }
 
 /* the "LM" tile in the sidebar is the logo (logo.png) in every palette */
 html body #sidebar #lm-mark .glyph {

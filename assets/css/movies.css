@@ -3,7 +3,6 @@
 /* ---------- auto-sorted collections ---------- */
 .mv-tag { font-size: .62rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: .22rem .6rem; border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .6); cursor: help; white-space: nowrap; }
-html[data-theme="light"] .mv-tag { border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .55); }
 
 /* ---------- expanding card: poster rests, hover grows into a wide card with a muted preview ---------- */
 .nfx-pop { position: fixed; z-index: 70; border-radius: 10px; overflow: hidden; background: #131318; color: #fff;

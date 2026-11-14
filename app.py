@@ -3273,14 +3273,14 @@ def api_open_folder():
 # ----------------------------------------------------------------------------- user preferences
 # Add a new setting in 3 places: here (default), clean_pref() (validation), and the Settings panel in index.html.
 DISPLAY_MODES = ("windowed", "maximized", "fullscreen")
-BG_MODES = ("dark", "light", "colorful", "time")
+BG_MODES = ("dark", "colorful", "time")            # "light" was removed; a saved "light" falls back to dark
 CLOCK_STYLES = ("logo", "auto", "gold", "light", "dark", "emerald", "minimal")
 DISPLAY_KEYS = ("display_mode", "win_width", "win_height")
 FOLDER_KEYS = {"video": "video_dir", "music": "music_dir", "private": "private_dir", "photos": "photo_dir", "clips": "clips_dir", "shots": "shots_dir"}   # kind -> CFG / prefs key
 SPEEDS = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
 PREF_DEFAULTS = {
     "wheel_rows": True,            # mouse wheel scrolls the video rows sideways
-    "bg_mode": "dark",             # dark | light | colorful (your image) | time (colour follows the time of day)
+    "bg_mode": "dark",             # dark | colorful (your image) | time (colour follows the time of day)
     "clock_style": "logo",         # clock design on Home and in the corner: logo (your logo.png as the dial; old "auto" also means this) | gold | light | dark | emerald | minimal
     "bg_image": "",                # colorful mode: "" (default) | "preset:<name>" | "custom" (the uploaded picture)
     "hover_preview": True,         # home banner + private-library cards play a short muted preview when hovered
@@ -3433,8 +3433,6 @@ def clean_pref(key, value):
 def get_prefs():
     saved = load_settings().get("prefs") or {}
     out = {k: clean_pref(k, saved.get(k, d)) for k, d in PREF_DEFAULTS.items()}
-    if "bg_mode" not in saved and saved.get("theme") == "light":        # settings saved before the Background option existed
-        out["bg_mode"] = "light"
     if "sponsorblock-remove" in out.get("dl_margs", ""):      # old default silently trimmed the start of songs
         out["dl_margs"] = ""
     return out

@@ -112,4 +112,4 @@ html[data-bg="colorful"] .tm-panel, html[data-bg="time"] .tm-panel, html[data-bg
 .tm-ringbig { font-size: 2.8rem; font-weight: 300; letter-spacing: -.02em; } .tm-ringsub { color: var(--mute); margin-top: .3rem; min-height: 1.3em; }
 .tm-ringbtns { display: flex; gap: .7rem; justify-content: center; margin-top: 1.6rem; flex-wrap: wrap; }
 .hc-clock { cursor: pointer; flex: none; border-radius: 50%; }
-html[data-theme="light"] .ck-tile .rx, html[data-theme="light"] .tm-card .rx { filter: invert(1) hue-rotate(180deg); }
+

@@ -49,7 +49,7 @@ It holds SQLite (WAL, synchronous=NORMAL), `settings.json`, posters, thumbnails 
 
 ## Known debt (from TODO.md)
 
-- CSS: `darkroom-1..6.css`, `ui-fix.css` and `zeno-fix.css` override each other with `!important` (darkroom-6 alone has 208). This causes the fade, clipping and highlight bugs. The plan is to merge them into one base file plus one theme file.
+- CSS: `darkroom-6.css` (now holding what was left of darkroom-1..5), `minimalist.css`, `ui-fix.css` and `zeno-fix.css` override each other with `!important` (darkroom-6 has ~600 !important declarations). This causes the fade, clipping and highlight bugs. The plan is to merge them into one base file plus one theme file. Check every CSS change with `tools/css_snapshot.py` (snap before and after, then diff; see its docstring) and find overridden declarations with `py -3.12 tools/css_dead.py report`. There is no light theme anymore.
 - Some JS function names are defined globally in more than one file: `paintSettings` (app.js, mpv-player.js, photos-lock.js) and `openMenu`/`closeMenu` (app.js, tiles.js). Check for global overwrites before renaming or moving them.
 - `except Exception: pass` around Windows priority calls, tray, window restore and logging shutdown is deliberate (best-effort).
 - There are no tests for the lock and sort logic yet.

@@ -17,7 +17,6 @@
     'html body #private-bar .ps-box input::placeholder{color:inherit;opacity:.45}',
     'html body #private-bar .ps-box button{position:absolute;right:.5rem;background:none;border:0;color:inherit;opacity:.55;cursor:pointer;padding:.15rem .3rem;display:none}',
     'html body #private-bar .ps-box.has button{display:block}',
-    'html[data-bg="light"] body #private-bar .ps-box input, html.light body #private-bar .ps-box input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.18)}',
     '#private-view #private-search-results{display:none;padding:5.5rem clamp(1.5rem,6vw,5rem) 4rem}',
     '#private-view.ps-on #private-search-results{display:block}',
     '#private-view.ps-on #private-videos, #private-view.ps-on #private-photos{display:none !important}',

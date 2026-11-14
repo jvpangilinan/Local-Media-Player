@@ -18,7 +18,10 @@
 
 ## Fix next (high value)
 1. Start-up scan (done, see above): check on your real library that the first Cinema paint shows everything after the short wait.
-2. CSS stack (speed part solved by the bundler; the cleanup is still open): 28 stylesheets, ~340 KB. darkroom-1..6 + ui-fix + zeno-fix fight each other with !important (darkroom-6 alone has 208). This is where the fade / clipping / off-by-one highlight bugs come from. Merge into base + one theme file, delete rules that are overridden later.
+2. CSS stack (speed part solved by the bundler; cleanup in progress). Safety net: `tools/css_snapshot.py` (computed-style + box snapshot of every view, diff before/after) and `tools/css_dead.py` (finds declarations a later rule always overrides).
+   - Done: darkroom-1..5 merged into darkroom-6 (~490 dead declarations removed first), minimalist.css menu-panel mode removed, light theme removed (CSS, Settings option, backend). Snapshot diff: no change except the Settings swatch.
+   - Next: dedupe inside darkroom-6 / booth, fold ui-fix + special + zeno-fix + minimalist into base / their feature files, then shared --page-gutter, z-index ladder and ~3 breakpoints, then drop !important / `html body` prefixes (darkroom-6 has ~600 !important declarations).
+   - Spotted, not changed yet: the sidebar search icon sits left of centre (minimalist.css `.sb-search { justify-content: flex-start }`), and minimalist's `* { text-shadow: none !important }` cancels every text-shadow in the app (e.g. zeno-fix's player flash).
 3. JS load: mostly solved by the bundler (21 requests -> 3). Minifying and lazy-loading tab-only scripts would still save parse time; needs a build step (esbuild), not worth it yet.
 4. Idle work (checked, low value): most of the 15 timers only start while something is playing, ringing or open, and the rest are light (1 s polls). Not worth the risk. The always-on clock timer was the one worth fixing, and is.
 

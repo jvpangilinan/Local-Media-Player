@@ -29,8 +29,8 @@
     LS.set('lmpv9_plain', v ? '1' : '0'); R.classList.toggle('lm-plain', v);
     if (v) R.setAttribute('data-bg', 'dark'), R.setAttribute('data-theme', 'dark'), R.setAttribute('data-pal', 'mono');
     else {
-      var bg = LS.get('lmp_bg') || 'dark';
-      R.setAttribute('data-bg', bg); R.setAttribute('data-theme', bg === 'light' ? 'light' : 'dark');
+      var bg = LS.get('lmp_bg') || 'dark'; if (['dark', 'colorful', 'time'].indexOf(bg) < 0) bg = 'dark';
+      R.setAttribute('data-bg', bg); R.setAttribute('data-theme', 'dark');
       R.setAttribute('data-pal', LS.get('lmpv9_pal') || 'prism');
     }
   }

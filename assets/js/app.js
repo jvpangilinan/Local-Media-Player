@@ -3383,11 +3383,11 @@
 
 
         // ======================= v8: theme, hover previews, Now Playing =======================
-        // ======================= background: Dark / Light / Colorful (your image) / Sync with time =======================
+        // ======================= background: Dark / Colorful (your image) / Sync with time =======================
         // One fixed layer behind everything. It never reacts to the tab you are on, so nothing fades or changes colour when you navigate.
-        const BG_MODES = ['dark', 'light', 'colorful', 'time'];
-        const BG_NAMES = { dark: 'Dark', light: 'Light', colorful: 'Colorful', time: 'Sync with time' };
-        const BG_ICON = { dark: 'fa-moon', light: 'fa-sun', colorful: 'fa-palette', time: 'fa-clock' };
+        const BG_MODES = ['dark', 'colorful', 'time'];
+        const BG_NAMES = { dark: 'Dark', colorful: 'Colorful', time: 'Sync with time' };
+        const BG_ICON = { dark: 'fa-moon', colorful: 'fa-palette', time: 'fa-clock' };
         const BG_PRESETS = {
             aurora: 'linear-gradient(135deg,#0f2027 0%,#1b6b74 36%,#4b3b8f 70%,#a24bb5 100%)',
             sunset: 'linear-gradient(160deg,#2b1055 0%,#7a2e7a 38%,#e4577a 70%,#f7a35c 100%)',
@@ -3396,7 +3396,6 @@
             ember:  'linear-gradient(150deg,#1a0a0a 0%,#7a1f1f 45%,#e8743b 85%,#ffc27a 100%)',
             forest: 'linear-gradient(150deg,#06140f 0%,#14532d 50%,#5fa86b 100%)'
         };
-        function effectiveTheme() { return prefs.bg_mode === 'light' ? 'light' : 'dark'; }
         function paintTimeBg() {
             if (prefs.bg_mode !== 'time') return;
             const L = $('bg-layer'); if (!L) return;
@@ -3406,7 +3405,7 @@
         }
         function applyBackground() {
             const mode = BG_MODES.includes(prefs.bg_mode) ? prefs.bg_mode : 'dark', de = document.documentElement;
-            de.setAttribute('data-bg', mode); de.setAttribute('data-theme', mode === 'light' ? 'light' : 'dark');
+            de.setAttribute('data-bg', mode); de.setAttribute('data-theme', 'dark');
             try { localStorage.setItem('lmp_bg', mode); } catch (e) {}
             const L = $('bg-layer');
             if (L && mode === 'colorful') {
