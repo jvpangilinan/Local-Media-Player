@@ -450,15 +450,41 @@ def item_id(rel):
     return hashlib.sha1(rel.encode("utf-8")).hexdigest()[:12]
 
 
-def walk(root, exts):
+def walk_entries(root, exts):
+    """Yield (Path, os.DirEntry) for every file under root with one of exts, skipping dot-files and dot-folders.
+    Same order as os.walk (a folder's files first, then its subfolders), symlinked folders are not followed.
+    Call entry.stat() for the file's size / mtime: on Windows it comes from the folder listing itself, so a scan
+    costs one disk call per folder instead of one per file (it matters on a big library on a separate HDD)."""
     if not root.is_dir():
         return
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-        for name in filenames:
-            if name.startswith(".") or Path(name).suffix.lower() not in exts:
+    stack = [str(root)]
+    while stack:
+        d = stack.pop()
+        subdirs = []
+        try:
+            with os.scandir(d) as it:
+                entries = list(it)
+        except OSError:
+            continue                                 # unreadable folder: skip it, like os.walk does
+        for e in entries:
+            name = e.name
+            if name.startswith("."):
                 continue
-            yield Path(dirpath) / name
+            try:
+                if e.is_dir():
+                    if not e.is_symlink():
+                        subdirs.append(e.path)
+                    continue
+            except OSError:
+                continue
+            if Path(name).suffix.lower() in exts:
+                yield Path(e.path), e
+        stack.extend(reversed(subdirs))              # keep the listing order when popping
+
+
+def walk(root, exts):
+    for p, _ in walk_entries(root, exts):
+        yield p
 
 
 def natkey(s):
@@ -561,13 +587,13 @@ def _scan_videos():
     """Public videos live in media/videos, private ones in media/private (hidden until unlocked)."""
     found = {}
     for root, private in ((CFG["video_dir"], False), (CFG["private_dir"], True)):
-        for p in walk(root, VIDEO_EXTS):
+        for p, entry in walk_entries(root, VIDEO_EXTS):
             parts = p.relative_to(root).parts
             rel = "/".join(parts)
             prefix = "private/" if private else ""
             key = prefix + rel
             try:
-                st = p.stat()
+                st = entry.stat()
                 mtime = st.st_mtime
             except OSError:
                 log.debug("scan_videos: OSError ignored", exc_info=True)
@@ -697,10 +723,10 @@ def scan_music():
             cached = {r["rel_path"]: r for r in con.execute("SELECT * FROM tracks")}
         tracks, to_save, seen = {}, [], set()
         first_scan = not cached                  # very first index: use file dates, so nothing is "new" yet
-        for p in walk(root, MUSIC_EXTS):
+        for p, entry in walk_entries(root, MUSIC_EXTS):
             rel = p.relative_to(root).as_posix()
             try:
-                st = p.stat()
+                st = entry.stat()
             except OSError:
                 log.debug("scan_music: OSError ignored", exc_info=True)
                 continue
@@ -3627,7 +3653,7 @@ def scan_photos(public=False):
         return []
     video_stems = set() if public else {(str(p.parent).lower(), p.stem.lower()) for p in walk(root, VIDEO_EXTS)}
     out = []
-    for p in walk(root, PHOTO_EXTS):
+    for p, entry in walk_entries(root, PHOTO_EXTS):
         parts = p.relative_to(root).parts
         stem = p.stem.lower()
         if not public and not (len(parts) > 1 and parts[0].lower() == PHOTO_FOLDER.lower()):
@@ -3635,7 +3661,7 @@ def scan_photos(public=False):
             if (str(p.parent).lower(), base) in video_stems or base in PHOTO_SKIP:
                 continue                                 # a video's poster or series art, not a photo
         try:
-            mtime = p.stat().st_mtime
+            mtime = entry.stat().st_mtime
         except OSError:
             log.debug("scan_photos: OSError ignored", exc_info=True)
             continue
