@@ -399,7 +399,7 @@ html[data-bg="time"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash
 html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { background: rgba(10,10,12,.6) !important; }
 
 /* ---------- Settings: background tiles ---------- */
-.bg-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+.bg-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
 .bg-opt { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .5rem .4rem .6rem; background: #222; border: 1.5px solid transparent; font-size: .78rem; font-weight: 600; color: #cfcfcf; text-align: center; transition: background .15s, border-color .15s, color .15s; }
 .bg-opt:hover { background: #2c2c2f; color: #fff; }
 
