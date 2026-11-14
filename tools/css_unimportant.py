@@ -5,6 +5,7 @@
     py -3.12 tools/css_unimportant.py report --matches M.json                 # 3. what could go, what has to stay
     py -3.12 tools/css_unimportant.py apply  --matches M.json                 # 4. rewrite the stylesheets in place
     py -3.12 tools/css_unimportant.py why [SELECTOR-TEXT] --matches M.json    # why each remaining !important stays
+  --let-win ".text-accent"   (report/apply) allow exactly one kind of visible change: places where that rule now wins.
   --inline-free "#sidebar" --inline-except "#logo-img:display"   (report/apply/why) treat that subtree as never styled
       inline by JS. Only after checking the JS by hand; M.json must contain matches for "#sidebar" and "#sidebar *".
 (Without --matches it falls back to the markup alone, which cannot see nesting and keeps far more.)
@@ -35,6 +36,7 @@ import css_dead as cd
 
 ROOT = cd.ROOT
 ALL = None                                              # candidate set meaning "could be any element"
+LET_WIN = ""                                            # --let-win: flips that make this rule win are wanted
 INLINE_FREE = set()                                     # DOM keys checked by hand: JS never styles them inline
 INLINE_EXCEPT = set()                                   # (DOM key, property) inside INLINE_FREE that does get one
 STATIC_INLINE = {}                                      # prop -> DOM keys of elements with style="prop: ..." in index.html
@@ -80,7 +82,12 @@ def markup_index():
             elif recv.endswith("document.body"): target = "body"
             elif recv in alias: target = alias[recv]
             elif recv in newvars: target = "new"         # a class on an element JS just made: it lives only there
-            else: target = "*"
+            else:
+                # const b = $('wheel-btn'); ... b.classList.toggle(...): the nearest earlier assignment, a few lines up
+                back = t[max(0, m.start() - 400):m.start()]
+                a = list(re.finditer(r"\b" + re.escape(recv) + r"\s*=\s*(?:\$|document\.getElementById)\(\s*['\"]([-\w]+)['\"]\s*\)", back))
+                later = a and re.search(r"\b" + re.escape(recv) + r"\s*=(?!=)", back[a[-1].end():])
+                target = "#" + a[-1].group(1) if a and not later else "*"
             names = re.findall(r"['\"]([-\w:/.\[\]]+)['\"]", args)
             if names and "toggle" in m.group(0)[len(recv):len(recv) + 20] and len(names) > 1:
                 names = names[:1]                          # toggle('x', cond): only the first is a class
@@ -360,6 +367,9 @@ def flips(decls):
                 for i, ca in enumerate(ra["cand"]):
                     for j, cb in enumerate(rb["cand"]):
                         if overlap(ca, cb) and (key(a, i, False) > key(b, j, False)) != (key(a, i, True) > key(b, j, True)):
+                            new_winner = a if key(a, i, True) > key(b, j, True) else b
+                            if LET_WIN and any(LET_WIN in x for x in new_winner["rule"]["sels"]):
+                                continue                       # an intended change: the --let-win rule now wins here
                             hit = True; break
                     if hit: break
                 if hit: out.append((a, b))
@@ -440,6 +450,10 @@ def main():
         return
     mfile = sys.argv[sys.argv.index("--matches") + 1] if "--matches" in sys.argv else None
     files, decls, rules, els, inl = load(mfile)
+    if "--let-win" in sys.argv:                        # e.g. --let-win ".text-accent": that utility should win
+        global LET_WIN
+        LET_WIN = sys.argv[sys.argv.index("--let-win") + 1]
+        print(f"let-win: flips that make a rule with '{LET_WIN}' win are allowed (an intended change)")
     if "--inline-free" in sys.argv:                    # e.g. --inline-free "#sidebar" (its subtree must be in --matches)
         import json
         m = json.loads(Path(mfile).read_text(encoding="utf-8"))["matches"]

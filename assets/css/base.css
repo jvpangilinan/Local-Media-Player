@@ -371,7 +371,7 @@ html.in-player #browse-bar,body.np-open #browse-bar,html.in-player #browse-edge,
 .sb-tools .sb-tool,.sb-tools .sb-exit .sb-label{font-size:.85rem;font-weight:500}
 .sb-tools .sb-exit{border:0;}
 
-.sb-tools .sb-exit:hover,.sb-tools .sb-exit.armed{color:#ff453a!important}
+.sb-tools .sb-exit:hover,.sb-tools .sb-exit.armed{color:#ff453a}
 
 /* =====================================================================================================
    Folded in from ui-fix.css: background modes, Settings background tiles, menu footer, page titles, logo tile
@@ -433,7 +433,7 @@ html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { backgroun
 
 /* the "LM" tile in the sidebar is the logo (logo.png) in every palette */
 #sidebar #lm-mark .glyph {
-  background: #000 url('/logo.png') center / cover no-repeat; color: transparent !important; font-size: 0;
+  background: #000 url('/logo.png') center / cover no-repeat; color: transparent; font-size: 0;
   width: 2.6rem; height: 2.6rem; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 6px 20px -6px rgba(0,0,0,.6);
 }
 html:not([data-pal="chrome"]) body #sidebar #lm-mark .glyph::after { display: none; }

@@ -398,14 +398,14 @@ html body #sidebar .sb-search .sb-label, html body #sidebar .sb-search kbd, html
 #sidebar #sb-scroll .sb-item::after { content: ''; position: absolute; right: -1px; top: 0; bottom: 0; width: 3px; background: var(--spec-v); transform: scaleY(0); transform-origin: top; transition: transform .35s cubic-bezier(.2, .85, .25, 1); }
 #sidebar #sb-scroll .sb-item.active::after { transform: scaleY(1); }
 #sidebar #sb-scroll .sb-badge, #sidebar:not(:hover) .sb-badge { position: absolute; top: .3rem; right: .4rem; margin: 0; min-width: 1rem; height: 1rem; padding: 0 .25rem; display: grid; place-items: center;
-  border-radius: 2px; background: var(--pr1); color: var(--v-on) !important; font-family: var(--v-mono); font-size: .56rem; font-weight: 700; }
+  border-radius: 2px; background: var(--pr1); color: var(--v-on); font-family: var(--v-mono); font-size: .56rem; font-weight: 700; }
 #sidebar #private-pill { writing-mode: vertical-rl; align-self: center; margin: .35rem 0; padding: .45rem .2rem; border-radius: 2px; background: var(--pr2); color: var(--v-on); font-family: var(--v-mono); font-size: .55rem; letter-spacing: .3em; }
 html body #sidebar > .relative { border-top: 1px solid var(--v-line) !important; margin-top: .3rem; padding: .55rem 0 0 !important; display: flex; justify-content: center; }
 #sidebar .sb-tools { display: flex; flex-direction: column; align-items: center; gap: .15rem; }
 html body #sidebar .sb-tools .sb-row, html body #sidebar:hover .sb-tools .sb-row { display: grid; grid-template-columns: repeat(2, 1.7rem) !important; gap: .15rem; justify-content: center; width: auto; padding: 0; margin: 0 auto; }
 #sidebar .sb-tools .sb-tool, #sidebar .sb-tools .sb-exit, #sidebar:hover .sb-tools .sb-exit { width: 1.7rem; height: 1.7rem; border-radius: 2px; padding: 0; margin: 0;
-  grid-column: auto; justify-self: center; color: var(--v-mute) !important; background: none; font-size: .74rem; }
-#sidebar .sb-tools .sb-tool:hover { color: var(--v-on) !important; background: var(--pr1); transform: none; }
+  grid-column: auto; justify-self: center; color: var(--v-mute); background: none; font-size: .74rem; }
+#sidebar .sb-tools .sb-tool:hover { color: var(--v-on) !important; background: var(--pr1); transform: none; }   /* !important: beats .text-accent, or an "on" tool would vanish on its accent background */
 #sidebar .sb-tools .sb-exit .sb-label { display: none !important; }
 /* tool tiles: every glyph dead-centre in its square (an older rule left-aligned them, so the hovered tile looked shifted) */
 #sidebar .sb-tools .sb-tool, #sidebar .sb-tools .sb-exit, #sidebar:hover .sb-tools .sb-exit { display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1; box-sizing: border-box; }
@@ -437,7 +437,10 @@ html body :is(.qa-btn, .chip, .set-seg, .mpill):hover { border-color: var(--pr1)
 html body :is(.qa-btn.primary, .chip.on, .set-seg.on, #browse-bar button.on, .bg-opt.on, .bg-opt.active, .mpill.on, .mpill.active, .tm-tabs button.on) { background: var(--pr1) !important; color: var(--v-on) !important; border-color: var(--pr1) !important; box-shadow: none !important; }
 html body .mpill:hover { background: var(--pr1) !important; color: var(--v-on) !important; }
 .bg-accent, .bg-accent:hover { background: var(--pr1) !important; color: var(--v-on) !important; filter: none; }
-html body .text-accent, html body .\!text-accent { color: var(--pr1) !important; }
+/* .text-accent marks "this is on / this is the accent" (JS toggles it on #wheel-btn, #b-shuffle, #b-repeat, #lib-toggle).
+   It is the one colour rule that should beat component colours, so it keeps !important on purpose. Component rules must
+   NOT use !important for colour, except hover states that paint an accent background (they must beat this). */
+.text-accent, .\!text-accent { color: var(--pr1) !important; }
 .set-switch { border-radius: 2px; width: 2.8rem; height: 1.45rem; background: var(--v-fill); border: 1px solid var(--v-line2); }
 .set-switch::after { border-radius: 1px; width: 1rem; height: 1rem; top: 2px; left: 2px; background: var(--v-mute); }
 .set-switch.on { background: var(--pr1); border-color: var(--pr1); }
@@ -510,9 +513,9 @@ html body .pv-tab { border-radius: 3px !important; font-family: var(--v-mono); f
 .dash-hero { border-radius: 3px; --tw-ring-shadow: 0 0 #0000; border: 1px solid var(--v-line); min-height: 22rem; }
 .dash-hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--spec); z-index: 12; }
 html body .dash-hero img.rounded-lg, html body .dash-hero img[class*="aspect-"] { border-radius: 2px !important; box-shadow: 0 0 0 1px var(--v-line2), 0 24px 50px -20px #000 !important; }
-html body .dash-hero .text-accent { font-family: var(--v-mono); letter-spacing: .24em !important; font-size: .64rem !important; text-transform: uppercase !important; color: var(--pr1) !important; font-weight: 500; }
+.dash-hero .text-accent { font-family: var(--v-mono); letter-spacing: .24em !important; font-size: .64rem !important; text-transform: uppercase !important; color: var(--pr1) !important; font-weight: 500; }
 .dash-hero .h-px { display: block !important; background: var(--pr1) !important; }
-html body .dash-hero .font-black { font-family: var(--v-display); text-transform: uppercase; letter-spacing: .01em; font-weight: 800 !important; line-height: .98 !important; }
+.dash-hero .font-black { font-family: var(--v-display); text-transform: uppercase; letter-spacing: .01em; font-weight: 800 !important; line-height: .98 !important; }
 html body .dash-hero button { border-radius: 3px !important; font-family: var(--v-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
 html body .dash-hero button.bg-white { background: var(--pr1) !important; color: var(--v-on) !important; }
 html body .dash-hero .bg-accent { background: var(--pr1) !important; box-shadow: none !important; }
@@ -522,7 +525,7 @@ html body .dash-hero .bg-accent { background: var(--pr1) !important; box-shadow:
 .hero-sec { border-radius: 0 !important; }
 .hero-sec::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--spec); z-index: 12; }
 html body .hero-sec h2 { font-family: var(--v-display) !important; font-style: normal !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: -.005em !important; line-height: .92 !important; }
-html body .hero-sec .text-accent { font-family: var(--v-mono); letter-spacing: .26em !important; font-size: .64rem !important; text-transform: uppercase !important; }
+.hero-sec .text-accent { font-family: var(--v-mono); letter-spacing: .26em !important; font-size: .64rem !important; text-transform: uppercase !important; }
 html body .hero-sec button { border-radius: 3px !important; font-family: var(--v-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
 html body .hero-sec button.bg-white, html body .hero-sec button:first-of-type { background: var(--pr1) !important; color: var(--v-on) !important; box-shadow: none !important; }
 html body .hero-sec button:not(:first-of-type) { background: rgba(10, 8, 12, .55) !important; border: 1px solid var(--v-line2); }
@@ -680,7 +683,7 @@ html body .tm-tabs button:last-child { border-right: 0; }
 html body :is(.tm-in, .tm-sel) { border-radius: 3px !important; background: var(--v-fill) !important; border: 1px solid var(--v-line2) !important; color: var(--v-ink); }
 :is(.tm-in, .tm-sel):focus { border-color: var(--pr1) !important; outline: 0; }
 html body .tm-btn { border-radius: 3px !important; font-family: var(--v-mono); letter-spacing: .12em; text-transform: uppercase; font-size: .68rem; background: none; border: 1px solid var(--v-line2); }
-html body .tm-btn.primary { background: var(--pr1) !important; color: var(--v-on) !important; border-color: var(--pr1) !important; }
+.tm-btn.primary { background: var(--pr1) !important; color: var(--v-on) !important; border-color: var(--pr1) !important; }
 html body .al-days button { border-radius: 2px !important; }
 html body .al-days button.on { background: var(--pr1) !important; color: var(--v-on) !important; }
 html body .ck-tiles > * { border-radius: 3px !important; }
