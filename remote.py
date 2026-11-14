@@ -1,17 +1,22 @@
-"""Phone remote: control the app from a phone on the same Wi-Fi.
+"""Phone remote: control the app from a phone on the same Wi-Fi, browse the library, and watch on the phone.
 
 Two halves:
 - `bp`, a blueprint on the normal app (127.0.0.1 only). Settings uses it to switch the remote on / off and show the QR code;
   the page and the native player use it to report what is playing and to pick up the phone's commands (long poll).
-- `LAN`, a SEPARATE tiny Flask app that is the only thing ever exposed to the network. It serves the remote page and
-  five routes, all behind a pairing cookie. It cannot reach the library API, media files or the private library.
+- `LAN`, a SEPARATE small Flask app that is the only thing ever exposed to the network. It serves the phone app, a few
+  routes of its own, and a READ-ONLY ALLOWLIST PROXY into the main app (`/x/...`).
+
+Why the proxy is safe for the private library: it forwards a fixed list of GET paths (plus one POST: saving the resume
+point) with a fresh test client that never carries cookies or the X-Private-Token header. The main app therefore answers
+as it would to a LOCKED user: `get_video_checked` / `get_series_checked` refuse private items, and `/api/videos` without
+`private=1` (stripped here) lists public items only. Same gates the lock tests cover.
 
 Off by default. Pairing: the QR code carries a 6-digit PIN in the URL fragment (never sent to a server); typing it works
 too. 5 wrong PINs lock pairing for 60 s. "Forget phones" makes a new PIN and drops every paired phone.
-Private content: the phone never sees a private title (masked here, whatever the player sends), and "Continue
-watching" only lists public videos.
+Private content: the phone never sees a private title or id (masked here, whatever the player sends), and nothing it can
+list, open, stream or start is private.
 """
-import base64, hashlib, json, logging, os, secrets, socket, threading, time
+import base64, hashlib, io, json, logging, os, re, secrets, socket, subprocess, threading, time
 from pathlib import Path
 
 from flask import Blueprint, Flask, Response, abort, jsonify, request, send_file
@@ -25,10 +30,18 @@ bp = Blueprint("remote", __name__)
 LAN = Flask("zeno_remote")
 
 _cfg_path = None          # DATA_DIR / remote.json  {"enabled": bool, "pin": "123456", "phones": [sha256(token), ...]}
-_page_path = None         # assets/remote.html
-_library = lambda: []     # app.py sets: continue-watching list (public only)
-_poster = lambda vid: None  # app.py sets: poster file path for a PUBLIC video id, else None
-_is_public = lambda vid: False
+_res_dir = None
+_main = None              # the main Flask app (for the proxy)
+H = {                     # app.py fills these in (see init); defaults keep the module importable on its own
+    "library": lambda: [],            # continue-watching list (public only)
+    "is_public": lambda vid: False,   # public video id?
+    "video_path": lambda vid: None,   # file of a PUBLIC video, else None
+    "probe": lambda vid: {},          # probe_video() result
+    "ffmpeg": lambda: None,           # ffmpeg executable or None
+    "ranged": None,                   # ranged_file_response(path)
+    "popen": None,                    # Popen at the app's background priority
+    "track_exists": lambda tid: False,
+}
 
 _lock = threading.Lock()
 _cond = threading.Condition(_lock)
@@ -36,6 +49,8 @@ _queues = {"page": [], "native": []}
 _status = {"page": ({}, 0.0), "native": ({}, 0.0)}
 _lockout = {"fails": 0, "until": 0.0}
 _server = {"srv": None, "port": None, "thread": None}
+_stream = {"proc": None}
+_stream_lock = threading.Lock()
 
 
 # ------------------------------------------------------------------ settings file
@@ -69,12 +84,13 @@ def _h(token):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def init(data_dir, res_dir, library, poster, is_public):
+def init(data_dir, res_dir, main_app=None, **hooks):
     """Called once by app.py. Starts the phone server if it was on last time."""
-    global _cfg_path, _page_path, _library, _poster, _is_public
+    global _cfg_path, _res_dir, _main
     _cfg_path = Path(data_dir) / "remote.json"
-    _page_path = Path(res_dir) / "assets" / "remote.html"
-    _library, _poster, _is_public = library, poster, is_public
+    _res_dir = Path(res_dir)
+    _main = main_app
+    H.update({k: v for k, v in hooks.items() if v is not None})
     if _cfg().get("enabled"):
         threading.Thread(target=_start, daemon=True).start()
 
@@ -127,6 +143,7 @@ def _stop():
     with _lock:
         srv = _server["srv"]
         _server.update(srv=None, port=None, thread=None)
+    _kill_stream()
     if srv:
         try:
             srv.shutdown()
@@ -159,10 +176,28 @@ def _qr_png(text):
 
 
 # ------------------------------------------------------------------ status + commands
+_STATUS_KEYS = ("kind", "title", "sub", "pos", "dur", "paused", "vol", "muted", "private", "has_next", "has_prev", "id",
+                "vid", "series_id", "tid", "liked", "rating", "speed", "subs", "audios", "chapters", "sleep", "queue", "qpos",
+                "can_audio", "can_chapters")
+
+
+def _clean_status(d):
+    st = {k: d.get(k) for k in _STATUS_KEYS if k in d}
+    for k in ("subs", "audios", "chapters", "queue"):
+        v = st.get(k)
+        st[k] = v[:60] if isinstance(v, list) else []
+    return st
+
+
 def _mask(st):
+    """A private video: nothing that names it or points at it reaches the phone."""
     st = dict(st or {})
     if st.get("private"):
-        st.update(title="Private video", sub="", id=None)
+        st.update(title="Private video", sub="", id=None, vid=None, series_id=None, chapters=[], rating=None)
+        for k in ("subs", "audios"):
+            st[k] = [{"id": t.get("id"), "on": bool(t.get("on")),
+                      "label": (str(t.get("lang") or "").upper() or "Track %d" % (i + 1))}
+                     for i, t in enumerate(st.get(k) or []) if isinstance(t, dict)]
     return st
 
 
@@ -226,8 +261,7 @@ def api_poll():
 def api_status():
     d = request.get_json(silent=True) or {}
     src = "native" if d.get("src") == "native" else "page"
-    keep = ("kind", "title", "sub", "pos", "dur", "paused", "vol", "muted", "private", "has_next", "has_prev", "id")
-    _status[src] = ({k: d.get(k) for k in keep}, time.time())
+    _status[src] = (_clean_status(d), time.time())
     return jsonify({"ok": True})
 
 
@@ -237,20 +271,60 @@ def _paired():
     return bool(tok) and _h(tok) in _cfg()["phones"]
 
 
+def _need_pair():
+    if not _paired():
+        abort(401)
+
+
 @LAN.after_request
 def _lan_headers(resp):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
-    resp.headers["Cache-Control"] = "no-store"
+    resp.headers.setdefault("Cache-Control", "no-store")
     return resp
 
 
 @LAN.get("/")
 def lan_page():
     try:
-        return Response(_page_path.read_text(encoding="utf-8"), mimetype="text/html")
+        html = (_res_dir / "assets" / "remote.html").read_text(encoding="utf-8")
     except OSError:
         abort(404)
+    return Response(html, mimetype="text/html", headers={"Cache-Control": "no-store"})
+
+
+@LAN.get("/manifest.webmanifest")
+def lan_manifest():
+    m = {"name": "ULTRON Remote", "short_name": "ULTRON", "start_url": "/", "scope": "/", "display": "standalone",
+         "orientation": "portrait", "background_color": "#0b0a0d", "theme_color": "#0b0a0d",
+         "icons": [{"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
+                   {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]}
+    return Response(json.dumps(m), mimetype="application/manifest+json", headers={"Cache-Control": "max-age=86400"})
+
+
+_ICONS = {}
+
+
+@LAN.get("/icon-<int:size>.png")
+def lan_icon(size):
+    """The app logo as a square home-screen icon (made once from logo.png; a plain mark when there is none)."""
+    if size not in (180, 192, 512):
+        abort(404)
+    if size not in _ICONS:
+        from PIL import Image, ImageDraw
+        img = Image.new("RGB", (size, size), "#0b0a0d")
+        logo = next((p for p in (_res_dir / "logo.png", Path(os.getcwd()) / "logo.png") if p.is_file()), None)
+        try:
+            if logo:
+                lg = Image.open(logo).convert("RGBA")
+                lg.thumbnail((int(size * .78), int(size * .78)))
+                img.paste(lg, ((size - lg.width) // 2, (size - lg.height) // 2), lg)
+            else:
+                ImageDraw.Draw(img).ellipse([size * .2, size * .2, size * .8, size * .8], fill="#ff5f8f")
+        except Exception:
+            log.warning("icon failed", exc_info=True)
+        buf = io.BytesIO(); img.save(buf, "PNG"); _ICONS[size] = buf.getvalue()
+    return Response(_ICONS[size], mimetype="image/png", headers={"Cache-Control": "max-age=86400"})
 
 
 @LAN.post("/pair")
@@ -287,52 +361,232 @@ def lan_state():
 
 @LAN.get("/library")
 def lan_library():
-    if not _paired():
-        abort(401)
+    _need_pair()
     try:
-        items = [v for v in (_library() or []) if _is_public(v.get("id"))]
+        items = [v for v in (H["library"]() or []) if H["is_public"](v.get("id"))]
     except Exception:
         log.warning("remote library failed", exc_info=True)
         items = []
     return jsonify({"continue": items})
 
 
-@LAN.get("/poster/<vid>")
-def lan_poster(vid):
-    if not _paired() or not _is_public(vid):
-        abort(404)
-    p = _poster(vid)
-    if not p:
-        abort(404)
-    return send_file(p, mimetype="image/jpeg", max_age=3600)
+# ---- the read-only proxy into the main app
+_ID = r"[A-Za-z0-9_-]{1,64}"
+_ALLOW_GET = [re.compile("^" + p + "$") for p in (
+    r"/api/videos", r"/api/series/" + _ID, r"/api/videos/" + _ID + r"/info", r"/api/videos/" + _ID + r"/strip",
+    r"/poster/" + _ID, r"/backdrop/" + _ID, r"/seriesart/" + _ID, r"/cover/" + _ID, r"/subtitle/" + _ID + r"/\d{1,3}",
+    r"/api/playlists", r"/api/playlists/\d{1,9}", r"/api/likes", r"/api/music/albums", r"/api/music/recent")]
+_ALLOW_POST = [(re.compile(r"^/api/videos/(" + _ID + r")/progress$"), lambda m: H["is_public"](m.group(1))),   # resume point
+               (re.compile(r"^/api/playlist$"), lambda m: True)]          # music filter query (read-only; albums, song search)
 
 
-CMDS = {"toggle", "seek_rel", "seek_abs", "vol", "mute", "next", "prev", "close", "play_video", "shuffle_music", "fullscreen"}
+@LAN.route("/x/<path:sub>", methods=["GET", "POST"])
+def lan_proxy(sub):
+    _need_pair()
+    if _main is None:
+        abort(404)
+    path = "/" + sub
+    headers = {}
+    if request.method == "POST":
+        hit = next(((r.match(path), ok) for r, ok in _ALLOW_POST if r.match(path)), None)
+        if not hit or request.headers.get("X-Remote") != "1" or not hit[1](hit[0]):
+            abort(404)
+        headers["X-LMP"] = "1"
+    elif not any(r.match(path) for r in _ALLOW_GET):
+        abort(404)
+    qs = [(k, v) for k, v in request.args.items(multi=True) if k.lower() != "private"]
+    c = _main.test_client(use_cookies=False)          # fresh: never a private token, never the phone's cookie
+    r = c.open(path, method=request.method, query_string=qs, headers=headers,
+               data=request.get_data() if request.method == "POST" else None,
+               content_type=request.content_type if request.method == "POST" else None)
+    out = Response(r.get_data(), status=r.status_code, content_type=r.content_type)
+    if r.status_code == 200 and request.method == "GET" and r.headers.get("Cache-Control") and not path.startswith("/api/"):
+        out.headers["Cache-Control"] = r.headers["Cache-Control"]          # posters / covers may be cached
+    return out
+
+
+# ---- watch on the phone
+DIRECT_EXT = {".mp4", ".m4v", ".mov", ".webm"}
+PHONE_V = {"h264", "hevc", "vp9", "av1"}
+PHONE_A = {"aac", "mp3", "opus", "vorbis"}
+
+
+def choose_mode(ext, probe, audio_index=0):
+    """direct = send the file as it is; remux = copy the picture, convert the sound; convert = re-encode (max 720p)."""
+    v = str((probe or {}).get("vcodec") or "").lower()
+    auds = [str(a.get("codec") or "").lower() for a in (probe or {}).get("audio") or []]
+    ext = str(ext or "").lower()
+    if not v:                                           # no ffprobe: trust the container
+        return "direct" if ext in DIRECT_EXT else "convert"
+    if ext in DIRECT_EXT and v in PHONE_V and all(a in PHONE_A for a in auds) and (audio_index == 0 or len(auds) <= 1):
+        return "direct"
+    if v in ("h264", "hevc"):
+        return "remux"
+    return "convert"
+
+
+def _kill_stream():
+    with _stream_lock:
+        p, _stream["proc"] = _stream["proc"], None
+    if p and p.poll() is None:
+        try:
+            p.kill()
+        except Exception:
+            pass
+
+
+@LAN.get("/streaminfo/<vid>")
+def lan_streaminfo(vid):
+    _need_pair()
+    path = H["video_path"](vid) if H["is_public"](vid) else None
+    if not path:
+        abort(404)
+    pr = H["probe"](vid) or {}
+    ff = bool(H["ffmpeg"]())
+    mode = choose_mode(Path(path).suffix, pr)
+    return jsonify({"mode": mode, "playable": mode == "direct" or ff, "ffmpeg": ff, "duration": pr.get("duration") or 0,
+                    "audio": [{"lang": a.get("lang") or "", "codec": a.get("codec") or ""} for a in pr.get("audio") or []]})
+
+
+@LAN.get("/stream/<vid>")
+def lan_stream(vid):
+    _need_pair()
+    path = H["video_path"](vid) if H["is_public"](vid) else None
+    if not path:
+        abort(404)
+    try:
+        t = max(0.0, float(request.args.get("t") or 0))
+        a = max(0, min(31, int(request.args.get("a") or 0)))
+    except ValueError:
+        abort(400)
+    want = request.args.get("mode") or "auto"
+    mode = choose_mode(Path(path).suffix, H["probe"](vid) or {}, a) if want not in ("direct", "remux", "convert") else want
+    if mode == "direct":
+        return H["ranged"](path)
+    ff = H["ffmpeg"]()
+    if not ff or H["popen"] is None:
+        return jsonify({"error": "This file needs ffmpeg to play on a phone."}), 409
+    cmd = [str(ff), "-hide_banner", "-loglevel", "error", "-ss", "%.3f" % t, "-i", str(path),
+           "-map", "0:v:0", "-map", "0:a:%d?" % a, "-sn", "-dn"]
+    if mode == "remux":
+        cmd += ["-c:v", "copy"]
+    else:
+        cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+                "-vf", "scale=-2:'min(720,ih)'"]
+    cmd += ["-c:a", "aac", "-ac", "2", "-b:a", "192k",
+            "-movflags", "frag_keyframe+empty_moov+default_base_moof", "-f", "mp4", "pipe:1"]
+    if mode == "remux" and str((H["probe"](vid) or {}).get("vcodec")) == "hevc":
+        i = cmd.index("-f")
+        cmd[i:i] = ["-tag:v", "hvc1"]                      # Safari / iOS want this tag for HEVC
+    _kill_stream()                                      # one phone stream at a time
+    proc = H["popen"](cmd)
+    with _stream_lock:
+        _stream["proc"] = proc
+
+    def body():
+        try:
+            while True:
+                chunk = proc.stdout.read(256 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+        finally:                                        # the phone went away or seeked: stop ffmpeg
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+    return Response(body(), mimetype="video/mp4", headers={"Cache-Control": "no-store", "X-Stream-Mode": mode})
+
+
+# ---- commands
+def _f(v, lo, hi):
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        abort(400)
+    if v != v:                                          # NaN
+        abort(400)
+    return max(lo, min(hi, v))
+
+
+def _i(v, lo, hi):
+    try:
+        v = int(v)
+    except (TypeError, ValueError):
+        abort(400)
+    if not lo <= v <= hi:
+        abort(400)
+    return v
+
+
+PAGE_ONLY = {"play_video", "shuffle_music", "rate", "heart", "play_music", "queue_jump", "surprise"}
+
+
+def _check(cmd, arg):
+    """Validated argument for a command (400 / 404 on anything unexpected)."""
+    if cmd in ("toggle", "mute", "next", "prev", "close", "shuffle_music", "fullscreen", "surprise"):
+        return None
+    if cmd in ("seek_rel", "seek_abs"):
+        return _f(arg, -1e6, 1e6)
+    if cmd == "vol":
+        return _f(arg, 0.0, 1.0)
+    if cmd == "speed":
+        return _f(arg, 0.25, 4.0)
+    if cmd == "sub_delay":
+        return _f(arg, -1.0, 1.0)
+    if cmd == "sub":
+        return "off" if arg == "off" else _i(arg, 0, 999)
+    if cmd in ("audio", "chapter", "queue_jump"):
+        return _i(arg, 0, 9999)
+    if cmd == "sleep":
+        if arg in (None, "eov"):
+            return arg
+        return _i(arg, 1, 240)
+    if cmd == "play_video":
+        arg = str(arg or "")
+        if not H["is_public"](arg):                     # the phone can only start public videos
+            abort(404)
+        return arg
+    if cmd == "rate":
+        if not isinstance(arg, dict) or not H["is_public"](str(arg.get("id") or "")):
+            abort(404)
+        return {"id": str(arg["id"]), "stars": _i(arg.get("stars"), 0, 5)}
+    if cmd == "heart":
+        arg = str(arg or "")
+        if not H["track_exists"](arg):
+            abort(404)
+        return arg
+    if cmd == "play_music":
+        if not isinstance(arg, dict):
+            abort(400)
+        kind = arg.get("kind")
+        if kind not in ("playlist", "album", "liked", "recent", "all", "search"):
+            abort(400)
+        out = {"kind": kind, "start": _i(arg.get("start") or 0, 0, 100000), "shuffle": bool(arg.get("shuffle"))}
+        if kind == "playlist":
+            out["id"] = _i(arg.get("id"), 0, 10 ** 9)
+        elif kind == "album":
+            out["id"] = str(arg.get("id") or "")[:200]
+        elif kind == "search":
+            out["q"] = str(arg.get("q") or "")[:100]
+        return out
+    abort(400)
+
+
+CMDS = {"toggle", "seek_rel", "seek_abs", "vol", "mute", "next", "prev", "close", "play_video", "shuffle_music", "fullscreen",
+        "sub", "audio", "speed", "sub_delay", "chapter", "sleep", "rate", "heart", "play_music", "queue_jump", "surprise"}
 
 
 @LAN.post("/cmd")
 def lan_cmd():
-    if not _paired():
-        abort(401)
+    _need_pair()
     if request.headers.get("X-Remote") != "1":       # a plain cross-site form post cannot set this header
         abort(403)
     d = request.get_json(silent=True) or {}
-    cmd, arg = str(d.get("cmd", "")), d.get("arg")
+    cmd = str(d.get("cmd", ""))
     if cmd not in CMDS:
         abort(400)
-    if cmd in ("seek_rel", "seek_abs", "vol"):
-        try:
-            arg = float(arg)
-        except (TypeError, ValueError):
-            abort(400)
-        if cmd == "vol":
-            arg = max(0.0, min(1.0, arg))
-    elif cmd == "play_video":
-        arg = str(arg or "")
-        if not _is_public(arg):                       # the phone can only start public videos
-            abort(404)
-    else:
-        arg = None
-    target = "page" if cmd in ("play_video", "shuffle_music") else None     # starting something is the page's job
-    _push(cmd, arg, target)
+    arg = _check(cmd, d.get("arg"))
+    _push(cmd, arg, "page" if cmd in PAGE_ONLY else None)     # starting things and library data are the page's job
     return jsonify({"ok": True})

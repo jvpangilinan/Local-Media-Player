@@ -3175,11 +3175,27 @@ class Player(QMainWindow):
     def _remote_report(self, st, t, d, paused):
         sess, api = self.sess or {}, self.api
         priv = bool(sess.get("private"))
+
+        def tl(kind):
+            out = []
+            for i, tr in enumerate(self.tracks(kind)):
+                out.append({"id": tr.get("id"), "on": bool(tr.get("selected")), "lang": str(tr.get("lang") or ""),
+                            "label": self.track_label(tr, i)})
+            return out
+        sl = None
+        if self.sleep_eov:
+            sl = {"mode": "eov"}
+        elif self.sleep_at is not None:
+            sl = {"mode": "min", "left": max(0, int(self.sleep_at - time.time()))}
         body = {"src": "native", "kind": "video", "private": priv,
                 "title": "" if priv else (sess.get("title") or Path(sess.get("path", "")).stem),
                 "sub": "" if priv or not sess.get("series") else "%s · Episode %s of %s" % (sess["series"], sess["index"], sess["total"]),
                 "pos": t, "dur": d, "paused": bool(paused or st.get("eof")), "vol": float(st.get("vol", 80)) / 100.0,
-                "muted": bool(st.get("mute")), "has_next": bool(sess.get("next")), "has_prev": bool(sess.get("prev"))}
+                "muted": bool(st.get("mute")), "has_next": bool(sess.get("next")), "has_prev": bool(sess.get("prev")),
+                "vid": None if priv else self.vid, "series_id": None if priv else (sess.get("series_id") or None),
+                "rating": None if priv else int(sess.get("user_rating") or 0), "speed": float(st.get("speed") or 1),
+                "subs": tl("sub"), "audios": tl("audio"), "sleep": sl, "can_audio": True, "can_chapters": True,
+                "chapters": [] if priv else [{"t": round(ct, 2), "title": ctitle} for ct, ctitle in (self.chapters or [])]}
 
         def send():
             try:
@@ -3210,6 +3226,23 @@ class Player(QMainWindow):
             elif cmd == "fullscreen":
                 self.toggle_fullscreen()
                 force_foreground(int(self.winId()))
+            elif cmd == "sub":
+                self._set_prop("sid", "no" if arg == "off" else int(arg))
+                self.toast.say("Subtitles off" if arg == "off" else "Subtitles changed", 900)
+            elif cmd == "audio":
+                self._set_prop("aid", int(arg))
+                self.toast.say("Audio track changed", 900)
+            elif cmd == "speed":
+                self._set_prop("speed", float(arg))
+                self.toast.say("Speed %gx" % float(arg), 900)
+            elif cmd == "sub_delay":
+                self.sub_delay(float(arg))
+            elif cmd == "chapter":
+                if self.chapters and 0 <= int(arg) < len(self.chapters):
+                    self.seek_abs(self.chapters[int(arg)][0], True)
+                    self.toast.say(self.chapters[int(arg)][1], 1300)
+            elif cmd == "sleep":
+                self.set_sleep(arg)
             elif cmd == "close":
                 self.close()
             self._remote_at = 0.0                          # report the new state right away

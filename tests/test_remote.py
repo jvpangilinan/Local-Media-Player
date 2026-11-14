@@ -32,22 +32,28 @@ import remote  # noqa: E402
 
 assert Path(app.DATA_DIR).resolve().is_relative_to(tmp.resolve()), "test must not touch real data"
 app.init_db(); app.WINDOW = None
-for rel in ("videos/Action/Public Film.mp4", "private/Secret Film.mp4"):
+for rel in ("videos/Action/Public Film.mp4", "private/Secret Film.mp4", "private/Drama/Hidden Show/Hidden Show S01E01.mkv",
+            "private/Drama/Hidden Show/Hidden Show S01E02.mkv"):
     p = media / rel
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes(b"x" * 100)
 app.scan_videos()
 lib = app.LIB["videos"]
 pub = next(i for i, v in lib.items() if not v["private"])
-priv = next(i for i, v in lib.items() if v["private"])
+priv = next(i for i, v in lib.items() if v["private"] and "Secret" in str(v["path"]))
+priv_series = next((sid for sid, s in app.LIB["series"].items() if s["private"]), None)
+assert priv_series, "fixture needs a private series"
 with closing(app.db()) as con, con:                    # both half-watched, so both would be "continue watching" candidates
     con.execute("UPDATE videos SET position = 600, duration = 3600, progress_at = ?", (time.time(),))
+    con.execute("UPDATE videos SET position = 0, duration = 0 WHERE rel_path LIKE '%Hidden Show%'")
 
 # no real socket: pretend the phone server started
 remote._start = lambda: (remote._server.update(port=47400) or True)
 remote._stop = lambda: remote._server.update(port=None)
 remote.lan_ip = lambda: "192.168.1.50"
-remote.init(app.DATA_DIR, tmp, app.remote_library, app.remote_poster, app.remote_is_public)
+remote.init(app.DATA_DIR, tmp, app.app, library=app.remote_library, is_public=app.remote_is_public, video_path=app.remote_video_path,
+            probe=lambda vid: {}, ffmpeg=lambda: None, ranged=app.ranged_file_response, popen=None,
+            track_exists=app.remote_track_exists)
 
 H = {"X-LMP": "1"}
 pc = app.app.test_client()
@@ -69,7 +75,10 @@ assert len(pin) == 6 and pin.isdigit()
 assert phone.get("/").status_code == 200 and b"ULTRON Remote" in phone.get("/").data
 assert phone.get("/state").status_code == 401
 assert phone.get("/library").status_code == 401
-assert phone.get(f"/poster/{pub}").status_code == 404
+assert phone.get(f"/x/poster/{pub}").status_code == 401
+assert phone.get("/x/api/videos").status_code == 401
+assert phone.get(f"/streaminfo/{pub}").status_code == 401 and phone.get(f"/stream/{pub}").status_code == 401
+assert phone.get("/manifest.webmanifest").status_code == 200 and phone.get("/icon-192.png").mimetype == "image/png"
 assert phone.post("/cmd", json={"cmd": "toggle"}, headers=X).status_code == 401
 
 # 3. Pairing: wrong code x5 -> locked out (even the right code); then it works and sets an HttpOnly cookie.
@@ -108,7 +117,63 @@ assert "Secret" not in phone.get("/state").get_data(as_text=True)
 items = phone.get("/library").json["continue"]
 assert [v["id"] for v in items] == [pub], items
 assert "Secret" not in phone.get("/library").get_data(as_text=True)
-assert phone.get(f"/poster/{priv}").status_code == 404
+assert phone.get(f"/x/poster/{priv}").status_code in (403, 404)
+
+# 6b. The read-only proxy: allowed paths answer like a LOCKED user would; everything else does not exist.
+vids = phone.get("/x/api/videos").get_data(as_text=True)
+assert "Public Film" in vids and "Secret" not in vids and "Hidden" not in vids, vids[:300]
+vids = phone.get("/x/api/videos?private=1").get_data(as_text=True)                   # the private flag is stripped
+assert "Secret" not in vids and "Hidden" not in vids
+assert phone.get(f"/x/api/videos/{pub}/info").status_code == 200
+for path in (f"/x/api/videos/{priv}/info", f"/x/backdrop/{priv}", f"/x/api/videos/{priv}/strip?a=0&b=9",
+             f"/x/api/series/{priv_series}", f"/x/seriesart/{priv_series}", f"/x/subtitle/{priv}/0"):
+    assert phone.get(path).status_code in (403, 404), path
+for path in ("/x/api/lock/status", f"/x/media/video/{pub}", "/x/api/backup/export", "/x/api/remote/info", "/x/api/prefs",
+             "/x/api/videos/../lock/status", "/x/settings"):
+    assert phone.get(path).status_code == 404, path
+assert phone.post("/x/api/likes", json={"id": "x"}, headers=X).status_code == 404         # writes are commands, not proxied
+assert phone.post(f"/x/api/videos/{pub}/progress", json={"position": 1200, "duration": 3600}).status_code == 404   # header needed
+assert phone.post(f"/x/api/videos/{priv}/progress", json={"position": 1, "duration": 9}, headers=X).status_code == 404
+assert phone.post(f"/x/api/videos/{pub}/progress", json={"position": 1200, "duration": 3600}, headers=X).status_code == 200
+assert app.db().execute("SELECT position FROM videos WHERE id = ?", (pub,)).fetchone()[0] == 1200
+assert phone.post("/x/api/playlist", json={"mode": "all", "q": "zzz"}, headers=X).status_code == 200
+assert phone.get("/x/api/music/albums").status_code == 200 and phone.get("/x/api/playlists").status_code == 200
+
+# 6c. Watch on the phone: public files stream (Range works), private ones do not exist.
+assert phone.get(f"/streaminfo/{priv}").status_code == 404 and phone.get(f"/stream/{priv}").status_code == 404
+si = phone.get(f"/streaminfo/{pub}").json
+assert si["mode"] == "direct" and si["playable"] is True, si
+r = phone.get(f"/stream/{pub}?mode=direct", headers={"Range": "bytes=0-9"})
+assert r.status_code == 206 and r.data == b"x" * 10, (r.status_code, r.data[:20])
+assert phone.get(f"/stream/{pub}?mode=remux").status_code == 409                         # no ffmpeg here: clear error
+cm = remote.choose_mode
+assert cm(".mp4", {"vcodec": "h264", "audio": [{"codec": "aac"}]}) == "direct"
+assert cm(".mp4", {"vcodec": "h264", "audio": [{"codec": "aac"}, {"codec": "aac"}]}, 1) == "remux"     # pick 2nd audio
+assert cm(".mkv", {"vcodec": "h264", "audio": [{"codec": "aac"}]}) == "remux"
+assert cm(".mp4", {"vcodec": "hevc", "audio": [{"codec": "ac3"}]}) == "remux"
+assert cm(".avi", {"vcodec": "mpeg4", "audio": [{"codec": "mp3"}]}) == "convert"
+assert cm(".mkv", {}) == "convert" and cm(".mp4", {}) == "direct"
+
+# 6d. New commands are validated.
+ok = lambda c, a=None: phone.post("/cmd", json={"cmd": c, "arg": a}, headers=X).status_code
+assert ok("sub", "off") == 200 and ok("sub", 2) == 200 and ok("sub", "x") == 400
+assert ok("speed", 9) == 200 and ok("audio", 1) == 200 and ok("chapter", -1) == 400
+assert ok("sleep", "eov") == 200 and ok("sleep", 30) == 200 and ok("sleep", None) == 200 and ok("sleep", "soon") == 400
+assert ok("rate", {"id": priv, "stars": 3}) == 404 and ok("rate", {"id": pub, "stars": 6}) == 400 and ok("rate", {"id": pub, "stars": 4}) == 200
+assert ok("heart", "nope") == 404 and ok("play_music", {"kind": "evil"}) == 400 and ok("play_music", {"kind": "album", "id": "a|b", "start": 2}) == 200
+assert ok("surprise") == 200 and ok("queue_jump", 3) == 200
+cmds = pc.get("/api/remote/poll?src=page").json["cmds"]
+by = {c["cmd"]: c["arg"] for c in cmds}
+assert by["speed"] == 4.0 and by["rate"] == {"id": pub, "stars": 4} and by["play_music"]["kind"] == "album", cmds
+
+# 6e. Private status: track labels, chapters and ids are masked too.
+pc.post("/api/remote/status", json={"src": "page", "kind": "video", "private": True, "title": "Secret Film", "vid": priv, "series_id": "s1",
+                                    "subs": [{"id": 1, "on": True, "lang": "eng", "label": "Secret Film commentary"}],
+                                    "chapters": [{"t": 5, "title": "Secret chapter"}], "pos": 1, "dur": 9}, headers=H)
+body = phone.get("/state").get_data(as_text=True)
+assert "Secret" not in body, body
+st = phone.get("/state").json["now"]
+assert st["vid"] is None and st["series_id"] is None and st["chapters"] == [] and st["subs"][0]["label"] == "ENG", st
 
 # 7. Routing: while the native window reports a video, it gets the commands; starting something stays on the page.
 pc.post("/api/remote/status", json={"src": "native", "kind": "video", "title": "Public Film", "pos": 1, "dur": 9}, headers=H)

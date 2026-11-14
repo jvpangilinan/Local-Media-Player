@@ -6,10 +6,15 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
-## V6: your phone is the remote
+## V6: your phone is the remote (and a second screen)
 
-- **Settings > Phone remote.** Switch it on, scan the QR code with your phone camera, done: play / pause, skip 10 s, scrub, volume, mute, next / previous episode or song, stop the video, shuffle your music, and start anything from **Continue watching** with its poster. It opens in the phone's browser, nothing to install. Works for the native player window, the built-in player and music.
-- **Safe by default.** Off until you switch it on. It runs as a separate little server that only knows the remote: the library, your files and the private library are not reachable from the network. Pairing needs the 6-digit code (the QR code carries it); 5 wrong codes lock pairing for a minute; **New code and forget all phones** un-pairs everything. A private video shows on the phone only as "Private video", and the phone can never list or start private videos.
+- **Settings > Phone remote.** Switch it on, scan the QR code with your phone camera, done. It opens in the phone's browser, nothing to install (Add to Home screen gives it an icon; the expand button top right hides the browser bar).
+- **Now:** what is playing on the PC with its poster, a scrub bar with preview pictures while you drag, play / pause, 10 s skips, volume, next / previous, fullscreen on the PC, star rating (videos) or heart (songs), and chips for **Subtitles, Audio track, Speed, Sleep timer (15-90 min or after this one), Chapters, Subtitle sync**. Under it: the next episodes of the series, or the songs coming up. Nothing playing: a big "pick up where you left off" card, **Surprise me** and **Shuffle music**.
+- **Watch:** every movie and series with posters (Recently added, A-Z, Not watched, Top rated), series pages with seasons and episode progress. Every movie and episode has **Play on PC** and **Watch on phone**.
+- **Watch on phone:** the video plays on the phone itself, from where you stopped, with subtitles and audio-language choice. While the PC plays something, **Watch here** moves it to the phone at the same second; **Send to PC** moves it back. Phone-friendly files (MP4 with H.264 and AAC) are sent as they are; MKV or AC3 / DTS sound is repackaged on the fly (cheap); other formats are converted to 720p (uses CPU). The last two need ffmpeg (the app finds the one next to yt-dlp). Your position is saved every 10 s.
+- **Music:** Liked songs, New arrivals, playlists, albums and the play queue; tap a song to play from there, heart songs.
+- **Search:** movies, series, albums and songs in one box.
+- **Safe by default.** Off until you switch it on. It runs as a separate little server: it reads the library through a short allow-list that answers exactly like a locked app, so private videos, series, posters and streams are not reachable. Pairing needs the 6-digit code (the QR code carries it); 5 wrong codes lock pairing for a minute; **New code and forget all phones** un-pairs everything. A private video shows on the phone only as "Private video".
 - The first time, Windows may ask whether ULTRON may use the network: allow **Private networks**. Port 47400 (or the next free one up to 47403).
 
 ## V6: private videos start quiet

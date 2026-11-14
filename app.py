@@ -7003,16 +7003,37 @@ def remote_is_public(vid):
     return bool(v) and not v["private"]
 
 
-def remote_poster(vid):
+def remote_video_path(vid):
+    """File of a PUBLIC video (the phone streams it), else None."""
+    with LIB_LOCK:
+        v = LIB["videos"].get(str(vid or ""))
+    return v["path"] if v and not v["private"] else None
+
+
+def remote_probe(vid):
     with LIB_LOCK:
         v = LIB["videos"].get(str(vid or ""))
     if not v or v["private"]:
-        return None
-    side = find_sidecar_poster(v)
-    if side:
-        return side
-    p = POSTER_DIR / f"{vid}.jpg"
-    return p if p.is_file() else None
+        return {}
+    try:
+        return probe_video(v)
+    except Exception:
+        log.warning("remote probe failed", exc_info=True)
+        return {}
+
+
+def remote_popen(cmd):
+    """ffmpeg for a phone stream: hidden window, below-normal CPU and very low disk priority like every other ffmpeg job.
+    Not counted in the FF_SHORT slots (it lives as long as the phone watches); remote.py keeps it to one at a time."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                            creationflags=NO_WINDOW | LOW_PRIORITY, env=tool_env(), bufsize=0)
+    _very_low_io(proc)
+    return proc
+
+
+def remote_track_exists(tid):
+    with LIB_LOCK:
+        return str(tid or "") in LIB["tracks"]
 
 
 def remote_library():
@@ -7101,7 +7122,9 @@ def main():
     threading.Thread(target=lambda: (STARTUP_SCAN.wait(180), pregenerate_posters()), daemon=True).start()
     threading.Thread(target=folder_watcher, daemon=True).start()
     threading.Thread(target=weekly_auto_backup, daemon=True).start()
-    remote.init(DATA_DIR, RES_DIR, remote_library, remote_poster, remote_is_public)
+    remote.init(DATA_DIR, RES_DIR, app, library=remote_library, is_public=remote_is_public, video_path=remote_video_path,
+                probe=remote_probe, ffmpeg=lambda: ff_tools()[0], ranged=ranged_file_response, popen=remote_popen,
+                track_exists=remote_track_exists)
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
     port = free_port()
