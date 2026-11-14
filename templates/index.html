@@ -588,6 +588,29 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                 </div>
             </section>
 
+            <section class="mb-6" id="set-remote">
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">PHONE REMOTE</h4>
+                <div id="rm-box">
+                    <div class="text-xs text-gray-500 mb-3">Control playback from your phone on the same Wi-Fi: play, pause, skip, scrub, volume, next episode, and start anything from Continue watching. No app to install, it opens in the phone's browser. Private videos show up on the phone only as "Private video", and the phone can never browse or start them.</div>
+                    <button id="rm-toggle" class="w-full set-seg py-2.5" onclick="remoteToggle()"><i class="fas fa-mobile-screen-button mr-1"></i>Phone remote: <span id="rm-toggle-txt">Off</span></button>
+                    <div id="rm-live" class="hidden mt-4">
+                        <div class="flex items-start gap-4">
+                            <img id="rm-qr" alt="QR code" class="hidden flex-none rounded-lg" style="width:168px;height:168px;image-rendering:pixelated;background:#fff">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[11px] text-gray-500">1. Scan with your phone camera</div>
+                                <div class="text-[11px] text-gray-500 mt-3">2. Or open this address</div>
+                                <div id="rm-url" class="text-sm break-all select-text" style="text-transform:none;letter-spacing:0">...</div>
+                                <div class="text-[11px] text-gray-500 mt-3">and enter the code</div>
+                                <div id="rm-pin" class="text-2xl font-bold select-text" style="letter-spacing:.15em;font-family:ui-monospace,monospace">------</div>
+                                <div id="rm-phones" class="text-xs text-gray-500 mt-3"></div>
+                            </div>
+                        </div>
+                        <button class="w-full set-seg py-2 mt-4" onclick="remoteReset()"><i class="fas fa-rotate mr-1"></i>New code and forget all phones</button>
+                        <div class="text-xs text-gray-500 mt-2">Only phones on your own network can reach it. If the phone cannot connect, allow ULTRON through the Windows firewall for Private networks.</div>
+                    </div>
+                </div>
+            </section>
+
             <section class="mb-6" id="set-backup">
                 <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">YOUR DATA</h4>
                 <div class="text-xs text-gray-500 mb-3">Your database: favorites, hearts, watch progress, ratings, playlists, plays, settings, your private-library password and your own tile pictures. Export it to one .zip to keep it safe or to carry it to another PC or version, and restore it there. Posters and thumbnails are not included, they rebuild by themselves. Keep the file private: it also holds your password lock and any API keys.</div>
@@ -971,6 +994,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
 <script id="lmpv9-photos-lock-js" src="/assets/js/photos-lock.js?v=1"></script>
 <script id="zeno-private-search-js" src="/assets/js/private-search.js?v=1"></script>
 <script id="zeno-data-home-js" src="/assets/js/data-home.js?v=1"></script>
+<script id="zeno-remote-js" src="/assets/js/remote-link.js?v=1"></script>
 <link id="lmpv9-movies" rel="stylesheet" href="/assets/css/movies.css?v=1">
 <link id="ultron-mpv-css" rel="stylesheet" href="/assets/css/mpv.css?v=1">
 <script id="lmpv9-movies-js" src="/assets/js/movies.js?v=1"></script>

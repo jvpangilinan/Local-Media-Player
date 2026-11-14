@@ -6,6 +6,12 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: your phone is the remote
+
+- **Settings > Phone remote.** Switch it on, scan the QR code with your phone camera, done: play / pause, skip 10 s, scrub, volume, mute, next / previous episode or song, stop the video, shuffle your music, and start anything from **Continue watching** with its poster. It opens in the phone's browser, nothing to install. Works for the native player window, the built-in player and music.
+- **Safe by default.** Off until you switch it on. It runs as a separate little server that only knows the remote: the library, your files and the private library are not reachable from the network. Pairing needs the 6-digit code (the QR code carries it); 5 wrong codes lock pairing for a minute; **New code and forget all phones** un-pairs everything. A private video shows on the phone only as "Private video", and the phone can never list or start private videos.
+- The first time, Windows may ask whether ULTRON may use the network: allow **Private networks**. Port 47400 (or the next free one up to 47403).
+
 ## V6: private videos start quiet
 
 - **Auto-mute.** Private videos start muted in the native (libmpv) player, the pop-out and the in-window player, with a short "Press M for sound" notice. The mute is released for normal videos and resets at every lock.

@@ -1231,6 +1231,7 @@ class Bus(QObject):
     media = Signal(str)                   # play / pause / next / prev / stop from the Windows media controls
     strip = Signal(int, float, float, bytes)   # trimmer filmstrip: (generation, from, to, jpeg)
     clip_done = Signal()                  # the trimmer's Save clip finished (ok or not)
+    remote = Signal(str, object)          # a command from the phone remote (see remote.py)
 
 
 class Stage(QOpenGLWidget):
@@ -1356,6 +1357,9 @@ class Player(QMainWindow):
         self.bus.media.connect(self.on_media)
         self.bus.strip.connect(self.on_strip)
         self.bus.clip_done.connect(self.on_clip_done)
+        self.bus.remote.connect(self.on_remote)
+        self._remote_on, self._remote_at = False, 0.0
+        threading.Thread(target=self._remote_loop, daemon=True).start()
         self.winmedia = WinMedia(self.bus.media.emit)
         self._media_last = None
 
@@ -2990,6 +2994,9 @@ class Player(QMainWindow):
                 except Exception:
                     log("heartbeat failed", traceback.format_exc())
             threading.Thread(target=beat, daemon=True).start()
+        if self._remote_on and now - self._remote_at > 1.0:
+            self._remote_at = now
+            self._remote_report(st, t, d, paused)
         if st.get("eof") and not getattr(self, "_eof_done", False):
             self._eof_done = True
             self.save_progress()
@@ -3146,6 +3153,65 @@ class Player(QMainWindow):
             self.toast.say("Speed %gx" % max(0.25, min(4.0, sp)), 800)
         else:
             super().keyPressEvent(e)
+
+    # ---- phone remote (see remote.py): commands arrive on a background thread and are handed to the UI thread
+    def _remote_loop(self):
+        api = self.api
+        while not self.closing:
+            try:
+                d = api.get_json("/api/remote/poll?src=native", timeout=30)
+            except Exception:
+                time.sleep(5)
+                continue
+            self._remote_on = bool(d.get("on"))
+            if not self._remote_on:
+                time.sleep(15)
+                continue
+            for c in d.get("cmds") or []:
+                if self.closing:
+                    return
+                self.bus.remote.emit(str(c.get("cmd") or ""), c.get("arg"))
+
+    def _remote_report(self, st, t, d, paused):
+        sess, api = self.sess or {}, self.api
+        priv = bool(sess.get("private"))
+        body = {"src": "native", "kind": "video", "private": priv,
+                "title": "" if priv else (sess.get("title") or Path(sess.get("path", "")).stem),
+                "sub": "" if priv or not sess.get("series") else "%s · Episode %s of %s" % (sess["series"], sess["index"], sess["total"]),
+                "pos": t, "dur": d, "paused": bool(paused or st.get("eof")), "vol": float(st.get("vol", 80)) / 100.0,
+                "muted": bool(st.get("mute")), "has_next": bool(sess.get("next")), "has_prev": bool(sess.get("prev"))}
+
+        def send():
+            try:
+                api.post_json("/api/remote/status", body, timeout=4)
+            except Exception:
+                pass
+        threading.Thread(target=send, daemon=True).start()
+
+    def on_remote(self, cmd, arg):
+        if self.closing or self.m is None:
+            return
+        try:
+            if cmd == "toggle":
+                if not self.hp.active():
+                    self.toggle_pause()
+            elif cmd == "seek_rel":
+                self.seek_rel(int(float(arg or 0)))
+            elif cmd == "seek_abs":
+                self.seek_abs(float(arg or 0), True)
+                self.save_progress()
+            elif cmd == "vol":
+                self.set_volume(float(arg or 0))
+                self.toast.say("Volume %d%%" % round(float(arg or 0) * 100), 800)
+            elif cmd == "mute":
+                self.toggle_mute()
+            elif cmd in ("next", "prev"):
+                self.on_media(cmd)
+            elif cmd == "close":
+                self.close()
+            self._remote_at = 0.0                          # report the new state right away
+        except Exception:
+            log("remote command failed", cmd, traceback.format_exc())
 
     def on_fail(self, why):
         log("giving up:", why)

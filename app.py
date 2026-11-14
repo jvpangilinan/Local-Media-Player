@@ -65,6 +65,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--player":      # the native player is 
 from flask import Flask, Response, abort, jsonify, render_template, request, send_file, send_from_directory
 from mutagen import File as MutagenFile
 from moviesort import clean_movie_title, clean_junk, group_franchises, parse_episode
+import remote                                        # Phone remote: a separate LAN-only server (off by default), see remote.py
 import autogenre                                     # Smart genres: TMDB / MusicBrainz / Last.fm lookups, cached locally
 import mpv_backend                                  # libmpv playback engine (needs python-mpv + libmpv-2.dll at run time, never at import time)
 from mutagen.flac import Picture
@@ -6994,6 +6995,48 @@ def native_mini_open(vid, t, paused, vol):
 
 
 
+# ----------------------------------------------------------------------------- phone remote (see remote.py)
+def remote_is_public(vid):
+    with LIB_LOCK:
+        v = LIB["videos"].get(str(vid or ""))
+    return bool(v) and not v["private"]
+
+
+def remote_poster(vid):
+    with LIB_LOCK:
+        v = LIB["videos"].get(str(vid or ""))
+    if not v or v["private"]:
+        return None
+    side = find_sidecar_poster(v)
+    if side:
+        return side
+    p = POSTER_DIR / f"{vid}.jpg"
+    return p if p.is_file() else None
+
+
+def remote_library():
+    """Continue watching for the phone: public videos you stopped part-way, newest first. Never private ones."""
+    with closing(db()) as con:
+        rows = con.execute("""SELECT id, custom_title, position, duration FROM videos
+                              WHERE missing = 0 AND position > 20 AND duration > 0 AND position < duration * 0.95
+                              ORDER BY progress_at DESC LIMIT 40""").fetchall()
+    out = []
+    with LIB_LOCK:
+        for r in rows:
+            v = LIB["videos"].get(r["id"])
+            if not v or v["private"]:
+                continue
+            sr = LIB["series"].get(v.get("series_id") or "")
+            out.append({"id": r["id"], "title": display_title(r["custom_title"], v["title"]), "sub": sr["name"] if sr else "",
+                        "progress": round(r["position"] / r["duration"], 3), "left": int(r["duration"] - r["position"])})
+            if len(out) >= 12:
+                break
+    return out
+
+
+app.register_blueprint(remote.bp)
+
+
 def main():
     ap = argparse.ArgumentParser(description="ULTRON")
     ap.add_argument("--videos", help="folder with videos (default ./media/videos)")
@@ -7057,6 +7100,7 @@ def main():
     threading.Thread(target=lambda: (STARTUP_SCAN.wait(180), pregenerate_posters()), daemon=True).start()
     threading.Thread(target=folder_watcher, daemon=True).start()
     threading.Thread(target=weekly_auto_backup, daemon=True).start()
+    remote.init(DATA_DIR, RES_DIR, remote_library, remote_poster, remote_is_public)
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
     port = free_port()
