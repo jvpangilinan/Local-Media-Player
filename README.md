@@ -50,6 +50,24 @@
 # What's new
 
 
+## V6: fullscreen fixes
+- Fullscreen always acts on the main window. Before, it could pick the separate player window (also called "ULTRON") and strip that one instead.
+- On Windows 11, fullscreen no longer has rounded corners or a thin border around the screen.
+- With **Display: Fullscreen**, leaving the video's or photo's own fullscreen no longer leaves the picture stuck over everything.
+- Going fullscreen no longer saves the monitor size as your window size, and opening the app from the tray no longer un-maximizes it.
+
+## V6: a new Cinema page
+Cinema has a new layout: one slim bar (title, tabs, search, and icon buttons for Surprise me, Roulette, Select and Manage) and six tabs.
+- **Home** (where Cinema opens): a full-width banner, then shelves: Continue Watching, Recently Added, Collections, one shelf per genre folder (Action, Drama ...), Series, and one shelf per clip folder. **See all** on a shelf opens the matching tab already filtered.
+- **Movies**: every movie, with genre chips (All, Action, Comedy ...) along the top. Each tile reads `2019 · Action · Seen`.
+- **Collections**: the collection grid only. Each tile reads `Trilogy · 2002–2007`. **Add movies** and **Automatic sorting** sit in the filter bar.
+- **Series**: real series only. Folders of bonus material (an `Extras` folder, or a folder named `<Movie> - Extras`) are left out; they still show under Folders.
+- **Clips**: shorts, memes and other videos with no year in their name, with a chip per folder (Animation, Memes & Shorts ...). A video with a year in its name still counts as a clip when it sits in a folder that is mostly clips.
+- **Folders**: a folder with fewer than 4 videos shows one picture over the whole tile instead of grey empty cells.
+- **Favorites** moved from the old chip row into the **Show** menu, so you can show only hearted titles on Movies, Collections and Series.
+- The banner always picks a movie when you have one (never a meme or a featurette).
+- Behind it: `/api/videos` now says what every video is (`"type": "movie" | "clip" | "extra"`) and marks bonus-material folders (`"extras": true`). Test: `tests/test_video_types.py`.
+
 ## V6: your phone is the remote (and a second screen)
 
 <p align="center"><img src="docs/screenshots/remote-tour.gif" width="260" alt="A tour of the phone app"><br><sub>The phone app: Surprise me, series, watching on the phone, music, search.</sub></p>

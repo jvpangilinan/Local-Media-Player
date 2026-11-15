@@ -1006,7 +1006,7 @@
         async function setFS(on) {
             const bridge = window.pywebview && window.pywebview.api;
             try {
-                if (!on && displayMode === 'fullscreen') isFS = false;                        // app is set to Fullscreen: stay in it
+                if (!on && displayMode === 'fullscreen') { isFS = false; domFS = false; if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} } }   // app is set to Fullscreen: the window stays, but the picture's own fullscreen (if it took one) must end or it sticks
                 else if (bridge && bridge.set_fullscreen) {
                     isFS = !!(await bridge.set_fullscreen(on));                               // whole desktop window: no title bar, no borders
                     if (on) {                                                                 // still borders / taskbar showing? let the picture itself go fullscreen
@@ -1391,7 +1391,7 @@
         async function lbSetFS(on) {
             const bridge = window.pywebview && window.pywebview.api;
             try {
-                if (!on && displayMode === 'fullscreen') LB.fs = false;                  // the whole app is fullscreen: leave it be
+                if (!on && displayMode === 'fullscreen') { LB.fs = false; if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} } }   // the whole app is fullscreen: leave the window be, end only the photo's own fullscreen
                 else if (bridge && bridge.set_fullscreen) LB.fs = !!(await bridge.set_fullscreen(on));
                 else if (on) { await $('lightbox').requestFullscreen(); LB.fs = true; }
                 else { if (document.fullscreenElement) await document.exitFullscreen(); LB.fs = false; }

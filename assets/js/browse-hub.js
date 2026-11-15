@@ -4,7 +4,7 @@
    so ratings, rename, resume, hover previews and the player all behave exactly as before.
    The private library is not touched by this file.
 
-   Tabs:   Collections (main) | All | Series | Folders | Overview
+   Tabs:   Home (opens here) | Movies | Collections | Series | Clips | Folders
    Pages:  a collection (watch order) or a folder opens inside the page; Esc / Back returns.
    Search: one box finds collections, series, folders and videos at once ( / focuses it ). */
 (function () {
@@ -21,41 +21,51 @@
     function setY(y, smooth) { try { document.body.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'instant' }); } catch (e) { document.body.scrollTop = y; } }
     function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
 
-    var TABS = [['collections', 'Collections'], ['all', 'All'], ['series', 'Series'], ['folders', 'Folders'], ['overview', 'Overview']];
+    var TABS = [['home', 'Home'], ['movies', 'Movies'], ['collections', 'Collections'], ['series', 'Series'], ['clips', 'Clips'], ['folders', 'Folders']];
+    var OLD_TABS = { overview: 'home', all: 'movies' };     // names other code (and old saved state) still uses
     var SORTS = [['title', 'Title A-Z'], ['title_d', 'Title Z-A'], ['added', 'Recently added'], ['year_d', 'Year, newest'], ['year_a', 'Year, oldest'],
                  ['views', 'Most watched'], ['rating', 'Top rated'], ['shuffle', 'Shuffle']];
     var UNSORTED = '__ubh_unsorted__';   // plain text on purpose: a NUL character gets rewritten by the HTML parser and never matches
     var CHUNK = 96, ROW_MAX = 24;
 
     var S = {
-        tab: 'collections', cf: LS.get('ubh_cf') || 'all', open: null, q: '', tile: null, selmode: false, sel: {},   // Cinema always opens on Collections
-        sort: LS.get('ubh_sort') || 'title', type: LS.get('ubh_type') || 'all', seen: 'all', folder: '', ag: '',
+        tab: 'home', open: null, q: '', tile: null, selmode: false, sel: {},   // Cinema always opens on Home
+        sort: LS.get('ubh_sort') || 'title', type: 'all', seen: 'all', folder: '', ag: '', chip: '',
         size: parseInt(LS.get('ubh_size'), 10) || 2, shown: CHUNK, list: [], seed: 1, back: 0
     };
-    if (['collections', 'singles', 'all', 'favorites'].indexOf(S.cf) < 0) S.cf = 'all';
     if (!SORTS.some(function (t) { return t[0] === S.sort; })) S.sort = 'title';
 
     // ---------------------------------------------------------------- data
     var M = null;
     function raw() { return (typeof vdata !== 'undefined' && vdata.public) || null; }
-    function isMovie(v) { return v.kind !== 'series' && !!(v.year || v.collection); }
+    // the server says what each video is (movie / clip / extra); older servers did not, so fall back to the old guess
+    function vtype(v) { return v.type || ((v.year || v.collection) ? 'movie' : 'clip'); }
+    function isMovie(v) { return v.kind !== 'series' && vtype(v) === 'movie'; }
     function model() {
         var d = raw(); if (!d) return null;
         if (M && M.src === d) return M;
-        var loose = d.loose || [], series = d.all_series || [], colls = d.collections || [];
+        var loose = d.loose || [], series = (d.all_series || []).filter(function (s) { return !s.extras; }), colls = d.collections || [];
         var names = (d.genres || []).map(function (g) { return g.name; }), by = {}, unsorted = [];
         function slot(n) { return by[n] || (by[n] = { name: n, videos: [], series: [] }); }
         names.forEach(slot);
         loose.forEach(function (v) { if (v.genre) slot(v.genre).videos.push(v); else if (!v.collection) unsorted.push(v); });
-        series.forEach(function (s) { if (s.genre) slot(s.genre).series.push(s); });
+        (d.all_series || []).forEach(function (s) { if (s.genre) slot(s.genre).series.push(s); });    // folders keep their extras; only the Series tab leaves them out
         var folders = Object.keys(by).sort(nat).map(function (n) {
             var f = by[n]; f.items = f.series.concat(f.videos); f.items.sort(function (a, b) { return nat(a.title, b.title); });
             f.count = f.items.length; return f;
         });
         var eps = series.reduce(function (a, s) { return a + (s.episodes || 0); }, 0);
         var byId = {}; loose.forEach(function (v) { byId[v.id] = v; });
+        // a folder is a movie shelf when most of what is in it is movies (Action, Drama ...), otherwise a clip shelf (Animation, Memes ...)
+        function share(f, t) { var n = f.videos.filter(function (v) { return vtype(v) === t; }).length; return f.videos.length && n * 2 >= f.videos.length; }
+        var movieShelves = folders.filter(function (f) { return share(f, 'movie'); }), clipShelves = folders.filter(function (f) { return share(f, 'clip'); });
+        // "Fuelled - Animated Short Film 2021" has a year but lives with the clips: it is a clip
+        var clipFolder = {}; clipShelves.forEach(function (f) { clipFolder[f.name] = 1; });
+        loose.forEach(function (v) { if (v.type === 'movie' && clipFolder[v.genre] && !v.collection) v.type = 'clip'; });
+        var movies = loose.filter(isMovie), clips = loose.filter(function (v) { return vtype(v) === 'clip'; });
         M = { src: d, loose: loose, series: series, colls: colls, folders: folders, by: by, unsorted: unsorted, all: loose.concat(series), eps: eps,
-              singles: loose.filter(function (v) { return !v.collection; }), byId: byId };
+              singles: movies.filter(function (v) { return !v.collection; }), byId: byId, movies: movies, clips: clips,
+              movieShelves: movieShelves, clipShelves: clipShelves };
         return M;
     }
     function folderIndex(name) { var g = (raw() && raw().genres) || []; for (var i = 0; i < g.length; i++) if (g[i].name === name) return i; return -1; }
@@ -63,6 +73,7 @@
     // ---------------------------------------------------------------- filtering / sorting
     function seenOk(v) {
         if (S.seen === 'all') return true;
+        if (S.seen === 'fav') return v.kind === 'collection' ? favHas('collection', v.coll.name) : favHas(v.kind === 'series' ? 'series' : 'video', v.id);
         if (v.kind === 'collection') {
             if (S.seen === 'new') return !v.started && !v.progress;
             if (S.seen === 'going') return (v.started && !v.done) || !!v.progress;
@@ -113,6 +124,7 @@
             if (!seenOk(v)) return false;
             if (!agOk(v)) return false;
             if (!o.noFolder && S.folder) { if (S.folder === UNSORTED ? (v.genre || v.collection || v.kind === 'series') : v.genre !== S.folder) return false; }
+            if (o.chip && S.chip && v.genre !== S.chip) return false;
             return true;
         }));
     }
@@ -150,12 +162,15 @@
             '<button class="ut-img" data-tk="collection" data-tkey="' + esc(c.name) + '" title="Thumbnail"><i class="far fa-image"></i></button>' +
             '</div>' +
             '<div class="ut-title">' + esc(c.name) + '</div>' +
-            '<div class="ut-sub">' + esc(collKind(c.count)) + ' &middot; ' + plural(c.count, 'film') + (ys ? ' &middot; ' + ys : '') + '</div>' +
+            // "Trilogy · 2002–2007": the kind already says how many films, so only big sets spell the number out
+            '<div class="ut-sub">' + (LOGY[c.count] ? esc(collKind(c.count)) : plural(c.count, 'film')) + (ys ? ' &middot; ' + ys : '') + (st.watched === st.total ? ' &middot; Seen' : '') + '</div>' +
             '</div>';
     }
     function folderCard(f, unsorted) {
+        // 4+ items: a 2x2 mosaic; fewer: one picture over the whole tile (no grey placeholder cells)
         var items = f.items, cells = '';
-        for (var i = 0; i < 4; i++) cells += items[i] ? '<img src="' + esc(items[i].poster) + '" alt="" loading="lazy">' : '<span><i class="fas fa-film"></i></span>';
+        if (items.length >= 4) for (var i = 0; i < 4; i++) cells += '<img src="' + esc(tileSrc(items[i])) + '" alt="" loading="lazy">';
+        else if (items.length) cells = '<img class="solo" src="' + esc(tileSrc(items[0])) + '" alt="" loading="lazy">';
         var bits = [], vids = unsorted ? f.items.length : f.videos.length, ser = unsorted ? 0 : f.series.length;
         if (vids) bits.push(plural(vids, 'video'));
         if (ser) bits.push(plural(ser, 'series', 'series'));
@@ -177,8 +192,9 @@
     function heroHtml(f, label) {
         var meta = [];
         if (f.year) meta.push(f.year);
+        if (f.genre) meta.push(esc(f.genre));
         if (f.collection) meta.push(esc(f.collection)); else if (f.series) meta.push(esc(f.series));
-        meta.push(f.view_count ? f.view_count + 'x viewed' : 'Not watched yet');
+        meta.push(f.progress ? Math.round(f.progress * 100) + '% watched' : f.view_count ? 'Watched' : 'Not watched yet');
         if (f.avg_rating != null) meta.push('&#9733; ' + f.avg_rating);
         return '<section class="hero-sec ubh-hero" onmouseenter="heroEnter(this, \'' + f.id + '\', \'public\')" onmouseleave="heroStop()">' +
             '<div class="ubh-hbg" style="background-image:url(\'' + esc(f.poster) + '\')"></div>' +
@@ -190,8 +206,7 @@
             '<div class="ubh-hmeta">' + meta.join('<i>&middot;</i>') + '</div>' +
             '<div class="ubh-hbtns"><button onclick="playVideo(\'' + f.id + '\')"><i class="fas fa-play"></i> ' + (f.progress ? 'Resume' : 'Play') + '</button>' +
             '<button data-act="roulette"><i class="fas fa-dice"></i> Roulette</button>' +
-            '<button onclick="editTitle(event, \'' + f.id + '\')" title="Rename"><i class="fas fa-pen"></i></button></div></div>' +
-            '<img class="ubh-hposter" src="' + esc(f.poster) + '" alt="" onclick="playVideo(\'' + f.id + '\')"></div></section>';
+            '<button onclick="editTitle(event, \'' + f.id + '\')" title="Rename"><i class="fas fa-pen"></i></button></div></div></div></section>';
     }
     function pickHero(m) {
         var d = m.src, c = (d.continue || [])[0];
@@ -202,26 +217,31 @@
     }
 
     // ---------------------------------------------------------------- the five tabs
-    function viewOverview(m) {
+    // Home: one banner, then shelves. Movies first (continue, new, collections, one shelf per genre), then series, then clips.
+    function shuffled(list, seed) { var a = list.slice(), r = rng(seed); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    function viewHome(m) {
         if (!m.all.length && !m.folders.length) return noLibrary();
         var out = '', h = pickHero(m), d = m.src;
         if (h) out += heroHtml(h.f, h.label);
-        out += '<div class="ubh-pad">';
+        out += '<div class="ubh-pad ubh-shelves">';
         var ids = [];
-        function add(id, title, extra, items, body) { ids.push(id); out += row(id, title, extra, items, body); }
-        if ((d.continue || []).length) add('ubh-r-cont', 'Continue Watching', '', d.continue);
-        if ((d.recent || []).length) add('ubh-r-recent', 'Recently Added', '', d.recent);
-        if (m.colls.length) add('ubh-r-coll', 'Collections', '<span class="mv-tag">' + collKindLine(m) + '</span>' + link('tab', 'See all', 'data-tab="collections"'), null, m.colls.slice(0, ROW_MAX).map(collCard).join(''));
-        if (m.series.length) add('ubh-r-ser', 'Series', link('tab', 'See all ' + m.series.length, 'data-tab="series"'), sorted(m.series).slice(0, ROW_MAX));
-        m.folders.forEach(function (f, i) {
-            if (!f.count) return;
-            var body = cards(f.items.slice(0, ROW_MAX)) + (f.count > ROW_MAX ? seeAllTile('data-folder="' + esc(f.name) + '"', f.count) : '');
-            add('ubh-r-f' + i, f.name, '<span class="mv-tag">' + plural(f.count, 'title') + '</span>' + link('folder', 'Open', 'data-folder="' + esc(f.name) + '"'), null, body);
+        function add(id, title, extra, body) { ids.push(id); out += row(id, title, extra, null, body); }
+        function more(tab, chip, n) { return link('see', 'See all' + (n ? ' ' + n : ''), 'data-tab="' + tab + '" data-chip="' + esc(chip || '') + '"'); }
+        if ((d.continue || []).length) add('ubh-r-cont', 'Continue Watching', '', cards(d.continue));
+        var recent = (d.recent || []).filter(function (v) { return v.kind === 'series' ? !v.extras : vtype(v) !== 'extra'; });
+        if (recent.length) add('ubh-r-recent', 'Recently Added', '', cards(recent));
+        if (m.colls.length) add('ubh-r-coll', 'Collections', more('collections', '', m.colls.length), m.colls.slice(0, ROW_MAX).map(collCard).join(''));
+        m.movieShelves.forEach(function (f, i) {
+            var mv = f.videos.filter(isMovie);
+            if (!mv.length) return;
+            add('ubh-r-g' + i, f.name, more('movies', f.name, mv.length), mTiles(shuffled(mv, i + 7).slice(0, ROW_MAX)));
         });
-        if (m.unsorted.length) {
-            var us = sorted(m.unsorted), body = cards(us.slice(0, ROW_MAX)) + (us.length > ROW_MAX ? seeAllTile('data-folder="' + UNSORTED + '"', us.length) : '');
-            add('ubh-r-un', 'Unsorted Videos', '<span class="mv-tag">' + plural(us.length, 'video') + '</span>' + link('folder', 'Open', 'data-folder="' + UNSORTED + '"'), null, body);
-        }
+        if (m.series.length) add('ubh-r-ser', 'Series', more('series', '', m.series.length), cards(sorted(m.series).slice(0, ROW_MAX)));
+        m.clipShelves.forEach(function (f, i) {
+            var cl = f.videos.filter(function (v) { return vtype(v) === 'clip'; });
+            if (!cl.length) return;
+            add('ubh-r-c' + i, f.name, more('clips', f.name, cl.length), clipTiles(cl.slice(0, ROW_MAX)));
+        });
         out += '</div>';
         S._ids = ids;
         return out;
@@ -253,11 +273,18 @@
         g.insertAdjacentHTML('beforeend', tilesFor(S.list.slice(S.shown, to)));
         S.shown = to; moreBtn(); markSel();
     }
-    function viewAll(m) {
-        var list = applyFilters(m.all);
-        S.shown = CHUNK;
-        var html = gridBody(list, empty('far fa-folder-open', 'Nothing matches', 'Try another filter, or clear them.', '<button class="ubh-btn" data-act="reset"><i class="fas fa-rotate-left"></i> Clear filters</button>'));
-        return '<div class="ubh-pad">' + html + '</div>';
+    var NOMATCH = function () { return empty('far fa-folder-open', 'Nothing matches', 'Try another filter, or clear them.', '<button class="ubh-btn" data-act="reset"><i class="fas fa-rotate-left"></i> Clear filters</button>'); };
+    function viewMovies(m) {
+        var list = applyFilters(m.movies, { noType: true, noFolder: true, chip: true });
+        S.tile = mTiles; S.shown = CHUNK;
+        return '<div class="ubh-pad">' + gridBody(list, m.movies.length ? NOMATCH()
+            : empty('fas fa-film', 'No movies yet', 'A video counts as a movie when its file name has a year, like <b>Dune (2021).mkv</b>.')) + '</div>';
+    }
+    function viewClips(m) {
+        var list = applyFilters(m.clips, { noType: true, noFolder: true, chip: true });
+        S.tile = clipTiles; S.shown = CHUNK;
+        return '<div class="ubh-pad">' + gridBody(list, m.clips.length ? NOMATCH()
+            : empty('fas fa-photo-film', 'No clips', 'Shorts, memes and other videos without a year in their name show up here.')) + '</div>';
     }
     function viewSeries(m) {
         var list = applyFilters(m.series, { noType: true });
@@ -278,12 +305,15 @@
                  view_count: it.reduce(function (a, v) { return a + (v.view_count || 0); }, 0),
                  avg_rating: rated.length ? rated.reduce(function (a, v) { return a + v.avg_rating; }, 0) / rated.length : null };
     }
-    function singleTile(v) {
-        var bits = [v.year || 'Movie', v.view_count ? v.view_count + 'x watched' : (v.progress ? 'In progress' : 'Not watched')];
-        // the tile already carries its own title and small line; only swap the small line (year / watched state), never add a second title
-        var tile = cards([v]).replace(/<div class="ut-sub">[\s\S]*?<\/div>/, '<div class="ut-sub">' + bits.join(' &middot; ') + '</div>');
+    // the tile already carries its own title and small line; only swap the small line, never add a second title
+    function subTile(v, bits) {
+        var tile = cards([v]).replace(/<div class="ut-sub">[\s\S]*?<\/div>/, '<div class="ut-sub">' + bits.filter(Boolean).map(esc).join(' &middot; ') + '</div>');
         return '<div class="ubh-st">' + tile + '</div>';
     }
+    function singleTile(v) {       // "2019 · Action · Watched"
+        return subTile(v, [v.year || '', v.genre || v.collection || '', v.view_count ? 'Seen' : '']);
+    }
+    function clipTiles(items) { return items.map(function (v) { return subTile(v, [v.genre || 'Clip', v.view_count ? 'Watched' : '']); }).join(''); }
     function mTiles(items) { return items.map(function (x) { return x.kind === 'collection' ? collCard(x.coll) : x.kind === 'series' ? cards([x]) : singleTile(x); }).join(''); }
     function favHas(kind, key) { return !!(window.utFav && window.utFav.has(kind, key)); }
     function favItems(m) {                        // hearted collections, movies and series, in one list
@@ -291,31 +321,13 @@
             .concat(m.loose.filter(function (v) { return favHas('video', v.id); }))
             .concat(m.series.filter(function (s) { return favHas('series', s.id); }));
     }
-    function chipsHtml(nColl, nSing, nFav) {
-        return [['collections', 'Collections', nColl], ['singles', 'Singles', nSing], ['all', 'All', nColl + nSing], ['favorites', 'Favorites', nFav]].map(function (c) {
-            return '<button class="chip ' + (S.cf === c[0] ? 'on' : '') + '" data-cf="' + c[0] + '">' + c[1] + ' <span class="opacity-60 ml-1">' + c[2] + '</span></button>';
-        }).join('');
-    }
     function viewCollections(m) {
         if (!m.all.length && !m.folders.length) return noLibrary();
-        var items = [];
-        if (S.cf === 'favorites') items = favItems(m);
-        else {
-            if (S.cf !== 'singles') items = items.concat(m.colls.map(collItem));
-            if (S.cf !== 'collections') items = items.concat(m.singles);
-        }
-        var list = applyFilters(items, { noType: true, noFolder: true });
+        var list = applyFilters(m.colls.map(collItem), { noType: true, noFolder: true });
         S.tile = mTiles; S.shown = CHUNK;
-        var msg = S.cf === 'favorites' && !items.length
-            ? empty('far fa-heart', 'No favorites yet', 'Hover any movie, series or collection and press the heart. It shows up here.')
-            : S.cf === 'collections'
-            ? empty('fas fa-film', 'No collections yet', 'Movies whose file names start the same become a collection on their own (Spider-Man, Spider-Man 2, Spider-Man 3). Or press <b>Add movies</b> and build one yourself. Turn on <b>Auto-sort movies</b> in Settings if it is off.', '<button class="ubh-btn pri" data-act="addmovies"><i class="fas fa-plus"></i> Add movies</button>')
-            : (items.length ? empty('far fa-folder-open', 'Nothing matches', 'Try another filter, or clear them.', '<button class="ubh-btn" data-act="reset"><i class="fas fa-rotate-left"></i> Clear filters</button>')
-                            : empty('fas fa-film', 'No single movies', 'Every movie you have belongs to a collection.'));
-        var reset = (m.src.overrides || 0) ? '<button class="ubh-link" data-act="resetcoll" title="Forget every collection change you made by hand">Back to automatic sorting</button>' : '';
-        return '<div class="ubh-pad ubh-mpage"><h1 class="ubh-mh">Collections</h1><div class="ubh-chips">' + chipsHtml(m.colls.length, m.singles.length, favItems(m).length) + '</div>' +
-            '<div class="ubh-acts"><button class="ubh-btn" data-act="addmovies" title="Put movies into a collection (new or existing)"><i class="fas fa-plus"></i><span>Add movies</span></button>' + reset + '</div>' +
-            gridBody(list, msg) + '<p class="ubh-note">Collections are made from file names. Add movies puts any movie into one by hand; nothing is moved or renamed on disk.</p></div>';
+        var msg = m.colls.length ? NOMATCH()
+            : empty('fas fa-layer-group', 'No collections yet', 'Movies whose names start the same become a collection on their own (Spider-Man, Spider-Man 2 ...). Or press <b>Add movies</b> and build one yourself.', '<button class="ubh-btn pri" data-act="addmovies"><i class="fas fa-plus"></i> Add movies</button>');
+        return '<div class="ubh-pad">' + gridBody(list, msg) + '</div>';
     }
     function viewFolders(m) {
         var tiles = '';
@@ -393,13 +405,14 @@
         host.innerHTML =
             '<div class="ubh" id="ubh">' +
             '<header class="ubh-head" id="ubh-head">' +
-            '<div class="ubh-top"><div class="ubh-ttl"><h1>Cinema</h1></div>' +
-            '<div class="ubh-tools"><div class="ubh-search"><i class="fas fa-magnifying-glass"></i><input id="ubh-q" autocomplete="off" spellcheck="false" placeholder="Search your library" aria-label="Search the library"><kbd>/</kbd><button class="ubh-x" data-act="clearq" aria-label="Clear search"><i class="fas fa-xmark"></i></button></div>' +
-            '<button class="ubh-btn" data-act="roulette" title="Movie night roulette"><i class="fas fa-dice"></i><span>Roulette</span></button>' +
-            '<button class="ubh-btn" data-act="surprise" title="Play something at random"><i class="fas fa-shuffle"></i><span>Surprise me</span></button>' +
-            '<button class="ubh-btn" data-act="selmode" id="ubh-selbtn" title="Pick several movies: add them to a collection or take them out"><i class="fas fa-check-double"></i><span>Select</span></button>' +
-            '<button class="ubh-btn" data-act="manage" title="New folder, organize, new series"><i class="fas fa-sliders"></i><span>Manage</span><i class="fas fa-chevron-down sm"></i></button></div></div>' +
-            '<div class="ubh-tabrow"><nav class="ubh-tabs" id="ubh-tabs" role="tablist"></nav><div class="ubh-stats" id="ubh-stats"></div></div><div class="ubh-filters" id="ubh-filters"></div></header>' +
+            // one row: title, tabs, then search and icon tools on the right
+            '<div class="ubh-top"><div class="ubh-ttl"><h1>Cinema</h1></div><nav class="ubh-tabs" id="ubh-tabs" role="tablist"></nav>' +
+            '<div class="ubh-tools"><div class="ubh-search"><i class="fas fa-magnifying-glass"></i><input id="ubh-q" autocomplete="off" spellcheck="false" placeholder="Search movies, series, clips" aria-label="Search the library"><kbd>/</kbd><button class="ubh-x" data-act="clearq" aria-label="Clear search"><i class="fas fa-xmark"></i></button></div>' +
+            '<button class="ubh-ib" data-act="surprise" title="Surprise me: play something at random" aria-label="Surprise me"><i class="fas fa-shuffle"></i></button>' +
+            '<button class="ubh-ib" data-act="roulette" title="Movie night roulette" aria-label="Roulette"><i class="fas fa-dice"></i></button>' +
+            '<button class="ubh-ib" data-act="selmode" id="ubh-selbtn" title="Select movies: add them to a collection or take them out" aria-label="Select"><i class="fas fa-check-double"></i></button>' +
+            '<button class="ubh-ib" data-act="manage" title="Manage: new folder, organize, new series" aria-label="Manage"><i class="fas fa-ellipsis"></i></button></div></div>' +
+            '<div class="ubh-filters" id="ubh-filters"></div></header>' +
             '<div id="ubh-body" class="ubh-skel"><div class="ubh-pad"><div class="vgrid ubh-grid">' + skeleton() + '</div></div></div></div>';
         $('ubh-q').addEventListener('input', function () { S.q = this.value.trim(); S.shown = CHUNK; paint(false); });
         $('ubh-q').addEventListener('keydown', function (e) {
@@ -418,39 +431,45 @@
     function seg(k, opts, cur) {
         return '<div class="ubh-seg" data-k="' + k + '">' + opts.map(function (o) { return '<button data-v="' + o[0] + '" class="' + (cur === o[0] ? 'on' : '') + '">' + o[1] + '</button>'; }).join('') + '</div>';
     }
-    function gridView() { return !S.q && !S.open ? (S.tab === 'all' || S.tab === 'series' || S.tab === 'collections') : (!S.q && S.open && S.open.t === 'folder'); }
+    function gridView() { return !S.q && !S.open ? ['movies', 'clips', 'series', 'collections'].indexOf(S.tab) >= 0 : (!S.q && S.open && S.open.t === 'folder'); }
+    // the genre / folder chips above the Movies and Clips grids
+    function chipRow(shelves, test, total) {
+        var rows = shelves.map(function (f) { return [f.name, f.name, f.videos.filter(test).length]; }).filter(function (x) { return x[2]; });
+        if (S.chip && !rows.some(function (x) { return x[0] === S.chip; })) S.chip = '';
+        if (rows.length < 2) return '';
+        return '<div class="ubh-chiprow" role="tablist">' + [['', 'All', total]].concat(rows).map(function (x) {
+            return '<button class="ubh-chip' + (S.chip === x[0] ? ' on' : '') + '" data-chipv="' + esc(x[0]) + '">' + esc(x[1]) + '<b>' + x[2] + '</b></button>';
+        }).join('') + '</div>';
+    }
     function paintHead(m) {
         var d = m || model();
-        if ($('ubh-stats')) {
-            $('ubh-stats').innerHTML = d ? plural(d.loose.length, 'video') + ' &middot; ' + plural(d.eps, 'episode') : 'Loading\u2026';
-        }
-        var counts = { overview: '', all: d ? d.all.length : '', collections: d ? d.colls.length : '', series: d ? d.series.length : '', folders: d ? d.folders.length + (d.unsorted.length ? 1 : 0) : '' };
+        var counts = { home: '', movies: d ? d.movies.length : '', collections: d ? d.colls.length : '', series: d ? d.series.length : '',
+                       clips: d ? d.clips.length : '', folders: d ? d.folders.length + (d.unsorted.length ? 1 : 0) : '' };
         var active = S.q ? '' : (S.open ? (S.open.t === 'collection' ? 'collections' : 'folders') : S.tab);
         $('ubh-tabs').innerHTML = TABS.map(function (t) {
-            return '<button role="tab" data-tab="' + t[0] + '" class="' + (active === t[0] ? 'on' : '') + '">' + t[1] + (counts[t[0]] !== '' ? ' <b>' + counts[t[0]] + '</b>' : '') + '</button>';
+            if (counts[t[0]] === 0 && t[0] !== 'home' && t[0] !== 'folders') return '';          // no clips at all: no Clips tab
+            return '<button role="tab" data-tab="' + t[0] + '" class="' + (active === t[0] ? 'on' : '') + '">' + t[1] + (counts[t[0]] !== '' ? '<b>' + counts[t[0]] + '</b>' : '') + '</button>';
         }).join('');
         var f = $('ubh-filters'), show = d && gridView();
         f.classList.toggle('off', !show);
         if (!show) { f.innerHTML = ''; return; }
-        var inFolder = S.open && S.open.t === 'folder', parts = [];
-        if (S.tab === 'all' || inFolder) parts.push(seg('type', [['all', 'All'], ['movies', 'Movies'], ['series', 'Series'], ['videos', 'Other videos']], S.type));
-        if (S.tab === 'all' && !inFolder) {
-            var fo = [['', 'Every folder']]; if (d.unsorted.length) fo.push([UNSORTED, 'Unsorted']);
-            d.folders.forEach(function (x) { fo.push([x.name, x.name]); });
-            if (fo.length > 1) parts.push(sel('folder', 'Folder', fo, S.folder));
-        }
-        parts.push(sel('seen', 'Show', [['all', 'Everything'], ['new', 'Not watched'], ['going', 'In progress'], ['done', 'Watched']], S.seen));
-        var ags = agList(d);
-        if (S.ag && !ags.some(function (g) { return g[0] === S.ag; })) S.ag = '';
-        if (ags.length) parts.push(sel('ag', 'Genre', [['', 'Any genre']].concat(ags), S.ag));
+        var inFolder = S.open && S.open.t === 'folder', parts = [], chips = '';
+        if (!inFolder && S.tab === 'movies') chips = chipRow(d.movieShelves, isMovie, d.movies.length);
+        if (!inFolder && S.tab === 'clips') chips = chipRow(d.clipShelves, function (v) { return vtype(v) === 'clip'; }, d.clips.length);
+        if (inFolder) parts.push(seg('type', [['all', 'All'], ['movies', 'Movies'], ['series', 'Series'], ['videos', 'Clips']], S.type));
+        if (S.tab !== 'clips' || inFolder) parts.push(sel('seen', 'Show', [['all', 'Everything'], ['new', 'Not watched'], ['going', 'In progress'], ['done', 'Watched'], ['fav', 'Favorites']], S.seen));
         parts.push(sel('sort', 'Sort', SORTS, S.sort));
-        if (S.sort === 'shuffle') parts.push('<button class="ubh-btn sm" data-act="reshuffle" title="Shuffle again"><i class="fas fa-shuffle"></i></button>');
-        parts.push('<label class="ubh-size" title="Poster size"><i class="fas fa-border-all"></i><input type="range" min="1" max="4" step="1" value="' + S.size + '" data-k="size" aria-label="Poster size"><i class="fas fa-square"></i></label>');
+        if (S.sort === 'shuffle') parts.push('<button class="ubh-ib sm" data-act="reshuffle" title="Shuffle again" aria-label="Shuffle again"><i class="fas fa-shuffle"></i></button>');
+        if (S.tab === 'collections' && !inFolder) {
+            parts.push('<button class="ubh-btn sm" data-act="addmovies" title="Put movies into a collection (new or existing)"><i class="fas fa-plus"></i><span>Add movies</span></button>');
+            if (d.src.overrides) parts.push('<button class="ubh-link" data-act="resetcoll" title="Forget every collection change you made by hand">Automatic sorting</button>');
+        }
         parts.push('<span class="ubh-cnt" id="ubh-cnt"></span>');
-        f.innerHTML = parts.join('');
+        parts.push('<label class="ubh-size" title="Tile size"><i class="fas fa-border-all"></i><input type="range" min="1" max="4" step="1" value="' + S.size + '" data-k="size" aria-label="Tile size"><i class="fas fa-square"></i></label>');
+        f.innerHTML = chips + '<div class="ubh-frow">' + parts.join('') + '</div>';
     }
     function paintCount() {
-        var c = $('ubh-cnt'); if (c) c.textContent = S.list.length + ' shown';
+        var c = $('ubh-cnt'); if (c) c.textContent = plural(S.list.length, 'title');
         var az = $('ubh-az'); if (!az) return;
         var on = gridView() && (S.sort === 'title' || S.sort === 'title_d') && S.list.length >= 40;
         az.classList.toggle('has', on);
@@ -476,14 +495,14 @@
         S.tile = null;
         if (S.q) html = viewSearch(m);
         else if (S.open) html = S.open.t === 'collection' ? viewCollection(m) : viewFolder(m);
-        else html = ({ overview: viewOverview, all: viewAll, collections: viewCollections, series: viewSeries, folders: viewFolders }[S.tab] || viewOverview)(m);
+        else html = ({ home: viewHome, movies: viewMovies, clips: viewClips, collections: viewCollections, series: viewSeries, folders: viewFolders }[S.tab] || viewHome)(m);
         body.classList.remove('ubh-skel');
         body.innerHTML = html;
         paintHead(m);
         paintCount(); moreBtn(); markSel(); selBar();
         var sb = document.querySelector('.ubh-search'); if (sb) sb.classList.toggle('has', !!S.q);
         (S._ids || []).forEach(function (id) { try { updateArrows(id); } catch (e) {} });
-        if (S.tab !== 'overview' || S.q || S.open) S._ids = [];
+        if (S.tab !== 'home' || S.q || S.open) S._ids = [];
         watchMore();
         if (keepScroll) setY(y);
     }
@@ -493,8 +512,10 @@
         io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) appendMore(); }, { rootMargin: '900px 0px' });
         io.observe(more);
     }
-    function go(tab, open) {
+    function go(tab, open, chip) {
         if (S.q) { S.q = ''; var q = $('ubh-q'); if (q) q.value = ''; }
+        tab = OLD_TABS[tab] || tab;
+        if (tab !== S.tab || chip != null) S.chip = chip || '';
         S.tab = tab; S.open = open || null; S.back = 0;
         LS.set('ubh_tab', tab);
         S.shown = CHUNK;
@@ -520,8 +541,8 @@
         var t = e.target;
         var az = t.closest('[data-az]');
         if (az) { jumpLetter(az.dataset.az); return; }
-        var cf = t.closest('[data-cf]');
-        if (cf) { S.cf = cf.dataset.cf; LS.set('ubh_cf', S.cf); S.shown = CHUNK; paint(false); return; }
+        var ch = t.closest('[data-chipv]');
+        if (ch) { S.chip = ch.dataset.chipv; S.shown = CHUNK; paint(false); return; }
         var tabB = t.closest('#ubh-tabs [data-tab]');
         if (tabB) { go(tabB.dataset.tab, null); return; }
         var sg = t.closest('.ubh-seg button');
@@ -545,10 +566,11 @@
         var a = b.dataset.act, i = parseInt(b.dataset.i, 10);
         if (a === 'back') goBack();
         else if (a === 'tab') go(b.dataset.tab, null);
+        else if (a === 'see') go(b.dataset.tab, null, b.dataset.chip || '');
         else if (a === 'folder') openFolderPage(b.dataset.folder);
         else if (a === 'clearq') { clearQ(); var q = $('ubh-q'); if (q) q.focus(); }
         else if (a === 'more') appendMore();
-        else if (a === 'reset') { S.type = 'all'; S.seen = 'all'; S.folder = ''; paint(false); }
+        else if (a === 'reset') { S.type = 'all'; S.seen = 'all'; S.folder = ''; S.chip = ''; paint(false); }
         else if (a === 'reshuffle') { S.seed = (S.seed * 7919 + 13) % 100003; S.shown = CHUNK; paint(true); }
         else if (a === 'roulette') { if (window.sxRoulette) window.sxRoulette('public'); }
         else if (a === 'surprise') surprise('public');
@@ -756,17 +778,15 @@
         for (var i = 0; i < m.colls.length; i++) if (m.colls[i].name === name) { var it = m.colls[i].items || []; return it.length ? it[0].id : null; }
         return null;
     };
-    window.ubhFavChanged = function () {          // a heart was pressed (or the list arrived): refresh the chip count, and the page if it is the Favorites list
-        if (!$('ubh-body') || S.tab !== 'collections' || S.open || S.q) return;
-        if (S.cf === 'favorites') paint(true);
-        else { var m = model(); if (m) { var ch = document.querySelector('.ubh-chips'); if (ch) ch.innerHTML = chipsHtml(m.colls.length, m.singles.length, favItems(m).length); } }
+    window.ubhFavChanged = function () {          // a heart was pressed (or the list arrived): repaint when the page is showing Favorites only
+        if ($('ubh-body') && S.seen === 'fav' && !S.q) paint(true);
     };
     window.ubhState = S;
 
     var _sw = window.switchTab;
     window.switchTab = function (viewId, tabId) {
         var want = null;
-        if (viewId === 'series-view') want = 'series'; else if (viewId === 'videos-view') want = 'all';
+        if (viewId === 'series-view') want = 'series'; else if (viewId === 'videos-view') want = 'movies';
         if (want) { viewId = 'video-view'; tabId = 'tab-video'; }
         var r = _sw.call(this, viewId, tabId);
         flagOn();

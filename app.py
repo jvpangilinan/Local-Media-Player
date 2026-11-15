@@ -223,6 +223,7 @@ CONTINUE_MIN = 0.02          # "Continue Watching" = watched more than 2% ...
 CONTINUE_MAX = 0.95          # ... and less than 95%
 
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".wmv", ".flv"}
+EXTRAS_FOLDERS = {"extras", "featurettes", "bonus", "behind the scenes"}      # first-level folders that hold bonus material, not movies
 MUSIC_EXTS = {".mp3", ".flac", ".ogg", ".m4a", ".wav", ".opus"}
 SUB_EXTS = {".srt", ".vtt"}
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
@@ -1788,10 +1789,20 @@ def video_cards(private=False):
         collections = list(merged.items())
     collections.sort(key=lambda c: natkey(c[0]))
 
+    def is_extras(genre, series=""):
+        """Bonus material (featurettes, interviews): an 'Extras' folder, or a series folder named '<Movie> - Extras'."""
+        return genre.lower() in EXTRAS_FOLDERS or series.lower().endswith(" - extras")
+
+    def vtype(k, coll):
+        """What a loose video is, so the page never has to guess: a movie, bonus material, or any other clip."""
+        if is_extras(k["genre"], k["series"]):
+            return "extra"
+        return "movie" if (k.get("year") or coll) else "clip"
+
     def card(r):
         f = frac(r)
         k = known[r["id"]]
-        return {"kind": "video", "id": r["id"], "title": display_title(r["custom_title"], k["title"]),
+        return {"kind": "video", "type": vtype(k, coll_of.get(r["id"], "")), "id": r["id"], "title": display_title(r["custom_title"], k["title"]),
                 "year": k.get("year"), "collection": coll_of.get(r["id"], ""),
                 "series": (clean_junk(k["series"]) if clean_on else pretty(k["series"])) if k["series"] else "", "genre": k["genre"],
                 "agenres": ag_video.get(r["id"], []),
@@ -1814,7 +1825,7 @@ def video_cards(private=False):
             resume = next((r for r in eps if r["view_count"] == 0), eps[0])
         return {"kind": "series", "id": s["id"], "title": s["name"], "genre": s["genre"], "agenres": ag_series.get(s["id"], []), "episodes": len(eps),
                 "is_new": any(isnew(r) for r in eps), "watched": watched, "progress": round(watched / len(eps), 3), "resume": resume["id"],
-                "folder": s["folder"].name, "auto": bool(s.get("virtual")),
+                "folder": s["folder"].name, "auto": bool(s.get("virtual")), "extras": is_extras(s["genre"], s["folder"].name),
                 "poster": f"/seriesart/{s['id']}?v={int(max(r['mtime'] or 0 for r in eps))}",
                 "added": int(max(r["mtime"] or 0 for r in eps))}
 
@@ -1843,7 +1854,10 @@ def video_cards(private=False):
 
     featured = None
     if rows:
-        pick = random.choice(unwatched[:12] or most[:12] or rows)       # hero banner: a random fresh pick
+        # hero banner: a random fresh pick, and a real movie when there is one (not a meme or a featurette)
+        def movie_rows(rs):
+            return [r for r in rs if not known[r["id"]]["series_id"] and vtype(known[r["id"]], coll_of.get(r["id"], "")) == "movie"]
+        pick = random.choice(movie_rows(unwatched)[:12] or movie_rows(most)[:12] or unwatched[:12] or most[:12] or rows)
         featured = card(pick)
 
     root = CFG["private_dir"] if private else CFG["video_dir"]
@@ -6062,6 +6076,48 @@ FULLSCREEN = False                               # is the desktop window current
 
 
 _NATIVE_FS = {}
+_FS_LOCK = threading.RLock()                     # the settings page (apply_display thread) and the player (JS API) can both switch at once
+
+
+def _main_hwnd():
+    """The ULTRON window of THIS process. FindWindowW(None, "ULTRON") alone can return the native Qt player
+    (a separate process whose window is also called "ULTRON"), and fullscreen would then strip that window instead."""
+    if os.name != "nt":
+        return 0
+    import ctypes
+    from ctypes import wintypes
+    u = ctypes.windll.user32
+    pid, found = os.getpid(), []
+    proto = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def each(h, _lp):
+        owner = wintypes.DWORD(0)
+        u.GetWindowThreadProcessId(h, ctypes.byref(owner))
+        if owner.value != pid or u.GetParent(h):
+            return True
+        buf = ctypes.create_unicode_buffer(256)
+        u.GetWindowTextW(h, buf, 256)
+        if buf.value == APP_TITLE:
+            found.append(h)
+            return False
+        return True
+    cb = proto(each)
+    u.EnumWindows(cb, 0)
+    return found[0] if found else 0
+
+
+def _dwm_fs_look(hwnd, on):
+    """Windows 11 rounds the corners of a window and draws a thin accent border round it; neither belongs on a fullscreen
+    picture (pywebview's own fullscreen turns both off the same way). Best-effort: older Windows has neither attribute."""
+    try:
+        import ctypes
+        dwm = ctypes.windll.dwmapi
+        corner = ctypes.c_int(1 if on else 0)                                  # DWMWCP_DONOTROUND / DWMWCP_DEFAULT
+        border = ctypes.c_uint(0xFFFFFFFE if on else 0xFFFFFFFF)               # DWMWA_COLOR_NONE / DWMWA_COLOR_DEFAULT
+        dwm.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), 33, ctypes.byref(corner), 4)
+        dwm.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), 34, ctypes.byref(border), 4)
+    except Exception:
+        pass
 
 
 def _native_fs(on):
@@ -6089,7 +6145,7 @@ def _native_fs(on):
         class MONITORINFO(ctypes.Structure):
             _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
 
-        hwnd = u.FindWindowW(None, APP_TITLE)
+        hwnd = _main_hwnd()
         if not hwnd:
             return False
         GWL_STYLE, GWL_EXSTYLE = -16, -20
@@ -6113,6 +6169,7 @@ def _native_fs(on):
             _NATIVE_FS.update(active=True, style=style, ex=ex, rect=(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top), max=was_max)
             u.SetWindowLongW(hwnd, GWL_STYLE, style & ~BORDERS)
             u.SetWindowLongW(hwnd, GWL_EXSTYLE, ex & ~EDGES)
+            _dwm_fs_look(hwnd, True)
             r = mi.rcMonitor
             u.SetWindowPos(hwnd, wintypes.HWND(0), r.left, r.top, r.right - r.left, r.bottom - r.top, 0x0020 | 0x0040)    # HWND_TOP, no frame. Not TOPMOST: a topmost window stays above every other app, so Alt+Tab and clicking away could never bring them forward
             return True
@@ -6122,6 +6179,7 @@ def _native_fs(on):
         _NATIVE_FS.clear()
         u.SetWindowLongW(hwnd, GWL_STYLE, st["style"])
         u.SetWindowLongW(hwnd, GWL_EXSTYLE, st["ex"])
+        _dwm_fs_look(hwnd, False)
         x, y, w, hgt = st["rect"]
         u.SetWindowPos(hwnd, wintypes.HWND(-2), x, y, w, hgt, 0x0020 | 0x0040)                                          # NOTOPMOST (also clears the flag older versions set), frame back
         if st["max"]:
@@ -6137,16 +6195,17 @@ def set_fullscreen(on):
     """Window fullscreen on/off with no title bar or borders (pywebview alone only has a toggle, so remember the state)."""
     global FULLSCREEN
     on = bool(on)
-    if WINDOW is None or on == FULLSCREEN:
+    with _FS_LOCK:
+        if WINDOW is None or on == FULLSCREEN:
+            return FULLSCREEN
+        if on:
+            if not _native_fs(True):
+                WINDOW.toggle_fullscreen()
+        else:
+            if not (_NATIVE_FS.get("active") and _native_fs(False)):
+                WINDOW.toggle_fullscreen()
+        FULLSCREEN = on
         return FULLSCREEN
-    if on:
-        if not _native_fs(True):
-            WINDOW.toggle_fullscreen()
-    else:
-        if not (_NATIVE_FS.get("active") and _native_fs(False)):
-            WINDOW.toggle_fullscreen()
-    FULLSCREEN = on
-    return FULLSCREEN
 
 
 def apply_display(mode, width=None, height=None):
@@ -6154,16 +6213,17 @@ def apply_display(mode, width=None, height=None):
     if WINDOW is None:
         return
     try:
-        if mode == "fullscreen":
-            set_fullscreen(True)
-            return
-        set_fullscreen(False)                         # leave fullscreen first
-        if mode == "maximized":
-            WINDOW.maximize()
-        else:
-            WINDOW.restore()                          # un-maximize, then size it
-            if width and height:
-                WINDOW.resize(int(width), int(height))
+        with _FS_LOCK:                                # one display change at a time (two quick clicks must not interleave)
+            if mode == "fullscreen":
+                set_fullscreen(True)
+                return
+            set_fullscreen(False)                     # leave fullscreen first
+            if mode == "maximized":
+                WINDOW.maximize()
+            else:
+                WINDOW.restore()                      # un-maximize, then size it
+                if width and height:
+                    WINDOW.resize(int(width), int(height))
     except Exception as e:
         print("Could not change display mode:", e)
 
@@ -6173,11 +6233,22 @@ def window_is_maximized():
         return False
     try:
         import ctypes
-        hwnd = ctypes.windll.user32.FindWindowW(None, APP_TITLE)
+        hwnd = _main_hwnd()
         return bool(hwnd and ctypes.windll.user32.IsZoomed(hwnd))
     except Exception:
         log.warning("window_is_maximized: Exception ignored", exc_info=True)
         return False
+
+
+def _window_minimized():
+    if os.name != "nt":
+        return True                                   # no way to tell: keep the old behaviour
+    try:
+        import ctypes
+        hwnd = _main_hwnd()
+        return bool(hwnd and ctypes.windll.user32.IsIconic(hwnd))
+    except Exception:
+        return True
 
 
 _LAST_SIZE = {}
@@ -6185,7 +6256,7 @@ _LAST_SIZE = {}
 
 def on_window_resized(width, height):
     """Remember the latest normal-window size (ignores fullscreen, maximized and minimized)."""
-    if FULLSCREEN or width < 900 or height < 600 or window_is_maximized():
+    if FULLSCREEN or _NATIVE_FS.get("active") or width < 900 or height < 600 or window_is_maximized():   # _NATIVE_FS: set before the window grows to the monitor, FULLSCREEN only after
         return
     _LAST_SIZE["wh"] = (int(width), int(height))
 
@@ -6223,8 +6294,7 @@ def _foreground():
         return
     try:
         import ctypes
-        u = ctypes.windll.user32
-        hwnd = u.FindWindowW(None, APP_TITLE)
+        hwnd = _main_hwnd()
         if hwnd:
             from native_player import force_foreground       # plain SetForegroundWindow is refused while the app is in the background
             force_foreground(hwnd)
@@ -6246,7 +6316,8 @@ def show_from_tray(icon=None, item=None):
         if WINDOW is not None:
             WINDOW.show()
             try:
-                WINDOW.restore()
+                if _window_minimized():               # only un-minimize: restore() on a maximized window would shrink it
+                    WINDOW.restore()
             except Exception:
                 pass
     except Exception:
