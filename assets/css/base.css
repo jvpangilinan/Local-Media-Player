@@ -398,11 +398,11 @@ html[data-bg="time"] :is(#sidebar, #audio-bar, #music-view aside, #m-main, .dash
 html[data-bg="colorful"] #audio-bar, html[data-bg="time"] #audio-bar { background: rgba(10,10,12,.6) !important; }
 
 /* ---------- Settings: background tiles ---------- */
-.bg-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.bg-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }      /* 2 x 2: Dark, Colorful, Sync with time, Gallery */
 .bg-opt { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .5rem .4rem .6rem; background: #222; border: 1.5px solid transparent; font-size: .78rem; font-weight: 600; color: #cfcfcf; text-align: center; transition: background .15s, border-color .15s, color .15s; }
 .bg-opt:hover { background: #2c2c2f; color: #fff; }
 
-.bg-sw { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: .5rem; border: 1px solid rgba(255,255,255,.14); }
+.bg-sw { display: block; width: 100%; aspect-ratio: 16 / 5; border-radius: .5rem; border: 1px solid rgba(255,255,255,.14); }
 .sw-dark { background: #0b0b0c; }
 .sw-colorful { background: linear-gradient(135deg, #1b6b74, #4b3b8f 45%, #a24bb5 70%, #f08a5d); }
 .sw-time { background: linear-gradient(90deg, #3a4296, #ee8a7a, #f0bc6c, #6eb0e8, #f06c62, #4246a0); }

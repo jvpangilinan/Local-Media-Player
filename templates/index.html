@@ -9,7 +9,7 @@
     <script src="/assets/js/single-tab.js"></script>
     <script>try{var __h=document.documentElement,__g=function(k){return localStorage.getItem(k)==="1"};if(__g("lmpv9_plain"))__h.classList.add("lm-plain");if(__g("lmpv9_lite"))__h.classList.add("lm-lite")}catch(e){}</script>
     <script>try{[["lmpv"+"7_"],["lmpv"+"8_"]].forEach(function(o){var P=o[0],N="lmpv"+"9_";Object.keys(localStorage).forEach(function(k){if(k.indexOf(P)===0&&localStorage.getItem(N+k.slice(P.length))===null)localStorage.setItem(N+k.slice(P.length),localStorage.getItem(k))})})}catch(e){}</script>
-<script>try{var __d=document.documentElement,__m=localStorage.getItem('lmp_bg')||'dark';if(['dark','colorful','time'].indexOf(__m)<0)__m='dark';__d.setAttribute('data-bg',__m);__d.setAttribute('data-theme','dark');__d.setAttribute('data-music-ui','prism')}catch(e){}</script>
+<script>try{var __d=document.documentElement,__m=localStorage.getItem('lmp_bg')||'dark';if(['dark','colorful','time'].indexOf(__m)<0)__m='dark';__d.setAttribute('data-bg',__m);var __a=localStorage.getItem('lmp_art');if(__m==='colorful'&&(__a==='good'||__a==='evil'))__d.setAttribute('data-art',__a);__d.setAttribute('data-theme','dark');__d.setAttribute('data-music-ui','prism')}catch(e){}</script>
     <!-- Everything is served by the app itself (works offline): see vendor/ and tailwind.config.js -->
     <script>/* photo editor: while it is open it owns the keyboard (runs before every other key handler) */
 window.__pxEd = null;
@@ -33,7 +33,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
 
 </head>
 <body class="bg-lm-base text-white font-sans min-h-screen overflow-x-hidden">
-    <div id="bg-layer" aria-hidden="true"><div class="bg-pic"></div><div class="bg-glow"></div><div class="bg-scrim"></div></div>
+    <div id="bg-layer" aria-hidden="true"><div class="bg-pic"></div><div class="bg-pic bg-pic2"></div><div class="bg-glow"></div><div class="bg-scrim"></div></div>
 
     <!-- ================= NAVIGATION (hidden until asked for) ================= -->
     <button id="menu-trigger" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false"><span class="mt-a"></span><span class="mt-b"></span></button>
@@ -78,7 +78,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
             </div>
             <div class="sb-tools">
                 <div class="sb-row">
-                    <button id="theme-btn" class="sb-tool" onclick="quickTheme()" title="Change background"><i class="fas fa-moon"></i></button>
+                    <button id="theme-btn" class="sb-tool" onclick="quickTheme(event)" title="Change background"><i class="fas fa-moon"></i></button>
                     <button id="wheel-btn" class="sb-tool" onclick="toggleWheel()"><i class="fas fa-computer-mouse"></i></button>
                     <button id="rescan-btn" class="sb-tool" title="Rescan media folders" onclick="rescan()"><i id="rescan-icon" class="fas fa-rotate"></i></button>
                     <button id="settings-btn" class="sb-tool" title="Settings" onclick="openSettings()"><i class="fas fa-gear"></i></button>
@@ -371,6 +371,20 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                     <button class="bg-opt" data-bg="dark" onclick="setPref({bg_mode:'dark'})"><span class="bg-sw sw-dark"></span>Dark</button>
                     <button class="bg-opt" data-bg="colorful" onclick="setPref({bg_mode:'colorful'})"><span class="bg-sw sw-colorful"></span>Colorful</button>
                     <button class="bg-opt" data-bg="time" onclick="setPref({bg_mode:'time'})"><span class="bg-sw sw-time"></span>Sync with time</button>
+                    <button class="bg-opt" data-bg="art" onclick="setPref({bg_mode:'art'})"><span class="bg-sw sw-art"></span>Gallery</button>
+                </div>
+                <div id="set-bg-art" class="hidden mb-4">
+                    <div class="text-xs text-gray-500 mb-2">Paintings from the National Gallery of Art. Good by day, Evil by night; the sun / flame button in the menu flips it until the next turn of the day</div>
+                    <div id="set-art-side" class="grid grid-cols-3 gap-2 mb-3">
+                        <button class="set-seg" data-side="auto" onclick="setPref({art_side:'auto'})"><i class="fas fa-circle-half-stroke mr-1"></i>Auto</button>
+                        <button class="set-seg" data-side="good" onclick="setPref({art_side:'good'})"><i class="fas fa-sun mr-1"></i>Good</button>
+                        <button class="set-seg" data-side="evil" onclick="setPref({art_side:'evil'})"><i class="fas fa-fire mr-1"></i>Evil</button>
+                    </div>
+                    <div id="set-art-coll" class="art-coll">
+                        <div class="min-w-0"><div class="text-sm font-semibold">Collection</div><div id="set-art-msg" class="text-xs text-gray-500">...</div></div>
+                        <div class="flex gap-2 shrink-0"><button id="set-art-dl" class="set-seg" onclick="galleryBg.install()">Download</button><button id="set-art-rm" class="set-seg hidden" onclick="galleryBg.remove()">Remove</button></div>
+                        <div id="set-art-bar" class="art-bar hidden"><i></i></div>
+                    </div>
                 </div>
                 <div id="set-bg-img" class="hidden mb-4">
                     <div class="text-xs text-gray-500 mb-2">Pick a picture or one of the presets</div>
@@ -1005,6 +1019,8 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
 <script id="ultron-asub-js" src="/assets/js/autosubs.js?v=1"></script>
     <link id="lmpv9-browse-hub" rel="stylesheet" href="/assets/css/browse-hub.css?v=2">
     <link id="ultron-tiles" rel="stylesheet" href="/assets/css/tiles.css?v=2">
+<link id="zeno-gallery-bg" rel="stylesheet" href="/assets/css/gallery-bg.css?v=2">
+<script id="zeno-gallery-bg-js" src="/assets/js/gallery-bg.js?v=2"></script>
 </body>
 </html>
 {% endraw %}

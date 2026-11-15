@@ -1,0 +1,806 @@
+{
+ "source": "National Gallery of Art open access (api.nga.gov IIIF)",
+ "bytes_2560": 110357436,
+ "works": [
+  {
+   "id": "bdb650b1-c025-4f56-8fb3-0d781346fc5f",
+   "side": "good",
+   "title": "The Adoration of the Magi",
+   "artist": "Fra Angelico and Fra Filippo Lippi",
+   "year": "c. 1440/1460",
+   "iiif": "https://api.nga.gov/iiif/bdb650b1-c025-4f56-8fb3-0d781346fc5f",
+   "w": 23667,
+   "h": 23667
+  },
+  {
+   "id": "46633bd6-4834-40fb-8ce0-fb975c731dc1",
+   "side": "good",
+   "title": "The Annunciation",
+   "artist": "Jan van Eyck",
+   "year": "c. 1434/1436",
+   "iiif": "https://api.nga.gov/iiif/46633bd6-4834-40fb-8ce0-fb975c731dc1",
+   "w": 15339,
+   "h": 40461
+  },
+  {
+   "id": "f033a552-2901-4c21-95ed-93d13e598632",
+   "side": "good",
+   "title": "The Alba Madonna",
+   "artist": "Raphael",
+   "year": "c. 1510",
+   "iiif": "https://api.nga.gov/iiif/f033a552-2901-4c21-95ed-93d13e598632",
+   "w": 24180,
+   "h": 24180
+  },
+  {
+   "id": "3a640014-a2f0-4cd4-b440-979f62316da2",
+   "side": "good",
+   "title": "The Feast of the Gods",
+   "artist": "Giovanni Bellini and Titian",
+   "year": "1514/1529",
+   "iiif": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2",
+   "w": 26900,
+   "h": 24642
+  },
+  {
+   "id": "0fd27212-b70a-4a0b-9e7c-ed0d8bbe7ebf",
+   "side": "good",
+   "title": "The Adoration of the Magi",
+   "artist": "Sandro Botticelli",
+   "year": "c. 1478/1482",
+   "iiif": "https://api.nga.gov/iiif/0fd27212-b70a-4a0b-9e7c-ed0d8bbe7ebf",
+   "w": 25750,
+   "h": 17129
+  },
+  {
+   "id": "c948cf32-e6c7-41a0-a053-0ad0562960c4",
+   "side": "good",
+   "title": "Woman Holding a Balance",
+   "artist": "Johannes Vermeer",
+   "year": "c. 1664",
+   "iiif": "https://api.nga.gov/iiif/c948cf32-e6c7-41a0-a053-0ad0562960c4",
+   "w": 23283,
+   "h": 26343
+  },
+  {
+   "id": "5b94c264-aaea-4f4b-bbdc-5c04bfd353b4",
+   "side": "good",
+   "title": "The Voyage of Life: Childhood",
+   "artist": "Thomas Cole",
+   "year": "1842",
+   "iiif": "https://api.nga.gov/iiif/5b94c264-aaea-4f4b-bbdc-5c04bfd353b4",
+   "w": 5121,
+   "h": 3459
+  },
+  {
+   "id": "1c3a0c23-3926-4475-b9b8-59cb1d72b410",
+   "side": "good",
+   "title": "The Voyage of Life: Youth",
+   "artist": "Thomas Cole",
+   "year": "1842",
+   "iiif": "https://api.nga.gov/iiif/1c3a0c23-3926-4475-b9b8-59cb1d72b410",
+   "w": 5117,
+   "h": 3501
+  },
+  {
+   "id": "4db3a919-839b-4813-b159-09bab60be497",
+   "side": "good",
+   "title": "The Voyage of Life: Old Age",
+   "artist": "Thomas Cole",
+   "year": "1842",
+   "iiif": "https://api.nga.gov/iiif/4db3a919-839b-4813-b159-09bab60be497",
+   "w": 5100,
+   "h": 3431
+  },
+  {
+   "id": "99758d9d-c10b-4d02-a198-7e49afb1f3a6",
+   "side": "good",
+   "title": "Woman with a Parasol - Madame Monet and Her Son",
+   "artist": "Claude Monet",
+   "year": "1875",
+   "iiif": "https://api.nga.gov/iiif/99758d9d-c10b-4d02-a198-7e49afb1f3a6",
+   "w": 12666,
+   "h": 15698
+  },
+  {
+   "id": "2476ae10-777c-43af-b48c-a6bc141aecac",
+   "side": "good",
+   "title": "Young Girl Reading",
+   "artist": "Jean Honoré Fragonard",
+   "year": "c. 1769",
+   "iiif": "https://api.nga.gov/iiif/2476ae10-777c-43af-b48c-a6bc141aecac",
+   "w": 12451,
+   "h": 15654
+  },
+  {
+   "id": "c49fa4a0-1e3a-4038-b7dd-ad9036146e73",
+   "side": "good",
+   "title": "Wivenhoe Park, Essex",
+   "artist": "John Constable",
+   "year": "1816",
+   "iiif": "https://api.nga.gov/iiif/c49fa4a0-1e3a-4038-b7dd-ad9036146e73",
+   "w": 22841,
+   "h": 12370
+  },
+  {
+   "id": "5f1692b3-d8ed-4a65-a4f5-281387550c8d",
+   "side": "good",
+   "title": "Lake Lucerne",
+   "artist": "Albert Bierstadt",
+   "year": "1858",
+   "iiif": "https://api.nga.gov/iiif/5f1692b3-d8ed-4a65-a4f5-281387550c8d",
+   "w": 7153,
+   "h": 4272
+  },
+  {
+   "id": "abec1c5b-ee32-450d-9398-5c84f1f8cf14",
+   "side": "good",
+   "title": "Madonna and Child Enthroned with Twelve Angels, and with the Blessing Christ [middle panel]",
+   "artist": "Agnolo Gaddi",
+   "year": "shortly before 1387",
+   "iiif": "https://api.nga.gov/iiif/abec1c5b-ee32-450d-9398-5c84f1f8cf14",
+   "w": 2197,
+   "h": 4960
+  },
+  {
+   "id": "e6890364-4d99-4684-a62b-5060ee3c3446",
+   "side": "good",
+   "title": "Saint Bernard and Saint Catherine of Alexandria with the Virgin of the Annunciation [right panel]",
+   "artist": "Agnolo Gaddi",
+   "year": "shortly before 1387",
+   "iiif": "https://api.nga.gov/iiif/e6890364-4d99-4684-a62b-5060ee3c3446",
+   "w": 2152,
+   "h": 4805
+  },
+  {
+   "id": "e64daf38-38e8-4d0c-acb2-8ff370cc188c",
+   "side": "good",
+   "title": "The Madonna of Humility",
+   "artist": "Fra Angelico",
+   "year": "c. 1430",
+   "iiif": "https://api.nga.gov/iiif/e64daf38-38e8-4d0c-acb2-8ff370cc188c",
+   "w": 18212,
+   "h": 24424
+  },
+  {
+   "id": "a0458b44-8db7-4694-8a03-349003ec91a7",
+   "side": "good",
+   "title": "Madonna and Child Enthroned with Four Saints and Eighteen Angels [middle panel]",
+   "artist": "Puccio di Simone and Allegretto Nuzi",
+   "year": "1354",
+   "iiif": "https://api.nga.gov/iiif/a0458b44-8db7-4694-8a03-349003ec91a7",
+   "w": 6407,
+   "h": 6161
+  },
+  {
+   "id": "955ee859-1172-48d6-b5b3-189857de82f0",
+   "side": "good",
+   "title": "The Madonna of Humility",
+   "artist": "Masaccio",
+   "year": "c. 1423/1424",
+   "iiif": "https://api.nga.gov/iiif/955ee859-1172-48d6-b5b3-189857de82f0",
+   "w": 3226,
+   "h": 6436
+  },
+  {
+   "id": "f25a6288-be3b-4d0f-8294-ce88b012e6b8",
+   "side": "good",
+   "title": "Madonna and Child with Angels and Cherubim",
+   "artist": "Matteo di Giovanni",
+   "year": "c. 1460/1465",
+   "iiif": "https://api.nga.gov/iiif/f25a6288-be3b-4d0f-8294-ce88b012e6b8",
+   "w": 18482,
+   "h": 26496
+  },
+  {
+   "id": "8e81c3c7-f5c7-4832-888a-9469d9890bed",
+   "side": "good",
+   "title": "Madonna and Child with Donor",
+   "artist": "Lippo Memmi",
+   "year": "1325/1330",
+   "iiif": "https://api.nga.gov/iiif/8e81c3c7-f5c7-4832-888a-9469d9890bed",
+   "w": 3039,
+   "h": 6408
+  },
+  {
+   "id": "e6497b39-66a9-4b6b-bf2b-c1633d20c0b6",
+   "side": "good",
+   "title": "The Annunciation",
+   "artist": "Masolino da Panicale",
+   "year": "c. 1423/1424",
+   "iiif": "https://api.nga.gov/iiif/e6497b39-66a9-4b6b-bf2b-c1633d20c0b6",
+   "w": 5015,
+   "h": 6482
+  },
+  {
+   "id": "b648ebba-7bc6-45ab-a41d-7fd20b0918ea",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Sandro Botticelli",
+   "year": "c. 1470",
+   "iiif": "https://api.nga.gov/iiif/b648ebba-7bc6-45ab-a41d-7fd20b0918ea",
+   "w": 18867,
+   "h": 25930
+  },
+  {
+   "id": "2ac0a514-b560-4a49-b533-9b4951d5bf2c",
+   "side": "good",
+   "title": "The Niccolini-Cowper Madonna",
+   "artist": "Raphael",
+   "year": "1508",
+   "iiif": "https://api.nga.gov/iiif/2ac0a514-b560-4a49-b533-9b4951d5bf2c",
+   "w": 18172,
+   "h": 25730
+  },
+  {
+   "id": "0913b166-8770-4215-a3c5-b89b606e0f02",
+   "side": "good",
+   "title": "Madonna and Child on a Curved Throne",
+   "artist": "Byzantine 13th Century (possibly from Constantinople)",
+   "year": "c. 1260/1280",
+   "iiif": "https://api.nga.gov/iiif/0913b166-8770-4215-a3c5-b89b606e0f02",
+   "w": 14651,
+   "h": 23915
+  },
+  {
+   "id": "ce218ff9-837d-41f9-80dd-d9578995013c",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Antonello da Messina",
+   "year": "c. 1475",
+   "iiif": "https://api.nga.gov/iiif/ce218ff9-837d-41f9-80dd-d9578995013c",
+   "w": 18519,
+   "h": 24954
+  },
+  {
+   "id": "3ec34856-8851-4913-8af2-a58605f45d2a",
+   "side": "good",
+   "title": "Madonna and Child with Saint Jerome and Saint John the Baptist",
+   "artist": "Cima da Conegliano",
+   "year": "c. 1492/1495",
+   "iiif": "https://api.nga.gov/iiif/3ec34856-8851-4913-8af2-a58605f45d2a",
+   "w": 7042,
+   "h": 4991
+  },
+  {
+   "id": "9bc6943e-0f09-4861-b665-fc4b0a7c29d1",
+   "side": "good",
+   "title": "Madonna and Child and the Infant Saint John in a Landscape",
+   "artist": "Polidoro Lanzani",
+   "year": "1540/1550",
+   "iiif": "https://api.nga.gov/iiif/9bc6943e-0f09-4861-b665-fc4b0a7c29d1",
+   "w": 15605,
+   "h": 7263
+  },
+  {
+   "id": "c4823e40-c213-4d32-a42b-56bd2330a6c5",
+   "side": "good",
+   "title": "Madonna and Child with Angels",
+   "artist": "Hans Memling",
+   "year": "after 1479",
+   "iiif": "https://api.nga.gov/iiif/c4823e40-c213-4d32-a42b-56bd2330a6c5",
+   "w": 10507,
+   "h": 13071
+  },
+  {
+   "id": "f38ca59b-b629-4268-bf64-f5d089c8cf06",
+   "side": "good",
+   "title": "Madonna of Humility, The Blessing Christ, Two Angels, and a Donor [obverse]",
+   "artist": "Andrea di Bartolo",
+   "year": "c. 1380/1390",
+   "iiif": "https://api.nga.gov/iiif/f38ca59b-b629-4268-bf64-f5d089c8cf06",
+   "w": 3393,
+   "h": 5628
+  },
+  {
+   "id": "d0273882-086e-437d-b0e0-6898631621f6",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Bartolomeo Montagna",
+   "year": "c. 1490",
+   "iiif": "https://api.nga.gov/iiif/d0273882-086e-437d-b0e0-6898631621f6",
+   "w": 4938,
+   "h": 6054
+  },
+  {
+   "id": "b6f187a4-7c28-4347-a465-f296cbe6b2c7",
+   "side": "good",
+   "title": "A Gentleman in Adoration before the Madonna",
+   "artist": "Giovanni Battista Moroni",
+   "year": "c. 1560",
+   "iiif": "https://api.nga.gov/iiif/b6f187a4-7c28-4347-a465-f296cbe6b2c7",
+   "w": 17952,
+   "h": 16434
+  },
+  {
+   "id": "6cb74e73-7fb1-4a00-8932-5a791aa03358",
+   "side": "good",
+   "title": "Madonna and Child with Angels",
+   "artist": "Ferrarese 15th Century",
+   "year": "c. 1455/1470",
+   "iiif": "https://api.nga.gov/iiif/6cb74e73-7fb1-4a00-8932-5a791aa03358",
+   "w": 3258,
+   "h": 4896
+  },
+  {
+   "id": "8af6e0ff-0847-4335-8fe3-72702e74fca5",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Bartolomeo Vivarini",
+   "year": "c. 1475",
+   "iiif": "https://api.nga.gov/iiif/8af6e0ff-0847-4335-8fe3-72702e74fca5",
+   "w": 4602,
+   "h": 5941
+  },
+  {
+   "id": "54f391df-3a86-4dda-b6c1-5900b6a7610d",
+   "side": "good",
+   "title": "The Annunciation to the Shepherds",
+   "artist": "Jacopo Bassano",
+   "year": "probably 1555/1560",
+   "iiif": "https://api.nga.gov/iiif/54f391df-3a86-4dda-b6c1-5900b6a7610d",
+   "w": 19622,
+   "h": 25622
+  },
+  {
+   "id": "8def61ec-27a6-40ca-a427-3d63c1acc0b4",
+   "side": "good",
+   "title": "Madonna Adoring the Child",
+   "artist": "Marco Basaiti",
+   "year": "c. 1520",
+   "iiif": "https://api.nga.gov/iiif/8def61ec-27a6-40ca-a427-3d63c1acc0b4",
+   "w": 2997,
+   "h": 3767
+  },
+  {
+   "id": "7d155b47-3193-4c54-9f91-93fe6f9ea46c",
+   "side": "good",
+   "title": "The Madonna of the Carnation",
+   "artist": "Bernardino Luini",
+   "year": "c. 1515",
+   "iiif": "https://api.nga.gov/iiif/7d155b47-3193-4c54-9f91-93fe6f9ea46c",
+   "w": 5527,
+   "h": 5982
+  },
+  {
+   "id": "469fcab3-4188-4c30-98ee-091f78150d9e",
+   "side": "good",
+   "title": "The Annunciation",
+   "artist": "Giannicola di Paolo",
+   "year": "1510/1515",
+   "iiif": "https://api.nga.gov/iiif/469fcab3-4188-4c30-98ee-091f78150d9e",
+   "w": 16085,
+   "h": 18319
+  },
+  {
+   "id": "6114c95d-1c1a-4785-88d1-c138e246adeb",
+   "side": "good",
+   "title": "The Coronation of the Virgin with Six Angels",
+   "artist": "Agnolo Gaddi",
+   "year": "c. 1390",
+   "iiif": "https://api.nga.gov/iiif/6114c95d-1c1a-4785-88d1-c138e246adeb",
+   "w": 6066,
+   "h": 12500
+  },
+  {
+   "id": "cec41beb-e9a3-447e-9529-2aa4f5b857ac",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Pier Francesco Fiorentino",
+   "year": "c. 1475",
+   "iiif": "https://api.nga.gov/iiif/cec41beb-e9a3-447e-9529-2aa4f5b857ac",
+   "w": 9020,
+   "h": 12385
+  },
+  {
+   "id": "1ecf0487-06e6-4236-85c3-8f9d55da908c",
+   "side": "good",
+   "title": "Madonna and Child",
+   "artist": "Pietro Perugino",
+   "year": "c. 1500",
+   "iiif": "https://api.nga.gov/iiif/1ecf0487-06e6-4236-85c3-8f9d55da908c",
+   "w": 11700,
+   "h": 16504
+  },
+  {
+   "id": "03ee67ee-dd0e-443f-84ef-ede5f62ce0cd",
+   "side": "evil",
+   "title": "Death and the Miser",
+   "artist": "Hieronymus Bosch",
+   "year": "c. 1485/1490",
+   "iiif": "https://api.nga.gov/iiif/03ee67ee-dd0e-443f-84ef-ede5f62ce0cd",
+   "w": 12375,
+   "h": 36971
+  },
+  {
+   "id": "b9047a35-7e24-45bc-bd99-ea19137bc724",
+   "side": "evil",
+   "title": "Laocoön",
+   "artist": "El Greco (Domenikos Theotokopoulos)",
+   "year": "c. 1610/1614",
+   "iiif": "https://api.nga.gov/iiif/b9047a35-7e24-45bc-bd99-ea19137bc724",
+   "w": 38035,
+   "h": 30230
+  },
+  {
+   "id": "3612e738-ac27-4600-804c-db9cbbf16c30",
+   "side": "evil",
+   "title": "Daniel in the Lions' Den",
+   "artist": "Sir Peter Paul Rubens",
+   "year": "c. 1614/1616",
+   "iiif": "https://api.nga.gov/iiif/3612e738-ac27-4600-804c-db9cbbf16c30",
+   "w": 25211,
+   "h": 17048
+  },
+  {
+   "id": "b38ce693-ba56-4953-9c2c-d8139fe4b059",
+   "side": "evil",
+   "title": "Watson and the Shark",
+   "artist": "John Singleton Copley",
+   "year": "1778",
+   "iiif": "https://api.nga.gov/iiif/b38ce693-ba56-4953-9c2c-d8139fe4b059",
+   "w": 32121,
+   "h": 25469
+  },
+  {
+   "id": "242acea8-e32b-4119-bd4c-2d8d87675f4b",
+   "side": "evil",
+   "title": "The Voyage of Life: Manhood",
+   "artist": "Thomas Cole",
+   "year": "1842",
+   "iiif": "https://api.nga.gov/iiif/242acea8-e32b-4119-bd4c-2d8d87675f4b",
+   "w": 5272,
+   "h": 3468
+  },
+  {
+   "id": "c1e33e8d-ffe4-4d20-a267-87ffcf94f7ce",
+   "side": "evil",
+   "title": "Keelmen Heaving in Coals by Moonlight",
+   "artist": "Joseph Mallord William Turner",
+   "year": "1835",
+   "iiif": "https://api.nga.gov/iiif/c1e33e8d-ffe4-4d20-a267-87ffcf94f7ce",
+   "w": 5144,
+   "h": 3820
+  },
+  {
+   "id": "e09726b3-80e9-4f7a-83fc-81a5122df494",
+   "side": "evil",
+   "title": "The Repentant Magdalen",
+   "artist": "Georges de La Tour",
+   "year": "c. 1635/1640",
+   "iiif": "https://api.nga.gov/iiif/e09726b3-80e9-4f7a-83fc-81a5122df494",
+   "w": 3714,
+   "h": 4373
+  },
+  {
+   "id": "55182e13-5f28-46e1-af6a-e3cd573ce00f",
+   "side": "evil",
+   "title": "The Small Crucifixion",
+   "artist": "Matthias Grünewald",
+   "year": "c. 1511/1520",
+   "iiif": "https://api.nga.gov/iiif/55182e13-5f28-46e1-af6a-e3cd573ce00f",
+   "w": 20786,
+   "h": 27968
+  },
+  {
+   "id": "64f98f88-fb97-44a6-8ac1-2c57f4a2f10b",
+   "side": "evil",
+   "title": "Oedipus Cursing His Son Polynices",
+   "artist": "Henry Fuseli",
+   "year": "1786",
+   "iiif": "https://api.nga.gov/iiif/64f98f88-fb97-44a6-8ac1-2c57f4a2f10b",
+   "w": 12417,
+   "h": 11337
+  },
+  {
+   "id": "1d5813d5-1e83-4f97-867c-62dc8629cf7f",
+   "side": "evil",
+   "title": "Siegfried and the Rhine Maidens",
+   "artist": "Albert Pinkham Ryder",
+   "year": "1888/1891",
+   "iiif": "https://api.nga.gov/iiif/1d5813d5-1e83-4f97-867c-62dc8629cf7f",
+   "w": 12653,
+   "h": 12311
+  },
+  {
+   "id": "01237f76-ea86-476f-8533-fde7672eb369",
+   "side": "evil",
+   "title": "Circe and Her Lovers in a Landscape",
+   "artist": "Dosso Dossi",
+   "year": "c. 1525",
+   "iiif": "https://api.nga.gov/iiif/01237f76-ea86-476f-8533-fde7672eb369",
+   "w": 32821,
+   "h": 24135
+  },
+  {
+   "id": "daff38f5-b88f-47b3-af99-bd1b852af522",
+   "side": "evil",
+   "title": "Lucretia",
+   "artist": "Rembrandt van Rijn",
+   "year": "1664",
+   "iiif": "https://api.nga.gov/iiif/daff38f5-b88f-47b3-af99-bd1b852af522",
+   "w": 16225,
+   "h": 19065
+  },
+  {
+   "id": "b9d543b3-e55a-490c-b72e-5b038071bc9c",
+   "side": "evil",
+   "title": "The Mill",
+   "artist": "Rembrandt van Rijn",
+   "year": "1645/1648",
+   "iiif": "https://api.nga.gov/iiif/b9d543b3-e55a-490c-b72e-5b038071bc9c",
+   "w": 22180,
+   "h": 18526
+  },
+  {
+   "id": "5ff9987b-cec6-41ec-bc6f-8732e0c6ca68",
+   "side": "evil",
+   "title": "Christ at the Sea of Galilee",
+   "artist": "Circle of Jacopo Tintoretto (Probably Lambert Sustris)",
+   "year": "c. 1570s",
+   "iiif": "https://api.nga.gov/iiif/5ff9987b-cec6-41ec-bc6f-8732e0c6ca68",
+   "w": 39954,
+   "h": 27379
+  },
+  {
+   "id": "ae16bf56-a60b-496a-8a33-e6f76895ed2e",
+   "side": "evil",
+   "title": "The Death of the Fox",
+   "artist": "George Morland",
+   "year": "c. 1791/1794",
+   "iiif": "https://api.nga.gov/iiif/ae16bf56-a60b-496a-8a33-e6f76895ed2e",
+   "w": 8168,
+   "h": 6191
+  },
+  {
+   "id": "aee8484d-34b4-41b1-acc2-07499f5bbddc",
+   "side": "evil",
+   "title": "Moonlight",
+   "artist": "Imitator of Ralph Albert Blakelock",
+   "year": "early 20th century",
+   "iiif": "https://api.nga.gov/iiif/aee8484d-34b4-41b1-acc2-07499f5bbddc",
+   "w": 6523,
+   "h": 4840
+  },
+  {
+   "id": "dd247de1-d0d9-45df-83b1-30c1d336c1c4",
+   "side": "evil",
+   "title": "The Death of the Earl of Chatham",
+   "artist": "John Singleton Copley",
+   "year": "1779",
+   "iiif": "https://api.nga.gov/iiif/dd247de1-d0d9-45df-83b1-30c1d336c1c4",
+   "w": 7104,
+   "h": 5800
+  },
+  {
+   "id": "a189c02e-3c60-4d9d-b70c-c9030f9da2a9",
+   "side": "evil",
+   "title": "The Martyrdom of Saint Catherine",
+   "artist": "Antwerp 16th Century (Possibly Matthys Cock)",
+   "year": "c. 1540",
+   "iiif": "https://api.nga.gov/iiif/a189c02e-3c60-4d9d-b70c-c9030f9da2a9",
+   "w": 23497,
+   "h": 12442
+  },
+  {
+   "id": "74632dfe-6945-4d2b-b5aa-371df62fd24e",
+   "side": "evil",
+   "title": "The Death of Saint Anthony",
+   "artist": "Master of the Osservanza (Sano di Pietro?)",
+   "year": "c. 1430/1435",
+   "iiif": "https://api.nga.gov/iiif/74632dfe-6945-4d2b-b5aa-371df62fd24e",
+   "w": 15896,
+   "h": 15013
+  },
+  {
+   "id": "2fb43ee0-b4bb-4fea-9868-f265225b18c4",
+   "side": "evil",
+   "title": "The Death of Saint Clare",
+   "artist": "Master of Heiligenkreuz",
+   "year": "c. 1400/1410",
+   "iiif": "https://api.nga.gov/iiif/2fb43ee0-b4bb-4fea-9868-f265225b18c4",
+   "w": 16852,
+   "h": 20437
+  },
+  {
+   "id": "abf475f0-0552-45fd-a22f-74b81b495006",
+   "side": "evil",
+   "title": "Jane Storm Teller",
+   "artist": "Ammi Phillips",
+   "year": "c. 1835",
+   "iiif": "https://api.nga.gov/iiif/abf475f0-0552-45fd-a22f-74b81b495006",
+   "w": 11909,
+   "h": 14553
+  },
+  {
+   "id": "e96bebf4-3700-4f94-9903-8cfc4f195719",
+   "side": "evil",
+   "title": "Moonlight",
+   "artist": "Julian Alden Weir",
+   "year": "c. 1905",
+   "iiif": "https://api.nga.gov/iiif/e96bebf4-3700-4f94-9903-8cfc4f195719",
+   "w": 5776,
+   "h": 6995
+  },
+  {
+   "id": "90bcc63f-35ae-4118-96e8-eebc7a3b6e84",
+   "side": "evil",
+   "title": "The Adoration of the Skulls",
+   "artist": "Michel-François Dandré-Bardon",
+   "year": "c. 1733/1734",
+   "iiif": "https://api.nga.gov/iiif/90bcc63f-35ae-4118-96e8-eebc7a3b6e84",
+   "w": 15815,
+   "h": 13099
+  },
+  {
+   "id": "5c5e94ac-df18-4bf3-97c4-124d6fc85156",
+   "side": "evil",
+   "title": "Shepherd Boys and Dog Sheltering from a Storm",
+   "artist": "Thomas Barker",
+   "year": "c. 1789/1790",
+   "iiif": "https://api.nga.gov/iiif/5c5e94ac-df18-4bf3-97c4-124d6fc85156",
+   "w": 5538,
+   "h": 7001
+  },
+  {
+   "id": "4857016f-c0c3-4aee-aea3-729823b9db8a",
+   "side": "evil",
+   "title": "Nayas Village at Night",
+   "artist": "George Catlin",
+   "year": "1855/1869",
+   "iiif": "https://api.nga.gov/iiif/4857016f-c0c3-4aee-aea3-729823b9db8a",
+   "w": 7639,
+   "h": 5962
+  },
+  {
+   "id": "d32f10af-c491-45c2-97cf-594a9ec3552c",
+   "side": "evil",
+   "title": "Spearing by Moonlight - Chaco",
+   "artist": "George Catlin",
+   "year": "1854/1869",
+   "iiif": "https://api.nga.gov/iiif/d32f10af-c491-45c2-97cf-594a9ec3552c",
+   "w": 10905,
+   "h": 8531
+  },
+  {
+   "id": "309ca665-ff41-4f7e-8433-c8dd6e0038a0",
+   "side": "evil",
+   "title": "Storm-Tossed Frigate",
+   "artist": "Thomas Chambers",
+   "year": "mid 19th century",
+   "iiif": "https://api.nga.gov/iiif/309ca665-ff41-4f7e-8433-c8dd6e0038a0",
+   "w": 18205,
+   "h": 12745
+  },
+  {
+   "id": "33e69f85-6eec-4d80-8ddd-48fde0795bef",
+   "side": "evil",
+   "title": "Landscape between Storms",
+   "artist": "Auguste Renoir",
+   "year": "1874/1875",
+   "iiif": "https://api.nga.gov/iiif/33e69f85-6eec-4d80-8ddd-48fde0795bef",
+   "w": 6486,
+   "h": 4734
+  },
+  {
+   "id": "944afd93-9c4a-47e4-be24-c0d2890f3ae6",
+   "side": "evil",
+   "title": "Parau na te Varua ino (Words of the Devil)",
+   "artist": "Paul Gauguin",
+   "year": "1892",
+   "iiif": "https://api.nga.gov/iiif/944afd93-9c4a-47e4-be24-c0d2890f3ae6",
+   "w": 12716,
+   "h": 17105
+  },
+  {
+   "id": "215d8ccb-49a9-47a1-a4c8-ab8a5601ea3c",
+   "side": "evil",
+   "title": "Peasants Celebrating Twelfth Night",
+   "artist": "David Teniers the Younger",
+   "year": "1635",
+   "iiif": "https://api.nga.gov/iiif/215d8ccb-49a9-47a1-a4c8-ab8a5601ea3c",
+   "w": 18368,
+   "h": 12358
+  },
+  {
+   "id": "15ca024f-258c-4b46-a1c8-f30c008318e1",
+   "side": "evil",
+   "title": "Club Night",
+   "artist": "George Bellows",
+   "year": "1907",
+   "iiif": "https://api.nga.gov/iiif/15ca024f-258c-4b46-a1c8-f30c008318e1",
+   "w": 12107,
+   "h": 9771
+  },
+  {
+   "id": "5873925b-b7af-4e64-ae92-5435562f23ed",
+   "side": "evil",
+   "title": "Moonlight on the Yare",
+   "artist": "John Crome",
+   "year": "c. 1816/1817",
+   "iiif": "https://api.nga.gov/iiif/5873925b-b7af-4e64-ae92-5435562f23ed",
+   "w": 29856,
+   "h": 23220
+  },
+  {
+   "id": "eb807a2b-ff3f-4113-8617-d2575a2b4f2d",
+   "side": "evil",
+   "title": "Martyrdom of Saint Margaret",
+   "artist": "Giuseppe Cesari, called Cavaliere d'Arpino",
+   "year": "c. 1608/1611",
+   "iiif": "https://api.nga.gov/iiif/eb807a2b-ff3f-4113-8617-d2575a2b4f2d",
+   "w": 4785,
+   "h": 6598
+  },
+  {
+   "id": "4632aa5a-a7f9-4807-9cef-76b7ef661d40",
+   "side": "evil",
+   "title": "The Martyrdom and Last Communion of Saint Lucy",
+   "artist": "Veronese",
+   "year": "c. 1585/1586",
+   "iiif": "https://api.nga.gov/iiif/4632aa5a-a7f9-4807-9cef-76b7ef661d40",
+   "w": 21866,
+   "h": 17639
+  },
+  {
+   "id": "f68cac7e-19ef-43fb-bd0c-43df04602173",
+   "side": "evil",
+   "title": "The Martyrdom of Saint Bartholomew",
+   "artist": "Jusepe de Ribera",
+   "year": "1634",
+   "iiif": "https://api.nga.gov/iiif/f68cac7e-19ef-43fb-bd0c-43df04602173",
+   "w": 18907,
+   "h": 17570
+  },
+  {
+   "id": "4b7a7e71-191c-41f7-8da9-d8a00eded3bc",
+   "side": "evil",
+   "title": "The Approaching Storm",
+   "artist": "Constant Troyon",
+   "year": "1849",
+   "iiif": "https://api.nga.gov/iiif/4b7a7e71-191c-41f7-8da9-d8a00eded3bc",
+   "w": 9934,
+   "h": 7358
+  },
+  {
+   "id": "83544e9a-2499-4d42-aeb1-62dbc2c2392b",
+   "side": "evil",
+   "title": "Cloud Study: Stormy Sunset",
+   "artist": "John Constable",
+   "year": "1821-1822",
+   "iiif": "https://api.nga.gov/iiif/83544e9a-2499-4d42-aeb1-62dbc2c2392b",
+   "w": 6519,
+   "h": 4618
+  },
+  {
+   "id": "a397a12f-ba08-4586-bf9d-9d8c099fbdf9",
+   "side": "evil",
+   "title": "The Martyrdom of Saint Lawrence",
+   "artist": "Jean Baptiste de Champaigne",
+   "year": "c. 1660",
+   "iiif": "https://api.nga.gov/iiif/a397a12f-ba08-4586-bf9d-9d8c099fbdf9",
+   "w": 3720,
+   "h": 4440
+  },
+  {
+   "id": "05d70ba8-5283-44eb-92df-b8e286cf4217",
+   "side": "evil",
+   "title": "The Martyrdom of Saint Gennaro",
+   "artist": "Mattia Preti",
+   "year": "c. 1685",
+   "iiif": "https://api.nga.gov/iiif/05d70ba8-5283-44eb-92df-b8e286cf4217",
+   "w": 6949,
+   "h": 5167
+  },
+  {
+   "id": "8681fef5-68c8-4449-9a71-4722f0bc2899",
+   "side": "evil",
+   "title": "Buffalo Trail: The Impending Storm",
+   "artist": "Albert Bierstadt",
+   "year": "1869",
+   "iiif": "https://api.nga.gov/iiif/8681fef5-68c8-4449-9a71-4722f0bc2899",
+   "w": 22191,
+   "h": 13222
+  }
+ ]
+}

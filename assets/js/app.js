@@ -809,6 +809,7 @@
             try {
                 const front = !!window.__remoteFront; window.__remoteFront = false;   // started from the phone remote (remote-link.js)
                 if (await pywebview.api.play_native(String(id), token || '', front)) {
+                    window.__nativeOpen = true;                                       // gallery-bg.js holds the painting still while this is set
                     pauseMusicForVideo();
                     try { post('/api/player/stop', {}); } catch (e) {}              // and the old in-window picture (libmpv child window) must be gone
                     return true;
@@ -820,7 +821,7 @@
             if (playingId || String(id) !== String(lastNativeId)) return;        // another video took over: never start a second picture
             nativeBroken = true; if (typeof toast === 'function') toast('The native player could not start, using the built-in one (see native_player.log)'); playVideo(id);
         };
-        window.nativePlayerClosed = function () { try { resumeMusicAfterVideo(); } catch (e) {} Promise.resolve().then(async () => { try { await loadVideos(scopeOf(lastNativeId)); refreshSeries(); } catch (e) { console.error(e); } }); };
+        window.nativePlayerClosed = function () { window.__nativeOpen = false; try { resumeMusicAfterVideo(); } catch (e) {} Promise.resolve().then(async () => { try { await loadVideos(scopeOf(lastNativeId)); refreshSeries(); } catch (e) { console.error(e); } }); };
         let lastNativeId = null;
         async function playVideo(id) {
             if (!playingId) { lastNativeId = id; if (await playNative(id)) return; }
@@ -3255,7 +3256,7 @@
             }
             return TIME_KF[0][1];
         }
-        const greetNow = hr => (hr < 5 || hr >= 21) ? 'Good night' : hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+        const greetNow = hr => (window.galleryBg && galleryBg.greet(hr)) || ((hr < 5 || hr >= 21) ? 'Good night' : hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening');
         const greetIcon = hr => (hr < 5 || hr >= 21) ? 'fa-moon' : hr < 12 ? 'fa-sun' : hr < 17 ? 'fa-cloud-sun' : 'fa-cloud-moon';
         function hcParts(d) { const h = d.getHours(); return { h: String(h % 12 || 12), m: String(d.getMinutes()).padStart(2, '0'), ap: h < 12 ? 'AM' : 'PM' }; }
         let hcKey = '';
@@ -3386,9 +3387,9 @@
         // ======================= v8: theme, hover previews, Now Playing =======================
         // ======================= background: Dark / Colorful (your image) / Sync with time =======================
         // One fixed layer behind everything. It never reacts to the tab you are on, so nothing fades or changes colour when you navigate.
-        const BG_MODES = ['dark', 'colorful', 'time'];
-        const BG_NAMES = { dark: 'Dark', colorful: 'Colorful', time: 'Sync with time' };
-        const BG_ICON = { dark: 'fa-moon', colorful: 'fa-palette', time: 'fa-clock' };
+        const BG_MODES = ['dark', 'colorful', 'time', 'art'];         // art = Gallery (paintings, gallery-bg.js); on the page it is "colorful" + data-art
+        const BG_NAMES = { dark: 'Dark', colorful: 'Colorful', time: 'Sync with time', art: 'Gallery' };
+        const BG_ICON = { dark: 'fa-moon', colorful: 'fa-palette', time: 'fa-clock', art: 'fa-landmark' };
         const BG_PRESETS = {
             aurora: 'linear-gradient(135deg,#0f2027 0%,#1b6b74 36%,#4b3b8f 70%,#a24bb5 100%)',
             sunset: 'linear-gradient(160deg,#2b1055 0%,#7a2e7a 38%,#e4577a 70%,#f7a35c 100%)',
@@ -3405,9 +3406,9 @@
             else put();                                  // later minutes glide in slowly (see #bg-layer transition)
         }
         function applyBackground() {
-            const mode = BG_MODES.includes(prefs.bg_mode) ? prefs.bg_mode : 'dark', de = document.documentElement;
-            de.setAttribute('data-bg', mode); de.setAttribute('data-theme', 'dark');
-            try { localStorage.setItem('lmp_bg', mode); } catch (e) {}
+            const mode = BG_MODES.includes(prefs.bg_mode) ? prefs.bg_mode : 'dark', de = document.documentElement, dom = mode === 'art' ? 'colorful' : mode;
+            de.setAttribute('data-bg', dom); de.setAttribute('data-theme', 'dark');
+            try { localStorage.setItem('lmp_bg', dom); } catch (e) {}               // the pre-paint script in index.html reads the DOM value
             const L = $('bg-layer');
             if (L && mode === 'colorful') {
                 const bi = prefs.bg_image || '';
@@ -3418,9 +3419,14 @@
             }
             if (mode === 'time') paintTimeBg();
             const b = $('theme-btn'); if (b) { b.innerHTML = `<i class="fas ${BG_ICON[mode]}"></i>`; b.title = 'Background: ' + BG_NAMES[mode] + ' (click to change)'; }
+            if (window.galleryBg) { try { galleryBg.sync(mode === 'art'); } catch (e) { console.error(e); } }   // paintings, side, sigil
             syncInPlayer();
         }
-        function quickTheme() { const i = BG_MODES.indexOf(prefs.bg_mode || 'dark'); setPref({ bg_mode: BG_MODES[(i + 1) % BG_MODES.length] }); }
+        function quickTheme(ev) {
+            // Gallery mode: a click on the sigil flips Good / Evil until the next Turning; Shift+click still cycles the modes
+            if (prefs.bg_mode === 'art' && ev && ev.currentTarget && ev.currentTarget.id === 'theme-btn' && !ev.shiftKey && window.galleryBg) { galleryBg.flip(); return; }
+            const i = BG_MODES.indexOf(prefs.bg_mode || 'dark'); setPref({ bg_mode: BG_MODES[(i + 1) % BG_MODES.length] });
+        }
         function setClockStyle(k) { setPref({ clock_style: k }); }
         function paintClockStyles() { const b = $('set-clockstyle'); if (b && window.ckStyleTiles) b.innerHTML = ckStyleTiles(prefs.clock_style || 'logo', 'setClockStyle'); }
         function paintBgImages() {

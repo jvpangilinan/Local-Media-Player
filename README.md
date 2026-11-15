@@ -50,6 +50,16 @@
 # What's new
 
 
+## V6: Gallery, Good by day and Evil by night
+A fourth background, **Gallery** (Settings > Background), shows open-access paintings from the National Gallery of Art behind the app.
+- **Two sides.** By day (06:00-18:00) the paintings are **Good**: light, grace, dawn, with gilt and sky accents. At night they turn **Evil**: storms, hell, candlelight, with ember and blood accents. Under the Gallery tile you can pick **Auto / Good / Evil**.
+- **The Turning.** If the app is open at 06:00 or 18:00, the painting slowly crossfades (12 s) to the other side and the accents follow.
+- **The sigil.** In Gallery mode the theme button is a sun or a flame. Click it to switch sides until the next Turning (stay in the light until dawn, or look at the dark until dusk). Shift+click still changes the background mode.
+- **Still while you work.** One painting at a time, no motion. A new one at each launch and every 10 minutes, never while a video plays. A small plaque (title, artist, year) shows for a few seconds after each change.
+- **Gallery view.** After 3 idle minutes with no video playing, or when you click the plaque, the app fades out and the painting fills the window with a slow pan and zoom. Any key, click or mouse move brings you back, and that input doesn't also press anything underneath. In Gallery mode it replaces the clock screensaver, follows the same Screensaver switch, and "Preview screensaver" shows it. With reduced motion turned on in Windows, the picture stays still.
+- **Offline.** 6 paintings ship with the app, so it works with no network at all. **Download the collection** in Settings fetches all 80 (about 105 MB) from the NGA image server into your data folder, one at a time. It picks up where it left off, and **Remove** deletes them again.
+- Behind it: `/api/art/status|install|list`, `DELETE /api/art`, `/art/<id>.jpg`; prefs `bg_mode: "art"` and `art_side`. The list is `assets/art/manifest.json`, made with `tools/art_curate.py`. Test: `tests/test_art.py`.
+
 ## V6: fullscreen fixes
 - Fullscreen always acts on the main window. Before, it could pick the separate player window (also called "ULTRON") and strip that one instead.
 - On Windows 11, fullscreen no longer has rounded corners or a thin border around the screen.

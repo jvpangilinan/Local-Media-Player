@@ -358,6 +358,7 @@
     }, { passive: true, capture: true });
     setInterval(function () {
       if (!on('idle') || idle.on || D.hidden || vidOpen()) return;
+      if (window.galleryBg && galleryBg.current && galleryBg.current()) return;     // Gallery mode: its own idle screen (gallery-bg.js) takes over
       if (Date.now() - idle.last > 180000) showIdle();
     }, 5000);
     hooks.idle = function (v) { if (!v) hideIdle(); };
@@ -435,7 +436,7 @@
       if (sw) { var v = sw.getAttribute('aria-checked') !== 'true'; sw.setAttribute('aria-checked', String(v)); setFx(sw.dataset.fx, v); return; }
       var a = e.target.closest && e.target.closest('[data-a]'); if (!a) return;
       if (a.dataset.a === 'new') { openNew(); }
-      else if (a.dataset.a === 'idle') { if (typeof closeSettings === 'function') closeSettings(); setTimeout(showIdle, 300); }
+      else if (a.dataset.a === 'idle') { if (typeof closeSettings === 'function') closeSettings(); setTimeout(function () { if (window.galleryBg && galleryBg.current && galleryBg.current() && window.galleryView) galleryView.open(); else showIdle(); }, 300); }
       else if (a.dataset.a === 'party') { confetti(150); }
     });
     if (nav) {

@@ -1,0 +1,30 @@
+# side | artist | title   (substring match, accents/case ignored; "_" matches any one char; dropped if not found or not open access)
+good | Fra Angelico | Adoration of the Magi
+good | van Eyck | Annunciation
+good | Raphael | Alba Madonna
+good | Bellini | Feast of the Gods
+good | Botticelli | Adoration of the Magi
+good | Vermeer | Woman Holding a Balance
+good | Cole | Voyage of Life: Childhood
+good | Cole | Voyage of Life: Youth
+good | Cole | Voyage of Life: Old Age
+good | Monet | Woman with a Parasol
+good | Fragonard | Young Girl Reading
+good | Church | Morning in the Tropics
+good | Constable | Wivenhoe Park
+good | Bierstadt | Lake Lucerne
+evil | Bosch | Death and the Miser
+evil | Greco | Laoco
+evil | Rubens | Daniel in the Lions
+evil | Copley | Watson and the Shark
+evil | Cole | Voyage of Life: Manhood
+evil | Turner | Keelmen Heaving in Coals
+evil | La Tour | Repentant Magdalen
+evil | Gr_newald | Small Crucifixion
+evil | Fuseli | Oedipus Cursing
+evil | Blake | Great Red Dragon and the Woman
+evil | Ryder | Siegfried and the Rhine
+evil | Dossi | Circe
+evil | Rembrandt | Lucretia
+evil | Rembrandt | The Mill
+evil | Tintoretto | Christ at the Sea of Galilee

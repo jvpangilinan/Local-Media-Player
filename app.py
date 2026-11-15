@@ -3288,7 +3288,7 @@ def api_open_folder():
 # ----------------------------------------------------------------------------- user preferences
 # Add a new setting in 3 places: here (default), clean_pref() (validation), and the Settings panel in index.html.
 DISPLAY_MODES = ("windowed", "maximized", "fullscreen")
-BG_MODES = ("dark", "colorful", "time")            # "light" was removed; a saved "light" falls back to dark
+BG_MODES = ("dark", "colorful", "time", "art")          # "light" was removed; a saved "light" falls back to dark
 CLOCK_STYLES = ("logo", "auto", "gold", "light", "dark", "emerald", "minimal")
 DISPLAY_KEYS = ("display_mode", "win_width", "win_height")
 FOLDER_KEYS = {"video": "video_dir", "music": "music_dir", "private": "private_dir", "photos": "photo_dir", "clips": "clips_dir", "shots": "shots_dir"}   # kind -> CFG / prefs key
@@ -3297,6 +3297,7 @@ PREF_DEFAULTS = {
     "wheel_rows": True,            # mouse wheel scrolls the video rows sideways
     "bg_mode": "dark",             # dark | colorful (your image) | time (colour follows the time of day)
     "clock_style": "logo",         # clock design on Home and in the corner: logo (your logo.png as the dial; old "auto" also means this) | gold | light | dark | emerald | minimal
+    "art_side": "auto",            # Gallery background (bg_mode "art"): auto (Good by day, Evil by night) | good | evil
     "bg_image": "",                # colorful mode: "" (default) | "preset:<name>" | "custom" (the uploaded picture)
     "hover_preview": True,         # home banner + private-library cards play a short muted preview when hovered
     "ag_online": False,            # Smart genres may look titles up online (TMDB / MusicBrainz / Last.fm)
@@ -3390,6 +3391,8 @@ def clean_pref(key, value):
         return value if value in CLOCK_STYLES else default
     if key == "bg_mode":
         return value if value in BG_MODES else default
+    if key == "art_side":
+        return value if value in ("auto", "good", "evil") else default
     if key == "bg_image":
         v = str(value or "")
         return v if (v == "custom" or re.fullmatch(r"preset:[a-z]{3,16}", v)) else ""
@@ -7498,6 +7501,136 @@ def api_ffmpeg_folder():
         return jsonify({"error": "That folder does not contain both ffmpeg and ffprobe."}), 400
     save_prefs({"ffmpeg_dir": str(d)})
     return jsonify(ff_status())
+
+
+# ----------------------------------------------------------------------------- Gallery paintings (National Gallery of Art, open access)
+# assets/art/manifest.json lists the curated works; assets/art/starter/ ships a few so Gallery mode works offline. The rest is an
+# opt-in download into DATA_DIR/art (one file at a time, resumable, api.nga.gov only).
+ART_STATE = {"state": "idle", "pct": 0, "msg": "", "error": ""}        # idle | running | error
+ART_LOCK = threading.Lock()
+ART_HOST = "api.nga.gov"
+ART_SIZE = "!2560,2560"
+ART_ID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def _art_set(**kw):
+    with ART_LOCK:
+        ART_STATE.update(kw)
+
+
+def _art_load():
+    try:
+        return json.loads((APP_DIR / "assets" / "art" / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _art_manifest():
+    """Works from the shipped manifest (empty list if it is missing or broken)."""
+    works = _art_load().get("works")
+    return [w for w in works if isinstance(w, dict) and ART_ID_RE.fullmatch(str(w.get("id", "")))] if isinstance(works, list) else []
+
+
+def _art_url_ok(url):
+    u = urllib.parse.urlparse(str(url or ""))
+    return u.scheme == "https" and u.hostname == ART_HOST
+
+
+def _art_file(wid):
+    """Path of a painting on disk (downloaded copy first, then the starter pack) or None."""
+    if not ART_ID_RE.fullmatch(str(wid)):
+        return None
+    for d in (DATA_DIR / "art", APP_DIR / "assets" / "art" / "starter"):
+        p = d / (wid + ".jpg")
+        if p.is_file():
+            return p
+    return None
+
+
+def _art_fetch(url, dest):
+    """Download one image to dest (tests replace this). Only https://api.nga.gov is allowed."""
+    if not _art_url_ok(url):
+        raise RuntimeError("refusing to download from a host other than " + ART_HOST)
+    req = urllib.request.Request(url, headers={"User-Agent": "ULTRON"})
+    with urllib.request.urlopen(req, timeout=60) as r, open(dest, "wb") as f:
+        shutil.copyfileobj(r, f, 1 << 20)
+
+
+def art_status():
+    works = _art_manifest()
+    dl = DATA_DIR / "art"
+    with ART_LOCK:
+        st = dict(ART_STATE)
+    return {"total": len(works), "downloaded": sum(1 for w in works if (dl / (w["id"] + ".jpg")).is_file()),
+            "available": sum(1 for w in works if _art_file(w["id"])),
+            "bytes": int(_art_load().get("bytes_2560") or 0), "install": st}
+
+
+def _art_install_worker():
+    dest = DATA_DIR / "art"
+    try:
+        dest.mkdir(parents=True, exist_ok=True)
+        works = _art_manifest()
+        for i, w in enumerate(works):
+            out = dest / (w["id"] + ".jpg")
+            if out.is_file():
+                continue
+            url = "%s/full/%s/0/default.jpg" % (str(w.get("iiif", "")).rstrip("/"), ART_SIZE)
+            if not _art_url_ok(url):
+                raise RuntimeError("refusing to download from a host other than " + ART_HOST)
+            _art_set(msg="Downloading %d of %d..." % (i + 1, len(works)), pct=int(i / len(works) * 100))
+            part = dest / (w["id"] + ".part")
+            try:
+                _art_fetch(url, part)
+                os.replace(part, out)
+            finally:
+                try:
+                    part.unlink()
+                except OSError:
+                    pass
+        _art_set(state="idle", pct=100, msg="Done", error="")
+    except Exception as e:
+        log.exception("art download failed")
+        _art_set(state="error", pct=0, msg="", error=(str(e) or "download failed")[:300])
+
+
+@app.get("/api/art/status")
+def api_art_status():
+    return jsonify(art_status())
+
+
+@app.post("/api/art/install")
+def api_art_install():
+    with ART_LOCK:
+        if ART_STATE["state"] == "running":
+            return jsonify(art_status())
+        ART_STATE.update(state="running", pct=0, msg="Starting...", error="")
+    threading.Thread(target=_art_install_worker, daemon=True).start()
+    return jsonify(art_status())
+
+
+@app.delete("/api/art")
+def api_art_remove():
+    with ART_LOCK:
+        if ART_STATE["state"] == "running":
+            return jsonify({"error": "A download is running."}), 409
+    shutil.rmtree(DATA_DIR / "art", ignore_errors=True)
+    _art_set(state="idle", pct=0, msg="", error="")
+    return jsonify(art_status())
+
+
+@app.get("/api/art/list")
+def api_art_list():
+    keep = ("id", "side", "title", "artist", "year", "focus")
+    return jsonify({"works": [{k: w[k] for k in keep if k in w} for w in _art_manifest() if _art_file(w["id"])]})
+
+
+@app.get("/art/<wid>.jpg")
+def art_image(wid):
+    p = _art_file(wid) if any(w["id"] == wid for w in _art_manifest()) else None
+    if not p:
+        abort(404)
+    return send_file(p, mimetype="image/jpeg", max_age=86400)
 
 
 def _strip_frame(ffmpeg, path, t, w):
