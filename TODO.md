@@ -34,6 +34,7 @@
    - Done: the sidebar search icon is centred again (base.css no longer forces `.sb-search { justify-content: flex-start !important }`), and the global `* { text-shadow: none !important }` is gone, so the 12 text-shadows in booth / flair / movies / player / tiles apply again (Plain mode still removes them). Not snapshot-checked: Playwright was not installed.
 3. JS load: mostly solved by the bundler (21 requests -> 3). Minifying and lazy-loading tab-only scripts would still save parse time; needs a build step (esbuild), not worth it yet.
 4. Idle work (checked, low value): most of the 15 timers only start while something is playing, ringing or open, and the rest are light (1 s polls). Not worth the risk. The always-on clock timer was the one worth fixing, and is.
+5. Posters after a backup restore: the backup zip leaves `data/net_art` out (rebuildable), but its database still marks every poster "ok", and `movie_work()` never asks again for an "ok" item (not even with redo). On a new PC restored from a backup, movies fall back to video frames for good. Fix: treat "ok" with no `net_file()` on disk as needing art. Until then, move PCs by copying the whole data folder (`%APPDATA%\ZENO\data`), which keeps the posters.
 
 ## Fix when touching the code
 5. app.py is one 7,300-line file (148 routes) and app.js is 284 KB. Splitting is risky: the app starts from app.py, and a split can duplicate its global state or break the packaged exe. Only do it with the real desktop app in front of you.
