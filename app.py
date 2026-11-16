@@ -3297,6 +3297,7 @@ PREF_DEFAULTS = {
     "wheel_rows": True,            # mouse wheel scrolls the video rows sideways
     "bg_mode": "dark",             # dark | colorful (your image) | time (colour follows the time of day)
     "clock_style": "logo",         # clock design on Home and in the corner: logo (your logo.png as the dial; old "auto" also means this) | gold | light | dark | emerald | minimal
+    "diner_story": "",             # Diner story: "" (Juno's, built in) or the folder name of one of your own in data\\stories
     "art_side": "auto",            # Gallery background (bg_mode "art"): auto (Good by day, Evil by night) | good | evil
     "bg_image": "",                # colorful mode: "" (default) | "preset:<name>" | "custom" (the uploaded picture)
     "hover_preview": True,         # home banner + private-library cards play a short muted preview when hovered
@@ -3391,6 +3392,9 @@ def clean_pref(key, value):
         return value if value in CLOCK_STYLES else default
     if key == "bg_mode":
         return value if value in BG_MODES else default
+    if key == "diner_story":
+        v = str(value or "")
+        return v if (v and _story_dir(v)) else ""
     if key == "art_side":
         return value if value in ("auto", "good", "evil") else default
     if key == "bg_image":
@@ -7631,6 +7635,232 @@ def art_image(wid):
     if not p:
         abort(404)
     return send_file(p, mimetype="image/jpeg", max_age=86400)
+
+
+# ---- Your own stories in the Diner: DATA_DIR/stories/<name>/story.txt + pictures, compiled into the script the engine plays ----
+STORIES_DIR = DATA_DIR / "stories"
+STORY_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,59}")
+STORY_IMG_RE = re.compile(r"[\w][\w .-]{0,120}\.(?:jpe?g|png|webp)", re.I)
+STORY_MAX_BYTES = 200 * 1024
+STORY_EXAMPLE = """title: The Rooftop
+characters: Mika, Tob
+
+# First night
+picture: rooftop.jpg
+The city hums below. Someone is already up here.
+Mika: You're late.
+Tob [sad]: I took the stairs. All of them. Twice.
+? Laugh -> laugh
+? Help him up -> help
+= laugh
+Mika [happy]: You counted them, didn't you.
+-> done
+= help
+Tob: Thanks. My knees filed a complaint.
+remember: kind
+= done
+picture: none
+
+# Second night
+if kind -> warm
+Mika: Back again.
+-> end
+= warm
+Mika [happy]: You came back. Tob saved you a seat.
+"""
+
+
+def _story_slug(name):
+    return re.sub(r"\s+", "-", name.strip().lower())
+
+
+def _story_compile(text, folder=None):
+    """Compile story.txt into (meta, story, errors). Pure: only looks at `folder` to check that picture files exist."""
+    errors = []
+    meta = {"title": "", "characters": []}
+    story = {"order": [], "scenes": {}, "react": [], "after": {}}
+    if len(text.encode("utf-8", "replace")) > STORY_MAX_BYTES:
+        return meta, story, [{"line": 0, "msg": "story.txt is over 200 KB"}]
+    word = re.compile(r"\w+")
+    cur = None          # the scene being built: {"id", "title", "steps", "labels", "jumps", "line"}
+
+    def err(n, msg):
+        errors.append({"line": n, "msg": msg})
+
+    def close():
+        if not cur:
+            return
+        if not cur["steps"]:
+            err(cur["line"], "scene '%s' is empty" % cur["title"])
+        for n, lab in cur["jumps"]:
+            if lab != "end" and lab not in cur["labels"]:
+                err(n, "unknown label '%s'" % lab)
+        cur["steps"].append(["#", "end"])
+        story["order"].append(cur["id"])
+        story["scenes"][cur["id"]] = {"where": "stool", "title": cur["title"], "steps": cur["steps"]}
+
+    def jump(n, lab):
+        if not word.fullmatch(lab):
+            err(n, "bad label name '%s' (letters, digits and _ only)" % lab)
+            return False
+        cur["jumps"].append((n, lab))
+        return True
+
+    chars = {}
+    for n, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip().lstrip("﻿")
+        if not line or line.startswith("//"):
+            continue
+        if cur is None and not line.startswith("#"):
+            m = re.match(r"(title|characters)\s*:\s*(.*)$", line, re.I)
+            if not m:
+                err(n, "text before the first '# Scene title' line")
+            elif m.group(1).lower() == "title":
+                meta["title"] = m.group(2).strip()[:80]
+            else:
+                names = [c.strip() for c in m.group(2).split(",") if c.strip()]
+                meta["characters"] = names
+                chars = {c.lower(): c for c in names}
+            continue
+        if line.startswith("#"):
+            close()
+            cur = {"id": "s%d" % (len(story["order"]) + 1), "title": line.lstrip("#").strip()[:80],
+                   "steps": [], "labels": set(), "jumps": [], "line": n}
+            continue
+        steps = cur["steps"]
+        m = re.match(r"\?\s*(.+?)\s*(?:->\s*(\S*))?\s*$", line)
+        if line.startswith("?") and m:
+            tgt = m.group(2) or ""
+            if tgt and not jump(n, tgt):
+                tgt = ""
+            opt = [m.group(1), "", tgt]
+            if steps and steps[-1][0] == "?":
+                steps[-1].append(opt)
+            else:
+                steps.append(["?", opt])
+        elif line.startswith("="):
+            lab = line[1:].strip()
+            if not word.fullmatch(lab):
+                err(n, "bad label name '%s' (letters, digits and _ only)" % lab)
+            elif lab in cur["labels"] or lab == "end":
+                err(n, "label '%s' is used twice in this scene" % lab)
+            else:
+                cur["labels"].add(lab)
+                steps.append(["#", lab])
+        elif line.startswith("->"):
+            lab = line[2:].strip()
+            if jump(n, lab):
+                steps.append([">", lab])
+        elif re.match(r"remember\s*:", line, re.I):
+            flag = line.split(":", 1)[1].strip()
+            if word.fullmatch(flag):
+                steps.append(["do", "f:" + flag])
+            else:
+                err(n, "bad flag name '%s' (letters, digits and _ only)" % flag)
+        elif re.match(r"if\s", line, re.I):
+            m = re.match(r"if\s+(\S+)\s*->\s*(\S+)\s*$", line, re.I)
+            if not m:
+                err(n, "write it as: if flag -> label")
+            elif not word.fullmatch(m.group(1)):
+                err(n, "bad flag name '%s' (letters, digits and _ only)" % m.group(1))
+            elif jump(n, m.group(2)):
+                steps.append(["if", "f:" + m.group(1), m.group(2)])
+        elif re.match(r"picture\s*:", line, re.I):
+            f = line.split(":", 1)[1].strip()
+            if f.lower() == "none":
+                steps.append(["pic", ""])
+            elif STORY_IMG_RE.fullmatch(f) and folder is not None and (Path(folder) / f).is_file():
+                steps.append(["pic", f])
+            else:
+                err(n, "picture file '%s' not found" % f)
+        else:
+            m = re.match(r"([^:\[\]]+?)\s*(?:\[\s*(\w+)\s*\])?\s*:\s*(.+)$", line)
+            if m and m.group(1).strip().lower() in chars:
+                steps.append(["s", chars[m.group(1).strip().lower()], m.group(3).strip(), (m.group(2) or "").lower()])
+            else:
+                steps.append(["n", line])
+    close()
+    if not story["order"]:
+        err(0, "the story has no scenes (start one with '# Scene title')")
+    return meta, story, errors
+
+
+def _story_dir(sid):
+    """The folder of an existing story, or None. The id is checked, so it can never leave STORIES_DIR."""
+    if not isinstance(sid, str) or not STORY_ID_RE.fullmatch(sid) or sid != sid.strip():
+        return None
+    d = STORIES_DIR / sid
+    return d if (d / "story.txt").is_file() else None
+
+
+def _story_load(sid):
+    d = _story_dir(sid)
+    if d is None:
+        return None
+    try:
+        text = (d / "story.txt").read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        return None
+    meta, story, errors = _story_compile(text, d)
+    slugs = [_story_slug(c) for c in meta["characters"]]
+    pics = {}
+    try:
+        for f in sorted(d.iterdir()):
+            stem = f.stem.lower().replace(" ", "-")
+            if f.suffix.lower() in (".png", ".webp") and f.is_file() and any(stem == s or stem.startswith(s + "-") for s in slugs):
+                pics.setdefault(stem, f.name)
+    except OSError:
+        pass
+    return {"id": sid, "title": meta["title"] or sid, "characters": meta["characters"], "story": story, "pics": pics, "errors": errors}
+
+
+@app.get("/api/stories")
+def api_stories():
+    out = []
+    try:
+        names = sorted(p.name for p in STORIES_DIR.iterdir() if p.is_dir()) if STORIES_DIR.is_dir() else []
+    except OSError:
+        names = []
+    for name in names:
+        s = _story_load(name)
+        if s:
+            out.append({"id": s["id"], "title": s["title"], "scenes": len(s["story"]["order"]), "errors": s["errors"]})
+    return jsonify({"stories": out})
+
+
+@app.get("/api/stories/<sid>")
+def api_story(sid):
+    s = _story_load(sid)
+    if s is None:
+        abort(404)
+    return jsonify(s)
+
+
+@app.get("/stories/<sid>/<name>")
+def story_image(sid, name):
+    d = _story_dir(sid)
+    if d is None or not STORY_IMG_RE.fullmatch(name):
+        abort(404)
+    p = d / name
+    if not p.is_file():
+        abort(404)
+    return send_file(p, mimetype=mimetypes.guess_type(name)[0] or "application/octet-stream", max_age=3600)
+
+
+@app.post("/api/stories/open")
+def api_stories_open():
+    try:
+        STORIES_DIR.mkdir(parents=True, exist_ok=True)
+        if not any(STORIES_DIR.iterdir()):
+            (STORIES_DIR / "Example").mkdir()
+            (STORIES_DIR / "Example" / "story.txt").write_text(STORY_EXAMPLE, encoding="utf-8")
+        if hasattr(os, "startfile"):
+            os.startfile(str(STORIES_DIR))
+        else:
+            return jsonify({"error": "Open this folder yourself: %s" % STORIES_DIR}), 400
+    except Exception as e:
+        return jsonify({"error": "Could not open the folder: %s" % e}), 500
+    return jsonify({"ok": True})
 
 
 def _strip_frame(ffmpeg, path, t, w):
