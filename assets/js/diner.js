@@ -511,7 +511,7 @@
             '<button type="button" data-act="min" title="Hide the player (M)"><i class="fas fa-chevron-down"></i></button></div></div></div>' +
             '<button id="dn-dock" type="button" data-act="min" title="Show the player (M)"><i class="fas fa-music"></i></button>' +
             '<button id="dn-leave" type="button" title="Leave (Esc)"><i class="fas fa-xmark"></i></button>' +
-            '<div id="dn-hint"><span id="dn-found"></span><b>Click things in the room</b><kbd>Space</kbd> next painting <kbd>&larr;</kbd> back <kbd>N</kbd> empty frame <kbd>M</kbd> hide player <kbd>T</kbd> time of day <kbd>B</kbd> guest book <kbd>Esc</kbd> leave</div>';
+            '<img id="dn-face" alt=""><div id="dn-hint"><span id="dn-found"></span><b>Click things in the room</b><kbd>Space</kbd> next painting <kbd>&larr;</kbd> back <kbd>N</kbd> empty frame <kbd>M</kbd> hide player <kbd>T</kbd> time of day <kbd>B</kbd> guest book <kbd>Esc</kbd> leave</div>';
         document.body.appendChild(el);
         try { paint(); } catch (e) { console.error('diner paint', e); }
         imgs = Array.prototype.slice.call(el.querySelectorAll('.dn-img'));
@@ -619,7 +619,17 @@
     function nFound() { return Object.keys(found).length; }
     // count a thing the first time it is used; the last one sets off the fireworks
     function lore(ev, d) { try { return window.dinerLore ? window.dinerLore.on(ev, d || {}) : null; } catch (e) { console.error('diner lore', e); return null; } }
-    var API = { toast: toast, state: function () { return { st: st, sip: sip, empty: empty, playing: playing, art: cur ? cur.title : '' }; }, set: function (k, v) { st[k] = v; applyRoom(); }, own: function () { var w = ownArt(); if (!w) return; addOwn(w); empty = false; show(w, FADE); armDrift(); } };
+    var storyBase = '', storyPics = {};
+    var API = { toast: toast, state: function () { return { st: st, sip: sip, empty: empty, playing: playing, art: cur ? cur.title : '' }; }, set: function (k, v) { st[k] = v; applyRoom(); }, own: function () { var w = ownArt(); if (!w) return; addOwn(w); empty = false; show(w, FADE); armDrift(); },
+        // user stories: base = '/stories/<id>/', pics = { name or name-mood: file }
+        story: function (base, pics) { storyBase = base || ''; storyPics = pics || {}; },
+        pic: function (file) { if (!file) { next(); return; } if (!storyBase) return; clearTimeout(driftT); empty = false; show({ id: '_story:' + file, url: storyBase + encodeURIComponent(file), title: '' }, 1200); },
+        face: function (name, mood) {
+            var f = $('dn-face'); if (!f) return;
+            var k = String(name || '').toLowerCase().replace(/\s+/g, '-'), file = name && storyBase ? (storyPics[k + '-' + String(mood || '').toLowerCase()] || storyPics[k]) : '';
+            if (file) f.src = storyBase + encodeURIComponent(file); else f.removeAttribute('src');
+        } };
+    window.dinerStoryHook = function (b, p) { API.story(b, p); };
     function addOwn(w) { if (works && !works.some(function (x) { return x.id === '_juno'; })) works.push(w); }
     // Juno's painting is this room, seen from your stool
     function ownArt() {

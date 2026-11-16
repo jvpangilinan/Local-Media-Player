@@ -262,6 +262,9 @@
     opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease, visibility 0s .4s; font: 400 15px/1.55 Inter, 'Segoe UI', sans-serif; }
 #diner.talk #dn-talk { opacity: 1; visibility: visible; transform: none; transition: opacity .4s ease, transform .4s ease; }
 #diner.talk #dn-hint { opacity: 0; }
+#diner #dn-face { position: absolute; right: max(24px, calc(50% - 240px)); bottom: 150px; z-index: 18; height: min(46vh, 520px); width: auto; max-width: 40vw; object-fit: contain; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s .4s; filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
+#diner #dn-face:not([src]) { display: none; }
+#diner.talk #dn-face { opacity: 1; visibility: visible; transition: opacity .4s ease; }
 #diner .dn-tk-who { font-weight: 600; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #ff9fd0; margin-bottom: 6px; min-height: 1em; }
 #diner .dn-tk-x { margin: 0; min-height: 3.1em; }
 #diner .dn-tk-x.nar { font-style: italic; color: rgba(244,230,200,.78); }
