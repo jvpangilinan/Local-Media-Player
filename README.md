@@ -50,6 +50,13 @@
 # What's new
 
 
+## V6: Movie cards your way
+**Settings > Appearance > Movie cards** sets how the movie, series and collection cards in Cinema look.
+- **Shape.** *Square* (as before), *Poster* (tall 2:3 cards that show each movie's whole poster instead of a square cut from it) or *Wide* (16:9 cards with a still from the film, good for clips and home videos). Collections of four films or more show four posters in the new shape too.
+- **Picture in the card.** *Fill the card* fills it and cuts the edges. *Whole picture* never cuts anything: a poster of an odd size, or a clip in a poster card, sits whole in the card and a soft blur of the same picture fills the space around it, so every card in a row stays the same size.
+- **Card size.** Small, Medium, Large or Extra large. The slider next to Sort in Cinema is the same setting now and changes the rows (Continue watching, Recently added...) as well as the grids.
+- A thumbnail you choose yourself is now kept whole, so it fits every shape (square cards still show its middle).
+
 ## V6: Smoother, sharper playback
 Settings > Playback has a few new switches for the player window, and a **Picture** line that shows what the picture is doing.
 - **Locked to the screen.** The player window now follows the monitor's own clock (display-resample) instead of the sound card's, so every frame lands on the screen at the same moment it should. A 23.976 fps film plays 0.1 % faster to fit 120 Hz exactly and the sound is stretched to match; you cannot hear it. Settings > Playback > Advanced > Sync > Audio clock brings the old behaviour back.

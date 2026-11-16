@@ -182,7 +182,7 @@ body.ubh-on #ubh-az.has { display: flex; }
 #video-view .ubh-shelves { padding-top: .4rem; }
 #video-view .ubh-shelves .ubh-link { font-size: .62rem; }
 /* a re-labelled tile inside a sideways shelf: give its wrapper the tile's own width (in a grid the cell sizes it) */
-#video-view :not(.ubh-grid) > .ubh-st { flex: none; width: 15.6rem; }
+#video-view :not(.ubh-grid) > .ubh-st { flex: none; width: var(--ut-w, 15.6rem); }
 
 @media (max-width: 1180px) {
   #video-view .ubh-tabs { order: 3; flex-basis: 100%; height: 2.8rem; margin: 0 -.85rem; }

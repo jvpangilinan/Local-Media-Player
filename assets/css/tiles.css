@@ -5,7 +5,7 @@
 
 /* ---------- the tile itself ---------- */
 html body .vcard.utile, html body .ubh-coll.utile {
-  display: block; flex: none; width: 15.6rem; position: relative; cursor: pointer; outline: 0;
+  display: block; flex: none; width: var(--ut-w, 15.6rem); position: relative; cursor: pointer; outline: 0;
   background: none !important; border-radius: 0 !important; box-shadow: none !important;
   filter: none !important; transform: none !important; padding: 0; margin: 0;
   transition: transform .25s cubic-bezier(.2, .85, .25, 1), opacity .3s;
@@ -86,6 +86,28 @@ html body .utile .ut-prog i, html body .utile .ut-cover > .absolute.bottom-0 > d
 
 /* ---------- loading placeholders are square too ---------- */
 .skeleton.vcard.aspect-square { aspect-ratio: 1 / 1; width: 100%; border-radius: 2px !important; }
+
+/* ---------- card shape, picture fit and size: Settings > Appearance > Movie cards ----------
+   tiles.js puts data-ut-shape (square | poster | wide) and data-ut-fit (fill | whole) on <html>, and the card width in --ut-w.
+   Poster cards get the whole movie poster from the server, wide cards a film still (see /tile/<id>?shape=). */
+html[data-ut-shape="poster"] .utile .ut-cover, html[data-ut-shape="poster"] .skeleton.vcard.aspect-square { aspect-ratio: 2 / 3; }
+html[data-ut-shape="wide"] .utile .ut-cover, html[data-ut-shape="wide"] .skeleton.vcard.aspect-square { aspect-ratio: 16 / 9; }
+/* a tall poster that ends up in a wide card keeps its upper part (faces and title), not the credits block */
+html[data-ut-shape="wide"] body .utile .ut-cover > img { object-position: 50% 30%; }
+/* "Whole picture": nothing is cut; a blurred, darker copy of the same picture fills the rest of the card */
+html[data-ut-fit="whole"] body .utile .ut-cover > img { object-fit: contain; object-position: 50% 50%; }
+html[data-ut-fit="whole"] .utile .ut-cover::before {
+  content: ''; position: absolute; inset: -10%; pointer-events: none;
+  background: var(--ut-bg, none) center / cover no-repeat; filter: blur(14px) brightness(.5) saturate(1.2);
+}
+html[data-ut-fit="whole"] .utile .ut-cover > .hp-video { object-fit: contain; background: transparent; }
+/* grids outside the Cinema hub (series page, folder pages) follow the card size too */
+html body .vgrid:not(.ubh-grid):has(> .utile) { grid-template-columns: repeat(auto-fill, minmax(var(--ut-gw, 11.5rem), 1fr)); }
+/* the shape buttons in Settings draw their own shape */
+.ut-ic { display: inline-block; height: .95em; margin-right: .5rem; vertical-align: -.15em; border: 1.5px solid currentColor; border-radius: 1px; }
+.ut-ic.sq { aspect-ratio: 1 / 1; }
+.ut-ic.po { aspect-ratio: 2 / 3; }
+.ut-ic.wi { aspect-ratio: 16 / 9; }
 
 /* ---------- select mode keeps working on the tiles ---------- */
 body.ubh-selecting #ubh-body .vcard.utile .ut-play, body.ubh-selecting #ubh-body .vcard.utile .ut-edit, body.ubh-selecting #ubh-body .vcard.utile .ut-stars { display: none !important; }

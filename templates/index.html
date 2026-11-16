@@ -428,6 +428,22 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                     <div><div class="text-sm font-semibold">Moving picture on tile hover</div><div class="text-xs text-gray-500">Hover a movie, series or collection tile and a short muted clip plays inside the square. Off: tiles stay still</div></div>
                     <button id="set-tilemotion" class="set-switch" role="switch" onclick="setPref({tile_motion: !prefs.tile_motion})" title="Toggle"></button>
                 </div>
+
+                <div class="text-sm font-semibold mt-5">Movie cards</div>
+                <div class="text-xs text-gray-500 mb-3">The shape of the movie, series and collection cards in Cinema. Poster shows each movie's whole poster; Wide suits clips and home videos</div>
+                <div id="set-ushape" class="grid grid-cols-3 gap-2 mb-3">
+                    <button class="set-seg" data-v="square" onclick="setPref({tile_shape:'square'})"><b class="ut-ic sq"></b>Square</button>
+                    <button class="set-seg" data-v="poster" onclick="setPref({tile_shape:'poster'})"><b class="ut-ic po"></b>Poster</button>
+                    <button class="set-seg" data-v="wide" onclick="setPref({tile_shape:'wide'})"><b class="ut-ic wi"></b>Wide</button>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Picture in the card</div><div class="text-xs text-gray-500">Fill: the picture fills the card and its edges are cut. Whole picture: nothing is cut, so posters of other sizes still fit; a soft blur of the picture fills the gap</div></div>
+                    <select id="set-ufit" class="set-select text-sm" onchange="setPref({tile_fit: this.value})"><option value="fill">Fill the card</option><option value="whole">Whole picture</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div><div class="text-sm font-semibold">Card size</div><div class="text-xs text-gray-500">The slider next to Sort in Cinema changes it too</div></div>
+                    <select id="set-usize" class="set-select text-sm" onchange="setPref({tile_size: +this.value})"><option value="1">Small</option><option value="2">Medium</option><option value="3">Large</option><option value="4">Extra large</option></select>
+                </div>
             </section>
 
             <section class="mb-6" id="set-smartgenres">
@@ -1038,13 +1054,13 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
 <link id="lmpv9-movies" rel="stylesheet" href="/assets/css/movies.css?v=1">
 <link id="ultron-mpv-css" rel="stylesheet" href="/assets/css/mpv.css?v=1">
 <script id="lmpv9-movies-js" src="/assets/js/movies.js?v=1"></script>
-<script id="lmpv9-browse-hub-js" src="/assets/js/browse-hub.js?v=2"></script>
-<script id="ultron-tiles-js" src="/assets/js/tiles.js?v=1"></script>
+<script id="lmpv9-browse-hub-js" src="/assets/js/browse-hub.js?v=3"></script>
+<script id="ultron-tiles-js" src="/assets/js/tiles.js?v=2"></script>
 <script id="ultron-tray-js" src="/assets/js/ultron-tray.js?v=1"></script>
 <script id="ultron-ffmpeg-js" src="/assets/js/ffmpeg-gate.js?v=1"></script>
 <script id="ultron-asub-js" src="/assets/js/autosubs.js?v=1"></script>
-    <link id="lmpv9-browse-hub" rel="stylesheet" href="/assets/css/browse-hub.css?v=3">
-    <link id="ultron-tiles" rel="stylesheet" href="/assets/css/tiles.css?v=3">
+    <link id="lmpv9-browse-hub" rel="stylesheet" href="/assets/css/browse-hub.css?v=4">
+    <link id="ultron-tiles" rel="stylesheet" href="/assets/css/tiles.css?v=4">
 <link id="zeno-gallery-bg" rel="stylesheet" href="/assets/css/gallery-bg.css?v=2">
 <script id="zeno-gallery-bg-js" src="/assets/js/gallery-bg.js?v=2"></script>
 <link id="zeno-diner" rel="stylesheet" href="/assets/css/diner.css?v=13">

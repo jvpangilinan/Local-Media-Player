@@ -1611,6 +1611,8 @@ def ensure_backdrop(vid, video):
 
 
 TILE_SIZE = 480              # square tile thumbnails (px)
+WIDE_TILE_W = 720            # the whole-frame still used by the poster and wide card shapes (px across)
+TILE_SHAPES = ("square", "poster", "wide")     # Settings > Movie cards
 
 
 def trim_black_bars(frame):
@@ -1643,20 +1645,38 @@ def compose_tile(frame):
     return cv2.resize(sq, (TILE_SIZE, TILE_SIZE), interpolation=interp)
 
 
-def make_tile(video, out):
+def compose_wide(frame):
+    """Frame -> the whole picture for the poster / wide card shapes: black bars trimmed, nothing else cut."""
+    frame = trim_black_bars(frame)
+    h, w = frame.shape[:2]
+    if w > WIDE_TILE_W:
+        frame = cv2.resize(frame, (WIDE_TILE_W, max(1, int(h * WIDE_TILE_W / w))), interpolation=cv2.INTER_AREA)
+    return frame
+
+
+def tile_file(vid, wide=False):
+    return TILE_DIR / (f"{vid}_w.jpg" if wide else f"{vid}.jpg")
+
+
+def make_tile(video, out, wide=False):
     TILE_DIR.mkdir(parents=True, exist_ok=True)
     tmp_jpg = TILE_DIR / f"_tmp_{threading.get_ident()}.jpg"
     tmp_out = TILE_DIR / f"_out_{threading.get_ident()}.jpg"
     try:
         if cv2 is None:
             return False
-        frame = frame_via_opencv(video)
+        frame = None
+        if wide:                                               # the banner still is the same frame: no need to open the video again
+            bd = BACKDROP_DIR / f"{out.name[:-len('_w.jpg')]}.jpg"
+            frame = cv2.imread(str(bd)) if bd.is_file() else None
+        if frame is None:
+            frame = frame_via_opencv(video)
         if frame is None:                                      # odd codecs / non-ASCII paths on Windows
             grabbed = frame_via_ffmpeg(video, tmp_jpg)
             frame = cv2.imread(str(grabbed)) if grabbed else None
         if frame is None:
             return False
-        ok = cv2.imwrite(str(tmp_out), compose_tile(frame), [cv2.IMWRITE_JPEG_QUALITY, 90])
+        ok = cv2.imwrite(str(tmp_out), (compose_wide if wide else compose_tile)(frame), [cv2.IMWRITE_JPEG_QUALITY, 88 if wide else 90])
         if ok:
             os.replace(tmp_out, out)
         return bool(ok)
@@ -1668,24 +1688,25 @@ def make_tile(video, out):
                 pass
 
 
-def ensure_tile(vid, video):
-    out = TILE_DIR / f"{vid}.jpg"
+def ensure_tile(vid, video, wide=False):
+    """The square tile (or, wide=True, the whole-frame still) cut from the video; made once, then kept."""
+    out = tile_file(vid, wide)
     if out.exists():
         return True
     if unsettled(video):                                    # still downloading: try again later, do not remember a failure
         return False
-    if vid in TILE_FAILED:
+    if out.name in TILE_FAILED:
         return False
     with POSTER_LOCK:
         if out.exists():
             return True
         try:
-            ok = make_tile(video, out)
+            ok = make_tile(video, out, wide)
         except Exception:
             log.warning("ensure_tile: Exception ignored", exc_info=True)
             ok = False
         if not ok:
-            TILE_FAILED.add(vid)
+            TILE_FAILED.add(out.name)
         return ok
 
 
@@ -3461,6 +3482,9 @@ PREF_DEFAULTS = {
     "hover_preview": True,         # home banner + private-library cards play a short muted preview when hovered
     "ag_online": False,            # Smart genres may look titles up online (TMDB / MusicBrainz / Last.fm)
     "tile_motion": False,          # Cinema square tiles play a moving picture inside the tile on hover (default off)
+    "tile_shape": "square",        # Cinema cards: square | poster (tall 2:3, the whole movie poster) | wide (16:9, a still from the film)
+    "tile_fit": "fill",            # Cinema cards: fill (the picture fills the card, edges are cut) | whole (nothing cut; a soft blur of it fills the rest)
+    "tile_size": 2,                # Cinema card size: 1 small | 2 medium | 3 large | 4 extra large
     "display_mode": "windowed",    # windowed | maximized | fullscreen
     "win_width": 1440,             # window size used in windowed mode
     "win_height": 900,
@@ -3584,6 +3608,12 @@ def clean_pref(key, value):
         return value if value in ("always", "auto", "hidden") else default
     if key == "play_aspect":
         return value if value in ("smart", "fit", "fill") else default
+    if key == "tile_shape":
+        return value if value in TILE_SHAPES else default
+    if key == "tile_fit":
+        return value if value in ("fill", "whole") else default
+    if key == "tile_size":
+        return _int_in(value, 1, 4, default)
     if key == "default_fit":
         return value if value in ("fit", "fill") else default
     if key == "asub_lang":
@@ -4566,7 +4596,8 @@ def clear_custom_tile(kind, key):
 
 
 def save_custom_tile(kind, key, data):
-    """Stores an uploaded picture as a clean square JPEG (centre crop). Returns an error text or None."""
+    """Stores an uploaded picture as a JPEG, whole (at most 1200 px on its long side): square cards cut the middle
+    on screen, poster and wide cards can show all of it. Returns an error text or None."""
     pre = custom_tile_prefix(kind, key)
     if not pre:
         return "Unknown item."
@@ -4583,58 +4614,92 @@ def save_custom_tile(kind, key, data):
     if img is None or not img.size:
         return "That file is not a picture I can read (use JPG, PNG or WEBP)."
     h, w = img.shape[:2]
-    side = min(h, w)
-    y0, x0 = (h - side) // 2, (w - side) // 2
-    sq = img[y0:y0 + side, x0:x0 + side]
-    px = min(side, 720)
-    sq = cv2.resize(sq, (px, px), interpolation=cv2.INTER_AREA if side > px else cv2.INTER_CUBIC)
+    scale = min(1.0, 1200 / max(h, w))
+    if scale < 1:
+        img = cv2.resize(img, (max(1, int(w * scale)), max(1, int(h * scale))), interpolation=cv2.INTER_AREA)
     tmp = CUSTOM_TILE_DIR / ("_tmp_%d.jpg" % threading.get_ident())
-    if not cv2.imwrite(str(tmp), sq, [cv2.IMWRITE_JPEG_QUALITY, 92]):
+    if not cv2.imwrite(str(tmp), img, [cv2.IMWRITE_JPEG_QUALITY, 92]):
         return "Could not save the picture."
     clear_custom_tile(kind, key)
     os.replace(tmp, CUSTOM_TILE_DIR / (pre + ".jpg"))
     return None
 
 
+def tile_shape_arg():
+    """?shape= of a tile request: square (the default), poster or wide (Settings > Movie cards)."""
+    s = request.args.get("shape", "square")
+    return s if s in TILE_SHAPES else "square"
+
+
+def frame_tile(v, shape, max_age):
+    """A card picture cut from the video itself: the square tile, or the whole frame for the poster / wide shapes."""
+    wide = shape != "square"
+    if ensure_tile(v["id"], v["path"], wide):
+        return send_file(tile_file(v["id"], wide), mimetype="image/jpeg", max_age=max_age)
+    if wide and ensure_tile(v["id"], v["path"]):
+        return send_file(tile_file(v["id"]), mimetype="image/jpeg", max_age=max_age)
+    return None
+
+
 @app.get("/tile/<vid>")
 def tile(vid):
-    """Square thumbnail for the Cinema tiles: your own picture next to the video if there is one,
-    otherwise a clean square cut from the video itself (black bars trimmed, no blur)."""
+    """Picture for a Cinema card: your own picture if you set one, otherwise
+    square: the poster next to the video, the real poster's square cut, or a clean square cut from the video;
+    poster: the whole poster (yours or the real one), else the whole frame (the page fits it in);
+    wide: the real film still found online, else the whole frame, else the poster.
+    Black bars are trimmed from frames; nothing is blurred here (the page does that when it shows the whole picture)."""
     v = get_video_checked(vid)
+    shape = tile_shape_arg()
     mine = custom_tile("video", vid)
     if mine:
         return send_file(mine, max_age=0)
+    public = not v["private"]
+    if shape == "wide":
+        bd = net_art("video", vid, "bd") if public else None
+        if bd:
+            return send_file(bd, mimetype="image/jpeg", max_age=86400)
+        got = frame_tile(v, shape, 86400)
+        if got:
+            return got
     side = find_sidecar_poster(v)
     if side:
         return send_file(side, max_age=86400)
-    net = None if v["private"] else net_art("video", vid, "sq")
+    net = net_art("video", vid, "sq" if shape == "square" else "") if public else None
     if net:
         return send_file(net, mimetype="image/jpeg", max_age=86400)
-    if ensure_tile(vid, v["path"]):
-        return send_file(TILE_DIR / f"{vid}.jpg", mimetype="image/jpeg", max_age=86400)
-    return Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
+    got = frame_tile(v, shape, 86400) if shape != "wide" else None
+    return got or Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
 
 
 @app.get("/seriestile/<sid>")
 def series_tile(sid):
     s = get_series_checked(sid)
+    shape = tile_shape_arg()
     mine = custom_tile("series", sid)
     if mine:
         return send_file(mine, max_age=0)
+    with LIB_LOCK:
+        first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
+    if shape == "wide":
+        bd = series_net_art(s, "bd")
+        if bd:
+            return send_file(bd, mimetype="image/jpeg", max_age=86400)
+        got = frame_tile(first, shape, 3600) if first else None
+        if got:
+            return got
     art = find_series_art(s)
     if art:
         return send_file(art, max_age=3600)
-    net = series_net_art(s, "sq")
+    net = series_net_art(s, "sq" if shape == "square" else "")
     if net:
         return send_file(net, mimetype="image/jpeg", max_age=86400)
-    with LIB_LOCK:
-        first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
     if first:
         side = find_sidecar_poster(first)
         if side:
             return send_file(side, max_age=3600)
-        if ensure_tile(first["id"], first["path"]):
-            return send_file(TILE_DIR / f"{first['id']}.jpg", mimetype="image/jpeg", max_age=3600)
+        got = frame_tile(first, shape, 3600) if shape != "wide" else None
+        if got:
+            return got
     return Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
 
 
@@ -5567,12 +5632,12 @@ def rekey_videos(pairs):
                 os.replace(src, CUSTOM_TILE_DIR / ("v_%s%s" % (item_id(new), src.suffix)))
             except OSError:
                 log.warning("rekey_videos: OSError ignored", exc_info=True)
-    for folder in (POSTER_DIR, BACKDROP_DIR, TILE_DIR):
+    for folder, end in ((POSTER_DIR, ".jpg"), (BACKDROP_DIR, ".jpg"), (TILE_DIR, ".jpg"), (TILE_DIR, "_w.jpg")):
         for old, new in pairs:
             try:
-                src = folder / (item_id(old) + ".jpg")
+                src = folder / (item_id(old) + end)
                 if src.is_file():
-                    os.replace(src, folder / (item_id(new) + ".jpg"))
+                    os.replace(src, folder / (item_id(new) + end))
             except OSError:
                 log.warning("rekey_videos: OSError ignored", exc_info=True)
 

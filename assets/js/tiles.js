@@ -1,6 +1,7 @@
 /* ULTRON tiles: your own thumbnail for any movie, series or collection.
    Hover a tile and press the picture button: choose an image, or go back to the automatic thumbnail.
-   Front end only; the pictures are stored by the server (data/custom_tiles) and never change your video files. */
+   Front end only; the pictures are stored by the server (data/custom_tiles) and never change your video files.
+   Also the card look from Settings > Appearance > Movie cards: shape (square / poster / wide), fill or whole picture, size. */
 (function () {
     'use strict';
     var C = { video: {}, series: {}, collection: {} };   // kind -> key -> when the custom picture was set
@@ -19,7 +20,52 @@
     }
     function isCustom(kind, key) { return C[kind] && C[kind][key] != null; }
 
+    // ---------------------------------------------------------------- card shape, picture and size (Settings > Appearance > Movie cards)
+    var SHAPES = { square: 1, poster: 1, wide: 1 };
+    // card width (rem) for sizes 1 small .. 4 extra large: in a sideways row, and the narrowest column of a grid.
+    // Poster cards are narrower and wide cards wider, so a card covers about the same area in every shape.
+    var WIDTH = {
+        square: { row: [12, 15.6, 19, 23], grid: [8.4, 11.5, 14, 17] },
+        poster: { row: [10, 12.5, 15.5, 18.5], grid: [7.4, 9.6, 11.8, 14.2] },
+        wide:   { row: [15.5, 20, 24.5, 29.5], grid: [12, 15.5, 19, 23] }
+    };
+    function pref() { try { return (typeof prefs !== 'undefined' && prefs) || {}; } catch (e) { return {}; } }
+    function look() {
+        var p = pref();
+        return { shape: SHAPES[p.tile_shape] ? p.tile_shape : 'square', fit: p.tile_fit === 'whole' ? 'whole' : 'fill',
+                 size: Math.max(1, Math.min(4, parseInt(p.tile_size, 10) || 2)) };
+    }
+    // a card picture's address for the current shape: /tile/<id>?v=..&shape=poster (square needs no shape)
+    function shaped(url) {
+        url = String(url || '').replace(/([?&])shape=[a-z]+&?/, '$1').replace(/[?&]$/, '');
+        var s = look().shape;
+        if (s === 'square' || !/^\/(tile|seriestile)\//.test(url)) return url;
+        return url + (url.indexOf('?') < 0 ? '?' : '&') + 'shape=' + s;
+    }
+    window.utShaped = shaped;
+    var shownShape = null;
+    function utLook() {
+        var L = look(), de = document.documentElement, w = WIDTH[L.shape];
+        de.setAttribute('data-ut-shape', L.shape);
+        de.setAttribute('data-ut-fit', L.fit);
+        de.style.setProperty('--ut-w', w.row[L.size - 1] + 'rem');
+        de.style.setProperty('--ut-gw', w.grid[L.size - 1] + 'rem');
+        var vv = document.getElementById('video-view'); if (vv) vv.style.setProperty('--ubh-w', w.grid[L.size - 1] + 'rem');
+        var sl = document.querySelector('#ubh-filters input[data-k="size"]'); if (sl && document.activeElement !== sl) sl.value = L.size;
+        document.querySelectorAll('#set-ushape .set-seg').forEach(function (b) { b.classList.toggle('on', b.dataset.v === L.shape); });
+        var f = document.getElementById('set-ufit'); if (f) f.value = L.fit;
+        var z = document.getElementById('set-usize'); if (z) z.value = String(L.size);
+        if (shownShape !== null && shownShape !== L.shape) scan();      // every card asks for the picture of its new shape
+        shownShape = L.shape;
+    }
+    window.utLook = utLook;
+
     // ---------------------------------------------------------------- show the right picture on every tile
+    function setPic(cover, img, src) {
+        if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+        var bg = 'url("' + src + '")';                                  // "Whole picture" lays a blur of the same picture behind it
+        if (cover.style.getPropertyValue('--ut-bg') !== bg) cover.style.setProperty('--ut-bg', bg);
+    }
     function applyCard(card) {
         var t = info(card); if (!t) return;
         var custom = isCustom(t.kind, t.key), stamp = custom ? (STAMP[sk(t.kind, t.key)] || C[t.kind][t.key]) : STAMP[sk(t.kind, t.key)];
@@ -38,18 +84,25 @@
                     mine = document.createElement('img'); mine.className = 'ut-mine'; mine.alt = '';
                     cover.insertBefore(mine, cover.firstChild);
                 }
-                if (mine.getAttribute('src') !== src) mine.setAttribute('src', src);
-            } else if (mine) {
-                mine.remove();
-                (card._auto || []).slice().reverse().forEach(function (n) { cover.insertBefore(n, cover.firstChild); });
-                card._auto = null;
+                setPic(cover, mine, src);
+            } else {
+                if (mine) {
+                    mine.remove();
+                    (card._auto || []).slice().reverse().forEach(function (n) { cover.insertBefore(n, cover.firstChild); });
+                    card._auto = null;
+                }
+                // the films' own pictures (one, or the 2x2 mosaic) follow the card shape
+                cover.querySelectorAll(':scope > img, :scope > .ut-mos > img').forEach(function (im) {
+                    var s = shaped(im.getAttribute('src'));
+                    if (im.parentNode === cover) setPic(cover, im, s); else if (im.getAttribute('src') !== s) im.setAttribute('src', s);
+                });
             }
             return;
         }
         var img = cover.querySelector(':scope > img'); if (!img) return;
         if (!img.dataset.auto) img.dataset.auto = img.getAttribute('src') || '';
-        var want = (custom || stamp != null) ? withParam(img.dataset.auto, stamp) : img.dataset.auto;
-        if (img.getAttribute('src') !== want) img.setAttribute('src', want);
+        var base = shaped(img.dataset.auto);
+        setPic(cover, img, (custom || stamp != null) ? withParam(base, stamp) : base);
     }
     // ---------------------------------------------------------------- favorites (a heart on every tile)
     var F = { video: {}, series: {}, collection: {} }, favReady = false;
@@ -179,6 +232,6 @@
     new MutationObserver(function (list) {
         for (var i = 0; i < list.length; i++) if (list[i].addedNodes.length) return later();
     }).observe(document.documentElement, { childList: true, subtree: true });
-    document.addEventListener('DOMContentLoaded', function () { fetchCustom([]); loadFavs(); later(); });
-    if (document.readyState !== 'loading') { fetchCustom([]); loadFavs(); later(); }
+    document.addEventListener('DOMContentLoaded', function () { utLook(); fetchCustom([]); loadFavs(); later(); });
+    if (document.readyState !== 'loading') { utLook(); fetchCustom([]); loadFavs(); later(); }
 })();

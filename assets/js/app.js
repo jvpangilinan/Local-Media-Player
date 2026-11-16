@@ -120,7 +120,7 @@
         const RES_PRESETS = [[1280, 720], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]];
         let prefs = { wheel_rows: true, display_mode: 'windowed', win_width: 1440, win_height: 900, remember_size: true, close_to_tray: true, idle_lock_minutes: 5,
                       next_countdown: 8, default_volume: 80, default_speed: 1, default_fit: 'fit', subs_auto: true, subs_size: 115, asub_lang: 'en', asub_mode: 'accurate', asub_auto: false, asub_enabled: true, native_player: true,
-                      start_tab: 'last', bg_mode: 'dark', bg_image: '', bg_custom_v: 0, clock_style: 'logo', hover_preview: true, tile_motion: false, ag_online: false, fav_public: true, fav_private: true, show_clock: false, browse_bar: 'auto', music_ui: 'prism', home_clock: true, folders: { video: '', music: '', private: '' },
+                      start_tab: 'last', bg_mode: 'dark', bg_image: '', bg_custom_v: 0, clock_style: 'logo', hover_preview: true, tile_motion: false, tile_shape: 'square', tile_fit: 'fill', tile_size: 2, ag_online: false, fav_public: true, fav_private: true, show_clock: false, browse_bar: 'auto', music_ui: 'prism', home_clock: true, folders: { video: '', music: '', private: '' },
                       ytdlp_dir: '', dl_vcodec: 'h264', dl_acodec: 'mp3', dl_mcodec: 'flac', dl_vargs: '', dl_aargs: '', dl_margs: '',
                       dl_audio_sub: 'Audio', dl_music_sub: 'Music' };
         let displayMode = 'windowed';
@@ -143,6 +143,7 @@
               try { localStorage.setItem('lmp_music_ui', mu); } catch (e) {}
               if (was !== mu) { try { if (currentView === 'music-view' && view && view.kind === 'home') renderHome(); } catch (e) {} } }
             if (window.paintBar) window.paintBar();
+            if (window.utLook) { try { window.utLook(); } catch (e) { console.error(e); } }    // card shape / fit / size (tiles.js)
         }
         function applyVolumes() {
             const v = clamp(prefs.default_volume / 100, 0, 1);
@@ -391,8 +392,11 @@
                 </div>`;
         }
         // square tile (same look as the Music tab): square cover, thin border, bold title, small uppercase line below
-        const tileUrl = (v, scope) => scope === 'private' ? posterUrl(v, scope)
-            : String(v.poster || '').replace('/seriesart/', '/seriestile/').replace('/poster/', '/tile/');
+        const tileUrl = (v, scope) => {
+            if (scope === 'private') return posterUrl(v, scope);
+            const u = String(v.poster || '').replace('/seriesart/', '/seriestile/').replace('/poster/', '/tile/');
+            return window.utShaped ? window.utShaped(u) : u;          // poster / wide cards ask for the matching picture (tiles.js)
+        };
         // a movie in a folder of its own gets that folder as its "series": the same words as the title, so never show both
         const sameTitle = (a, b) => { const n = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); return !!n(a) && (n(a) === n(b) || n(b).startsWith(n(a))); };
         const leftText = s => s < 90 ? 'Almost done' : s < 3600 ? Math.round(s / 60) + ' min left' : Math.floor(s / 3600) + 'h ' + Math.round((s % 3600) / 60) + 'm left';

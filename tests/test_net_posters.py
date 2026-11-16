@@ -176,6 +176,18 @@ sq = cv2.imdecode(np.frombuffer(r.data, np.uint8), cv2.IMREAD_COLOR); assert sq.
 r = c.get(cars["backdrop"]); assert r.data == net("bd"), "banner: the real backdrop"
 assert not app.net_file("video", dune["id"], "bd").exists(), "no backdrop online: the banner keeps the frame"
 r = c.get("/seriestile/" + ser["Cars - Extras"]["id"]); assert r.data == net("sq"), "the extras folder wears the movie's poster"
+# Settings > Movie cards: poster cards get the whole poster, wide cards the film still; junk shapes mean square
+tile = cars["poster"].replace("/poster/", "/tile/")
+assert c.get(tile + "&shape=poster").data == net(), "poster card: the whole real poster"
+assert c.get(tile + "&shape=wide").data == net("bd"), "wide card: the real backdrop"
+assert c.get(tile + "&shape=bogus").data == net("sq"), "unknown shape: the square"
+assert c.get("/seriestile/" + ser["Cars - Extras"]["id"] + "?shape=poster").data == net(), "series poster card: the whole poster"
+r = c.get(dune["poster"].replace("/poster/", "/tile/") + "&shape=wide")
+# no backdrop online: the whole frame (bars trimmed); these test files have no readable frame, so the whole poster stands in
+assert (app.TILE_DIR / (dune["id"] + "_w.jpg")).is_file() or r.data == app.net_file("video", dune["id"]).read_bytes()
+assert c.post("/api/prefs", json={"tile_shape": "poster", "tile_fit": "whole", "tile_size": 9}, headers=H).get_json()["tile_size"] == 4
+p = c.get("/api/prefs").get_json(); assert (p["tile_shape"], p["tile_fit"], p["tile_size"]) == ("poster", "whole", 4), p
+assert c.post("/api/prefs", json={"tile_shape": "round"}, headers=H).get_json()["tile_shape"] == "square"
 dt = {s["title"]: s for s in d["all_series"]}["Downtown"]
 assert "-" in dt["poster"].split("?v=")[1] and c.get(dt["poster"]).data == app.net_file("series", dt["id"]).read_bytes()
 

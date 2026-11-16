@@ -31,8 +31,10 @@
     var S = {
         tab: 'home', open: null, q: '', tile: null, selmode: false, sel: {},   // Cinema always opens on Home
         sort: LS.get('ubh_sort') || 'title', type: 'all', seen: 'all', folder: '', ag: '', chip: '',
-        size: parseInt(LS.get('ubh_size'), 10) || 2, shown: CHUNK, list: [], seed: 1, back: 0
+        shown: CHUNK, list: [], seed: 1, back: 0
     };
+    // card size lives in Settings > Movie cards (prefs.tile_size); the slider by Sort changes the same setting
+    function curSize() { try { return Math.max(1, Math.min(4, parseInt(prefs.tile_size, 10) || 2)); } catch (e) { return 2; } }
     if (!SORTS.some(function (t) { return t[0] === S.sort; })) S.sort = 'title';
 
     // ---------------------------------------------------------------- data
@@ -149,7 +151,10 @@
     }
     var LOGY = { 1: 'Single', 2: 'Duology', 3: 'Trilogy', 4: 'Quadrilogy', 5: 'Pentalogy', 6: 'Hexalogy', 7: 'Heptalogy', 8: 'Octalogy', 9: 'Nonalogy', 10: 'Decalogy' };
     function collKind(n) { return LOGY[n] || 'Collection'; }
-    function tileSrc(v) { return String(v.poster || '').replace('/seriesart/', '/seriestile/').replace('/poster/', '/tile/'); }
+    function tileSrc(v) {
+        var u = String(v.poster || '').replace('/seriesart/', '/seriestile/').replace('/poster/', '/tile/');
+        return window.utShaped ? window.utShaped(u) : u;            // poster / wide cards ask for the matching picture (tiles.js)
+    }
     function collStats(c) { var w = c.items.filter(function (v) { return v.view_count > 0; }).length; return { watched: w, total: c.items.length }; }
     function collNext(c) {
         var going = c.items.filter(function (v) { return v.progress > 0; });
@@ -477,7 +482,7 @@
             if (d.src.overrides) parts.push('<button class="ubh-link" data-act="resetcoll" title="Forget every collection change you made by hand">Automatic sorting</button>');
         }
         parts.push('<span class="ubh-cnt" id="ubh-cnt"></span>');
-        parts.push('<label class="ubh-size" title="Tile size"><i class="fas fa-border-all"></i><input type="range" min="1" max="4" step="1" value="' + S.size + '" data-k="size" aria-label="Tile size"><i class="fas fa-square"></i></label>');
+        parts.push('<label class="ubh-size" title="Card size (shape: Settings > Appearance > Movie cards)"><i class="fas fa-border-all"></i><input type="range" min="1" max="4" step="1" value="' + curSize() + '" data-k="size" aria-label="Card size"><i class="fas fa-square"></i></label>');
         f.innerHTML = chips + '<div class="ubh-frow">' + parts.join('') + '</div>';
     }
     function paintCount() {
@@ -491,10 +496,7 @@
         az.innerHTML = order.map(function (l) { return '<button data-az="' + l + '">' + l + '</button>'; }).join('');
     }
     function skeleton() { var s = ''; for (var i = 0; i < 12; i++) s += '<div class="skeleton vcard aspect-square rounded-md"></div>'; return s; }
-    function sizeVar() {
-        var w = { 1: '8.4rem', 2: '11.5rem', 3: '14rem', 4: '17rem' }[S.size] || '11.5rem';
-        var v = $('video-view'); if (v) v.style.setProperty('--ubh-w', w);
-    }
+    function sizeVar() { if (window.utLook) window.utLook(); }      // tiles.js sets the card widths for the shape and size
 
     // ---------------------------------------------------------------- paint
     var io = null;
@@ -615,12 +617,13 @@
     function onChange(e) {
         var el = e.target.closest('[data-k]'); if (!el || !el.closest('#ubh-filters')) return;
         var k = el.dataset.k;
-        if (k === 'size') { S.size = parseInt(el.value, 10) || 2; LS.set('ubh_size', S.size); sizeVar(); return; }
+        if (k === 'size') { if (typeof setPref === 'function') setPref({ tile_size: parseInt(el.value, 10) || 2 }); return; }
         S[k] = el.value; if (k === 'sort' || k === 'type') LS.set('ubh_' + k, S[k]);
         S.shown = CHUNK; paint(false);
     }
     function onInput(e) {
-        var el = e.target; if (el.dataset && el.dataset.k === 'size' && el.closest('#ubh-filters')) { S.size = parseInt(el.value, 10) || 2; LS.set('ubh_size', S.size); sizeVar(); }
+        var el = e.target;
+        if (el.dataset && el.dataset.k === 'size' && el.closest('#ubh-filters')) { try { prefs.tile_size = parseInt(el.value, 10) || 2; } catch (x) {} sizeVar(); }   // live while dragging; saved on release
     }
     function overlayOpen() {
         if (document.documentElement.classList.contains('in-player') || document.body.classList.contains('np-open')) return true;
