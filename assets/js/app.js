@@ -300,7 +300,19 @@
             if (!el.clientWidth) return;                       // hidden right now: leave the arrows alone
             const overflow = el.scrollWidth > el.clientWidth + 4;
             el.parentElement.querySelectorAll('.carousel-btn').forEach(b => { b.style.display = overflow ? '' : 'none'; });
+            rowEdges(el);
         }
+        // the back arrow hides at the start of a row and the next arrow at its end, so neither sits on a card for nothing
+        function rowEdges(el) {
+            const c = el.parentElement; if (!c || !c.classList.contains('carousel-container')) return;
+            c.classList.toggle('at-start', el.scrollLeft <= 4);
+            c.classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+        }
+        document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && t.classList.contains('hscroll')) rowEdges(t); }, true);
+        document.addEventListener('mouseover', e => {                    // on entering a row: its width may have changed since it was painted
+            const c = e.target.closest && e.target.closest('.carousel-container');
+            if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) { const h = c.querySelector('.hscroll'); if (h) rowEdges(h); }
+        }, { passive: true });
 
         const skeleton = () => Array.from({ length: 8 }, () => '<div class="skeleton vcard flex-none aspect-square rounded-md"></div>').join('');
         function sectionHtml(id, title, extra, hidden, body) {
@@ -381,9 +393,13 @@
         // square tile (same look as the Music tab): square cover, thin border, bold title, small uppercase line below
         const tileUrl = (v, scope) => scope === 'private' ? posterUrl(v, scope)
             : String(v.poster || '').replace('/seriesart/', '/seriestile/').replace('/poster/', '/tile/');
+        // a movie in a folder of its own gets that folder as its "series": the same words as the title, so never show both
+        const sameTitle = (a, b) => { const n = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); return !!n(a) && (n(a) === n(b) || n(b).startsWith(n(a))); };
+        const leftText = s => s < 90 ? 'Almost done' : s < 3600 ? Math.round(s / 60) + ' min left' : Math.floor(s / 3600) + 'h ' + Math.round((s % 3600) / 60) + 'm left';
         function createVideoCard(v, scope) {
             if (scope === 'private') return createPrivateCard(v);
-            const sub = [v.series || '', v.year || '', v.view_count ? v.view_count + 'x viewed' : ''].filter(Boolean).join(' \u00b7 ');
+            const year = v.year && !String(v.title || '').includes(String(v.year)) ? v.year : '';
+            const sub = [sameTitle(v.series, v.title) ? '' : (v.series || ''), year, v.left ? leftText(v.left) : (v.view_count ? v.view_count + 'x viewed' : '')].filter(Boolean).join(' \u00b7 ');
             return `
                 <div class="video-card vcard utile group flex-none cursor-pointer" data-id="${v.id}" data-rating="${v.user_rating}" onclick="playVideo('${v.id}')">
                     <div class="ut-cover">
@@ -394,7 +410,7 @@
                         <div class="ut-stars rating-stars" title="Your rating">${starsHtml(v.id, v.user_rating)}</div>
                         <span class="ut-play"><i class="fas fa-play"></i></span>
                     </div>
-                    <div class="ut-title" data-title-id="${v.id}">${esc(v.title)}</div>
+                    <div class="ut-title" data-title-id="${v.id}" title="${esc(v.title)}">${esc(v.title)}</div>
                     <div class="ut-sub">${esc(sub) || 'Movie'}</div>
                 </div>`;
         }
@@ -410,7 +426,7 @@
                         <button class="ut-img" data-tk="series" data-tkey="${s.id}" title="Thumbnail"><i class="far fa-image"></i></button>
                         <button class="ut-play" title="${s.watched ? 'Resume' : 'Play'}" onclick="event.stopPropagation(); playVideo('${s.resume}')"><i class="fas fa-play"></i></button>
                     </div>
-                    <div class="ut-title">${esc(s.title)}</div>
+                    <div class="ut-title" title="${esc(s.title)}">${esc(s.title)}</div>
                     <div class="ut-sub">Series &middot; ${label}${s.watched ? ' &middot; ' + s.watched + ' watched' : ''}</div>
                 </div>`;
         }
@@ -3144,17 +3160,21 @@
                 const isSeries = pick.kind === 'series';
                 const label = (d.continue || [])[0] ? 'Pick up where you left off' : 'Start something new';
                 const playId = isSeries ? pick.resume : pick.id;
-                const sub = isSeries ? `${pick.episodes} episodes \u00b7 ${pick.watched} watched` : (pick.series ? esc(pick.series) : (pick.view_count ? pick.view_count + 'x viewed' : 'Not watched yet'));
+                const ends = pick.left ? new Date(Date.now() + pick.left * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+                const sub = isSeries ? `${pick.episodes} episodes \u00b7 ${pick.watched} watched`
+                    : [sameTitle(pick.series, pick.title) ? '' : esc(pick.series || ''),
+                       pick.year && !String(pick.title || '').includes(String(pick.year)) ? pick.year : '',
+                       pick.left ? `${leftText(pick.left)} \u00b7 ends around ${ends}` : (pick.view_count ? pick.view_count + 'x viewed' : 'Not watched yet')].filter(Boolean).join(' \u00b7 ');
                 const pct = Math.round((pick.progress || 0) * 100);
                 h = `<div class="dash-hero relative rounded-2xl overflow-hidden min-h-[19rem] h-full flex items-end cursor-pointer ring-1 ring-white/10" onclick="playVideo('${playId}')">
                         <div class="dash-hero-bg absolute inset-0 bg-cover bg-center scale-125 blur-2xl opacity-70" style="background-image:url('${pick.poster}')"></div>
                         ${pick.backdrop ? `<img src="${pick.backdrop}" alt="" class="dash-hero-bg absolute inset-0 h-full w-full object-cover" onerror="this.remove()">` : ''}
-                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30"></div>
-                        <div class="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent"></div>
+                        <div class="absolute inset-0" style="background:linear-gradient(0deg,rgba(0,0,0,.85) 0%,rgba(0,0,0,.25) 38%,rgba(0,0,0,0) 70%)"></div>
+                        <div class="absolute inset-0" style="background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.6) 32%,rgba(0,0,0,0) 62%)"></div>
                         <div class="relative z-10 w-full p-7 flex items-end justify-between gap-6">
                             <div class="min-w-0 max-w-[34rem]">
                                 <div class="flex items-center gap-2 text-[11px] font-bold tracking-[0.25em] uppercase text-accent mb-3"><span class="h-px w-8 bg-accent"></span>${label}</div>
-                                <div class="font-black leading-[1.05] mb-2 line-clamp-2 break-words drop-shadow-lg" style="font-size:clamp(1.6rem,2.6vw,3rem)">${esc(pick.title)}</div>
+                                <div class="font-black leading-[1.05] mb-2 line-clamp-2 break-words drop-shadow-lg" style="font-size:clamp(1.6rem,2.6vw,3rem)" title="${esc(pick.title)}">${esc(pick.title)}</div>
                                 <div class="text-sm text-gray-300 mb-4">${sub}</div>
                                 ${pct ? `<div class="h-1.5 w-64 max-w-full rounded-full bg-white/20 overflow-hidden mb-5"><div class="h-full bg-accent" style="width:${pct}%;box-shadow:0 0 12px rgba(255,255,255,.8)"></div></div>` : '<div class="mb-5"></div>'}
                                 <div class="flex gap-3">
@@ -3162,7 +3182,7 @@
                                     ${isSeries ? `<button class="bg-white/15 hover:bg-white/25 backdrop-blur font-bold py-2.5 px-5 rounded-md transition-colors" onclick="event.stopPropagation();openSeries('${pick.id}','public')"><i class="fas fa-list mr-2"></i>Episodes</button>` : ''}
                                 </div>
                             </div>
-                            <img src="${pick.poster}" alt="" class="hidden xl:block h-52 aspect-[2/3] object-cover rounded-lg shadow-2xl ring-1 ring-white/15">
+                            ${pick.own_poster ? `<img src="${pick.poster}" alt="" class="dash-hero-poster hidden xl:block h-52 aspect-[2/3] object-cover rounded-lg shadow-2xl ring-1 ring-white/15">` : ''}
                         </div>
                     </div>`;
             } else {

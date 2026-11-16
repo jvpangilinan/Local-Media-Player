@@ -14,7 +14,24 @@ html body .vcard.utile, html body .ubh-coll.utile {
 .vcard.utile:hover, .ubh-coll.utile:hover, .ubh-coll.utile:focus-visible { transform: translateY(-3px) !important; z-index: 8; }
 /* the old film-reel strip, crop marks and sheen belonged to the poster cards */
 .vcard.utile::before, .vcard.utile:not(.ubh-picked)::after, .ubh-coll.utile::before, .ubh-coll.utile::after { content: none !important; }
-.hscroll:hover .vcard.utile:not(:hover) { opacity: 1; }
+/* booth.css dims the rest of a row on hover with an ID selector (:is(#video-view, ...)), which beat the plain rule here:
+   the dimmed tiles turned see-through and the background painting and holiday snow showed through them */
+html body :is(#home-view, #video-view, #series-view, #videos-view) .hscroll:hover .vcard.utile:not(:hover) { opacity: 1; }
+
+/* ---------- row arrows: small buttons on the middle of the covers (they were full-height slabs over the first card) ---------- */
+html body .carousel-container > .carousel-btn {
+  top: 0; bottom: 3.6rem; margin: auto 0; width: 2.9rem; height: 2.9rem;
+  background: rgba(12, 11, 15, .86) !important; background-image: none !important; border: 1px solid var(--v-line2, rgba(255, 255, 255, .2));
+  box-shadow: 0 10px 26px -8px rgba(0, 0, 0, .95); color: var(--v-ink, #fff); font-size: 1rem;
+  transition: opacity .25s ease, background-color .2s ease, transform .2s ease;
+}
+html body .carousel-container > .carousel-btn:first-child { left: .5rem; }
+html body .carousel-container > .carousel-btn:last-child { right: .5rem; }
+html body .carousel-container > .carousel-btn:hover { background: var(--pr1, #fff) !important; color: var(--v-on, #000); transform: scale(1.08); }
+html body .carousel-container.at-start > .carousel-btn:first-child, html body .carousel-container.at-end > .carousel-btn:last-child { opacity: 0 !important; pointer-events: none; }
+
+/* Cinema already numbers its rows ("REEL 02"); the theme's second running number ("01", and always 01 there) went */
+html body :is(#video-view, #series-view, #videos-view, #private-view) section > div:first-child > h2::before { content: none; }
 
 /* ---------- square cover ---------- */
 .utile .ut-cover {
@@ -29,9 +46,11 @@ html body .utile .ut-mos img { width: 100%; height: 100%; object-fit: cover; min
 html body .utile .ut-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, .35); font-size: 1.6rem; }
 
 /* ---------- title + small uppercase line (same fonts as the Music tiles) ---------- */
+/* long titles wrap onto a second line instead of being cut after a few words; past two lines the tooltip has the rest */
 .utile .ut-title {
   margin-top: .65rem; font-family: var(--v-display, inherit); font-weight: 700; font-size: .98rem; letter-spacing: .02em; line-height: 1.2;
-  text-transform: none; color: var(--v-ink, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-transform: none; color: var(--v-ink, inherit); overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
 }
 .utile .ut-sub {
   margin-top: .2rem; font-family: var(--v-mono, ui-monospace, monospace); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase;

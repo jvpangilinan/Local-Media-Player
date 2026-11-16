@@ -1810,6 +1810,8 @@ def video_cards(private=False):
                 "avg_rating": round(r["avg_rating"], 1) if r["avg_rating"] is not None else None,
                 "rating_count": r["rating_count"], "user_rating": r["mine"] or 0,
                 "progress": round(f, 3) if CONTINUE_MIN < f < CONTINUE_MAX else 0,
+                "left": int(max(0, (r["duration"] or 0) - (r["position"] or 0))) if CONTINUE_MIN < f < CONTINUE_MAX else 0,   # seconds still to watch
+                "own_poster": k.get("side_poster") is not None,   # a real poster file next to the video (else /poster is a frame made into 2:3)
                 "poster": f"/poster/{r['id']}?v={int(r['mtime'] or 0)}",
                 "backdrop": f"/backdrop/{r['id']}?v={int(r['mtime'] or 0)}", "added": int(r["mtime"] or 0)}
 

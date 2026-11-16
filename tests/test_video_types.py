@@ -41,6 +41,7 @@ for rel in files:
     p = media / "videos" / rel
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes(b"x" * 64 + rel.encode())
+(media / "videos" / "Action" / "Dune (2021).jpg").write_bytes(b"jpg")   # your own poster next to the video
 
 app.scan_videos()
 c = app.app.test_client()
@@ -62,5 +63,18 @@ for _ in range(15):
     f = c.get("/api/videos").get_json()["featured"]
     assert f["type"] == "movie", f
 
+# cards say how much is left (Continue watching / the banner) and whether the poster is a real one
+from contextlib import closing
+dune = by_title["Dune"]["id"]
+with closing(app.db()) as con:
+    con.execute("UPDATE videos SET position = 1800, duration = 7200, progress_at = 100 WHERE id = ?", (dune,))
+    con.commit()
+d = c.get("/api/videos").get_json()
+cont = {v["title"]: v for v in d["continue"]}
+assert cont["Dune"]["left"] == 5400, cont["Dune"]
+assert cont["Dune"]["own_poster"] is True, cont["Dune"]
+loose = {v["title"]: v for v in d["loose"]}
+assert loose["Iron Man"]["left"] == 0 and loose["Iron Man"]["own_poster"] is False, loose["Iron Man"]
+
 shutil.rmtree(tmp, ignore_errors=True)
-print("ok: movies, clips and extras are told apart; the banner is always a movie")
+print("ok: movies, clips and extras are told apart; the banner is always a movie; cards carry time left and own_poster")
