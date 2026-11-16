@@ -1,7 +1,7 @@
 /* The Diner (diner.js): a full-window quiet room. Own layer on the --z-fx step; nothing else on the page is touched.
    The scene is a 16:9 stage that always covers the window; everything in it is placed in % of the stage, text in cqw. */
 #diner { position: fixed; inset: 0; z-index: var(--z-fx); background: #07080d; overflow: hidden; opacity: 0; visibility: hidden;
-    transition: opacity 1.2s ease, visibility 0s linear 1.2s; cursor: none; font-family: Inter, 'Segoe UI', sans-serif; user-select: none; }
+    transition: opacity .8s ease, visibility 0s linear .8s; cursor: none; font-family: Inter, 'Segoe UI', sans-serif; user-select: none; }
 #diner.on { opacity: 1; visibility: visible; transition: opacity 1.2s ease; }
 #diner.mouse { cursor: default; }
 #diner #dn-stage { position: absolute; left: 50%; top: 42%; width: max(100vw, 177.78vh); height: max(56.25vw, 100vh);
@@ -283,6 +283,38 @@
 #diner .dn-pg-sc:empty, #diner .dn-pg-extra:empty { display: none; }
 #diner .dn-pg-sc h4 { margin: 0 0 24px; font: inherit; font-size: 25px; font-weight: 700; color: #6e2f2a; }
 #diner .dn-pg-extra { margin-top: 24px; }
+
+/* ---- time of day (todNow in diner.js: morning 06-12, day 12-18, else night). The day streets lie over the night one, a grey veil stands in
+   for cloud when it rains or snows, and daylight comes into the room from the window (the window itself is cut out of that layer). ---- */
+#diner .dn-out-m, #diner .dn-out-d, #diner .dn-cast, #diner .dn-daylight { opacity: 0; transition: opacity 3s ease; }
+#diner.tod-morning .dn-out-m, #diner.tod-day .dn-out-d { opacity: 1; }
+#diner .dn-cast { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(112,122,142,.92), rgba(150,158,172,.6) 62%, rgba(84,92,108,.4)); }
+#diner.tod-morning .dn-cast, #diner.tod-day .dn-cast { opacity: .6; }
+#diner.tod-morning.wx-storm .dn-cast, #diner.tod-day.wx-storm .dn-cast { opacity: .88; }
+#diner.tod-morning.wx-snow .dn-cast, #diner.tod-day.wx-snow .dn-cast { opacity: .45; }
+#diner.tod-morning.wx-clear .dn-cast, #diner.tod-day.wx-clear .dn-cast { opacity: 0; }
+#diner .dn-daylight { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+    clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 3.125% 7.333%, 42.5% 7.333%, 42.5% 67.333%, 3.125% 67.333%, 3.125% 7.333%,
+                       0 0, 48.875% 16.889%, 77.125% 16.889%, 77.125% 52.222%, 48.875% 52.222%, 48.875% 16.889%);    /* holes: the window, the painting */
+    background: radial-gradient(ellipse 70% 90% at 23% 38%, rgba(196,216,250,.3), rgba(196,216,250,.13) 50%, rgba(196,216,250,.05) 100%); }
+#diner.tod-morning .dn-daylight { background: radial-gradient(ellipse 70% 90% at 23% 40%, rgba(255,206,150,.36), rgba(255,196,140,.15) 50%, rgba(255,196,140,.05) 100%); }
+#diner .dn-room, #diner .dn-spr { transition: filter 3s ease; }
+#diner #dn-in { transition: opacity .45s ease, filter 3s ease; }
+#diner.tod-day .dn-room, #diner.tod-day .dn-spr { filter: brightness(1.28) saturate(.9); }
+#diner.tod-morning .dn-room, #diner.tod-morning .dn-spr { filter: brightness(1.14) sepia(.12); }
+#diner.tod-morning .dn-daylight, #diner.tod-day .dn-daylight { opacity: 1; }
+#diner.tod-morning:not(.wx-clear) .dn-daylight, #diner.tod-day:not(.wx-clear) .dn-daylight { opacity: .6; }
+#diner .dn-vig { transition: opacity 3s ease; }
+#diner.tod-morning .dn-vig, #diner.tod-day .dn-vig { opacity: .5; }
+#diner.tod-morning .dn-car, #diner.tod-day .dn-car { filter: opacity(.28); }
+#diner.snap .dn-room, #diner.snap .dn-spr, #diner.snap .dn-out, #diner.snap .dn-cast, #diner.snap .dn-daylight, #diner.snap .dn-vig, #diner.snap #dn-in, #diner.snap #dn-fairy, #diner.snap .dn-rain, #diner.snap .dn-run { transition: none; }
+
+/* ---- the way in: the app's background painting (a copy, #dn-fly, on the body) settles onto the frame; the room shows at once under it ---- */
+#dn-fly { position: fixed; z-index: calc(var(--z-fx) + 1); max-width: none; pointer-events: none; opacity: 0; transform-origin: 0 0; transition: opacity .45s ease; will-change: transform, opacity; }
+#dn-fly.in { opacity: 1; }
+#dn-fly.go { transition: transform 1.5s cubic-bezier(.62, 0, .18, 1); }
+#dn-fly.out { opacity: 0; transition: opacity .45s ease; }
+#diner.arrive, #diner.arrive.on { transition: none; }
 
 @media (prefers-reduced-motion: reduce) {
     #diner .dn-book.new, #diner .dn-aurora, #diner.wx-aurora .dn-aurora, #diner.juno-here .dn-cup2 { animation: none; }

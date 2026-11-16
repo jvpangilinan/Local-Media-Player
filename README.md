@@ -56,7 +56,9 @@ The mug button (sidebar, music bar, Now Playing) opens **The Diner**: a painted 
 - **The guest book (B).** A notebook on the table holds 27 pages written by people you never see: the cook, the radio voice, a child waiting for the bus. Each thing you use fills a page. Twelve more pages are secrets, and each blank page carries a hint. Nothing is timed against you.
 - **A fifth night.** Reading the whole book adds a new night to the window.
 - **Juno.** After a few pages, someone starts writing back in the margins. Later a second cup appears on the table: click it to talk. Nine nights, reply choices, four endings, and "Another night" on the last page of the book to play it again. Esc steps away from a conversation, and the cup waits for you.
-- **Keys:** Space / Right next painting, Left back, N empty frame, M hide the player, B guest book, Esc leave.
+- **Morning, day and night.** The street outside and the light in the room follow the clock: morning from 06:00, day from 12:00, night from 18:00. Rain and snow bring grey skies; "Clear" shows the sun. Press T to pin a time of day (press again to cycle back to the clock). The story skies stay night.
+- **The way in.** In Gallery mode the painting behind the app becomes the first one on the diner's wall: it fills the window, then settles into the frame while the room's lights come on one by one. In other background modes the room fades in dark and the lights come on. With reduced motion it is a plain fade.
+- **Keys:** Space / Right next painting, Left back, N empty frame, M hide the player, T time of day, B guest book, Esc leave.
 - Progress is kept on this PC (in the page's local storage). `node tools/diner_story_check.js` checks the story script.
 
 ## V6: Gallery, Good by day and Evil by night

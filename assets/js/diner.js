@@ -2,7 +2,9 @@
    onto canvases (no borrowed art): a blurred night street behind wet glass, a lit wall with one framed painting, a jukebox, a table.
    Only cheap layers move (rain, steam, the equaliser), all by transform / opacity.
    Paintings come from /api/art/list (the Gallery set), drift slowly and at random. The jukebox drives the app's own music player.
-   Keys while it is open: Space / Right = next, Left = back, N = nothing (empty frame), M = hide the music card, Esc = leave.
+   Keys while it is open: Space / Right = next, Left = back, N = nothing (empty frame), M = hide the music card, T = time of day, Esc = leave.
+   Time of day: the street and the light in the room follow the clock (morning 06-12, day 12-18, night); T pins one. The story skies stay night.
+   The way in (arrive): in Gallery mode the app's own background painting flies to the frame, then the room's lights come on one by one.
    Things in the room answer a click (HOT below): lamp, fairy lights, neon sign, weather, coffee, sugar, picture light, jukebox, leaves, lean in, the cat.
    Dragging on the window draws in the fog. Each thing found is counted (12 in all); finding them all unlocks fireworks.
    The guest book (B) on the table holds the lore: diner-lore.js keeps the pages and the book, diner-talk.js plays Juno's story from diner-story.js.
@@ -122,6 +124,81 @@
             c.fillStyle = rgba(col, a); c.beginPath(); c.arc(bx, by, br, 0, 6.3); c.fill(); c.strokeStyle = rgba(col, a * 1.2); c.lineWidth = 1; c.stroke();
         }
         c.restore();
+    }
+
+    /* ---------- the same street by daylight (morn: a low sun in the gap between the blocks). Same layout as paintOut: keep the far-tower r() calls in step ---------- */
+    function paintDay(c, w, h, S, morn) {
+        var r = rng(7), i, j, gy = h * .8;
+        c.fillStyle = morn ? lin(c, 0, 0, 0, gy, [[0, '#6f8fc4'], [.42, '#c2b3c6'], [.78, '#ffcf9a'], [1, '#ffe4b8']]) : lin(c, 0, 0, 0, gy, [[0, '#4f93d8'], [.55, '#9cc8ee'], [1, '#dcecf6']]);
+        c.fillRect(0, 0, w, h);
+        if (!morn) glow(c, w * .66, -30, 320, 220, [255, 255, 240], .5);
+        soft(c, w, h, S, 7, function (L) {                                     // a few clouds
+            L.fillStyle = morn ? 'rgba(255,226,206,.8)' : 'rgba(255,255,255,.85)';
+            [[92, 74, 74, 15], [150, 64, 50, 13], [470, 112, 92, 17], [545, 100, 52, 13], [318, 44, 64, 11]].forEach(function (q) { L.beginPath(); L.ellipse(q[0], q[1], q[2], q[3], 0, 0, 6.3); L.fill(); });
+        });
+        soft(c, w, h, S, 3.5, function (L) {                                   // far towers, pale in the haze
+            for (i = 0; i < 18; i++) {
+                var x = r() * w, bw = 22 + r() * 50, bh = 150 + r() * 260, v = r() * 14 | 0; r(); r();
+                L.fillStyle = morn ? 'rgb(' + (182 + v) + ',' + (152 + v) + ',' + (166 + v) + ')' : 'rgb(' + (138 + v) + ',' + (166 + v) + ',' + (202 + v) + ')'; L.fillRect(x, gy - bh, bw, bh);
+                for (j = 0; j < 14; j++) { r(); L.fillStyle = 'rgba(56,76,116,' + (.05 + r() * .1).toFixed(3) + ')'; L.fillRect(x + 3 + r() * (bw - 8), gy - bh + 8 + r() * (bh - 20), 2.2, 2.6); }
+            }
+        });
+        c.fillStyle = lin(c, 0, h * .25, 0, gy, [[0, 'rgba(255,255,255,0)'], [1, morn ? 'rgba(255,216,172,.55)' : 'rgba(234,242,250,.5)']]); c.fillRect(0, 0, w, gy);
+        if (morn) { glow(c, 233, 318, 250, 210, [255, 214, 150], .8); glow(c, 233, 326, 58, 52, [255, 248, 222], 1); }
+        soft(c, w, h, S, 2.4, function (L) {                                   // this side of the street
+            var wall = morn ? ['#54495e', '#6b5a68', '#4a4258'] : ['#5c6880', '#6d7890', '#515c72'];
+            function block(x, bw, top, col) {
+                L.fillStyle = col; L.fillRect(x, top, bw, gy - top);
+                L.fillStyle = lin(L, x, 0, x + bw, 0, morn ? [[0, 'rgba(255,206,150,.26)'], [.5, 'rgba(255,206,150,0)'], [1, 'rgba(20,10,30,.2)']] : [[0, 'rgba(20,30,50,.14)'], [.6, 'rgba(255,255,255,0)'], [1, 'rgba(255,255,255,.16)']]); L.fillRect(x, top, bw, gy - top);
+                for (var yy = top + 14; yy < gy - 110; yy += 19) for (var xx = x + 8; xx < x + bw - 10; xx += 15) {
+                    var q = r(); L.fillStyle = q < .13 ? (morn ? 'rgba(255,212,158,.8)' : 'rgba(210,232,250,.6)') : q < .3 ? 'rgba(140,170,204,.34)' : 'rgba(30,42,66,.34)';
+                    L.fillRect(xx, yy, 7, 9);
+                }
+                L.fillStyle = 'rgba(0,0,0,.16)'; for (yy = top + 80; yy < gy - 100; yy += 84) L.fillRect(x, yy, bw, 3);
+            }
+            function sign(x, y, sw, sh, col) {                                 // the signs are off: paint, not light
+                L.fillStyle = col; L.fillRect(x, y, sw, sh); L.fillStyle = 'rgba(246,244,236,.8)';
+                for (var yy = y + 8; yy < y + sh - 14; yy += 24) { L.fillRect(x + 5, yy, sw - 10, 4); L.fillRect(x + 5, yy + 7, 4, 9); L.fillRect(x + sw - 9, yy + 7, 4, 9); }
+            }
+            block(-10, 178, -20, wall[0]); block(286, 236, 96, wall[1]); block(548, 120, -20, wall[2]);
+            L.strokeStyle = '#262b38'; L.lineWidth = 1.5;
+            L.beginPath(); L.moveTo(168, 150); L.quadraticCurveTo(228, 196, 286, 160); L.moveTo(168, 208); L.quadraticCurveTo(230, 240, 286, 214); L.stroke();
+            L.fillStyle = morn ? '#584c5c' : '#56617a'; L.fillRect(330, 70, 3, 26); L.fillRect(470, 60, 2, 36); L.fillRect(420, 74, 34, 22);
+            // the holo board is a printed poster by day
+            L.fillStyle = lin(L, 310, 126, 310, 236, [[0, '#d8749f'], [.55, '#e7a67e'], [1, '#8b7ad6']]); L.fillRect(310, 126, 150, 110);
+            L.fillStyle = 'rgba(255,247,232,.95)'; L.beginPath(); L.arc(385, 186, 30, 0, 6.3); L.fill();
+            L.fillStyle = 'rgba(90,50,120,.28)'; for (i = 0; i < 6; i++) L.fillRect(310, 188 + i * 9, 150, 2 + i * .6);
+            sign(132, 120, 26, 190, '#2f8f9c'); sign(600, 84, 24, 216, '#b8487e');
+            // the place across the road: lit early, dark glass by day
+            L.fillStyle = morn ? '#6e5f6a' : '#667089'; L.fillRect(286, 318, 236, gy - 318);
+            L.fillStyle = '#d2558a'; L.fillRect(318, 322, 118, 12);
+            L.fillStyle = lin(L, 0, 352, 0, 428, morn ? [[0, '#ffe2a0'], [1, '#f2a25e']] : [[0, '#42516a'], [1, '#283142']]); L.fillRect(300, 352, 208, 76);
+            if (!morn) { L.fillStyle = 'rgba(214,232,250,.3)'; [[300, 44], [392, 22], [452, 34]].forEach(function (q) { L.beginPath(); L.moveTo(q[0], 352); L.lineTo(q[0] + q[1], 352); L.lineTo(q[0] + q[1] - 30, 428); L.lineTo(q[0] - 30, 428); L.fill(); }); }
+            L.fillStyle = '#8e2a4c'; L.fillRect(292, 340, 224, 13);
+            L.fillStyle = morn ? 'rgba(40,18,10,.8)' : 'rgba(12,16,26,.75)'; L.fillRect(300, 404, 208, 8); L.fillRect(368, 352, 4, 76); L.fillRect(440, 352, 4, 76);
+            [[326, 372], [344, 376], [470, 370]].forEach(function (p) { L.beginPath(); L.arc(p[0], p[1], 7, 0, 6.3); L.fill(); L.fillRect(p[0] - 8, p[1] + 7, 16, 28); });
+            // left: a shutter and a small sign; right: vending machines
+            L.fillStyle = morn ? '#3c3646' : '#414a5e'; L.fillRect(20, 350, 120, gy - 350);
+            L.fillStyle = 'rgba(0,0,0,.2)'; for (i = 356; i < gy; i += 9) L.fillRect(20, i, 120, 2);
+            L.fillStyle = '#3a9aa6'; L.fillRect(40, 328, 46, 12);
+            L.fillStyle = '#dcecf0'; L.fillRect(566, 378, 22, 50); L.fillStyle = '#efc6d3'; L.fillRect(594, 378, 22, 50);
+            // the street lamp is off; the two people are still out
+            L.fillStyle = '#232836'; L.fillRect(231, 296, 3, gy - 296); L.fillRect(214, 296, 20, 3);
+            L.fillStyle = '#cfc9b8'; L.fillRect(210, 298, 10, 4);
+            L.fillStyle = '#1b2030';
+            [[402, 1], [252, .8]].forEach(function (p) { var k = p[1]; L.beginPath(); L.arc(p[0], gy - 34 * k, 14 * k, Math.PI, 0); L.fill(); L.fillRect(p[0] - 4 * k, gy - 32 * k, 8 * k, 32 * k); });
+            // kerb and road
+            L.fillStyle = morn ? '#a39296' : '#98a0ae'; L.fillRect(0, gy, w, 12); L.fillStyle = 'rgba(255,255,255,.3)'; L.fillRect(0, gy + 12, w, 1.5);
+            L.fillStyle = lin(L, 0, gy + 13, 0, h, morn ? [[0, '#7b6d76'], [1, '#3b333f']] : [[0, '#6c7584'], [1, '#3a4150']]); L.fillRect(0, gy + 13, w, h - gy);
+        });
+        if (morn) glow(c, 233, 322, 150, 140, [255, 226, 170], .4);         // the sun spills over the roof edges
+        soft(c, w, h, S, 5, function (L) {                                     // the wet road keeps the sky
+            function refl(x, rw, col, a) { L.fillStyle = lin(L, 0, gy + 12, 0, h + 30, [[0, rgba(col, a)], [1, rgba(col, 0)]]); L.fillRect(x - rw / 2, gy + 12, rw, h - gy); }
+            if (morn) { refl(233, 96, [255, 232, 180], .8); refl(404, 200, [255, 196, 120], .4); } else refl(330, 420, [222, 238, 252], .32);
+            refl(145, 34, [70, 180, 190], .28); refl(612, 34, [210, 100, 150], .28); refl(590, 50, [230, 240, 246], .3);
+        }, 'screen');
+        for (i = 0; i < 46; i++) { c.fillStyle = 'rgba(18,22,34,.22)'; c.fillRect(r() * w - 40, gy + 16 + r() * (h - gy - 16), 30 + r() * 110, 1.3); }
+        if (morn) { c.save(); c.globalCompositeOperation = 'soft-light'; c.fillStyle = lin(c, 0, 0, 0, h, [[0, 'rgba(255,170,110,.3)'], [1, 'rgba(255,196,136,.5)']]); c.fillRect(0, 0, w, h); c.restore(); }
     }
 
     /* ---------- water on the glass ---------- */
@@ -370,10 +447,15 @@
         c.save(); c.beginPath(); c.rect(0, 0, W, H); c.rect(wx, wy, ww, wh); c.clip('evenodd'); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'overlay'; c.fillStyle = c.createPattern(n, 'repeat'); c.fillRect(0, 0, c.canvas.width, c.canvas.height); c.restore();
     }
 
+    function stageS() { return Math.max(1, Math.min(1.6, Math.max(innerWidth, innerHeight * 16 / 9) * (window.devicePixelRatio || 1) / W)); }
+    function put(name, c) { var ph = el.querySelector('[data-cv="' + name + '"]'); if (!ph) return; c.canvas.className = ph.className; c.canvas.style.cssText = ph.style.cssText; if (ph.id) c.canvas.id = ph.id; ph.parentNode.replaceChild(c.canvas, ph); }
+    var todDone = {};                                      // the day streets are painted the first time they are needed
+    function paintTod(td) {
+        if (todDone[td] || !el) return; todDone[td] = 1;
+        try { var S = stageS(), c = canvas(WIN.w, WIN.h, S); paintDay(c, WIN.w, WIN.h, S, td === 'morning'); put(td === 'morning' ? 'out-m' : 'out-d', c); } catch (e) { console.error('diner day', e); }
+    }
     function paint() {
-        var S = Math.max(1, Math.min(1.6, Math.max(innerWidth, innerHeight * 16 / 9) * (window.devicePixelRatio || 1) / W));
-        function put(name, c) { var ph = el.querySelector('[data-cv="' + name + '"]'); if (!ph) return; c.canvas.className = ph.className; c.canvas.style.cssText = ph.style.cssText; if (ph.id) c.canvas.id = ph.id; ph.parentNode.replaceChild(c.canvas, ph); }
-        var c;
+        var S = stageS(), c;
         c = canvas(WIN.w, WIN.h, S); paintOut(c, WIN.w, WIN.h, S); put('out', c);
         c = canvas(WIN.w, WIN.h, S); paintGlass(c, WIN.w, WIN.h); put('wet', c);
         c = canvas(WIN.w + RDX, WIN.h * 2, 1); paintRain(c, WIN.w, WIN.h, RDX, 170, 46, .17, 1, 5); put('rain-far', c);
@@ -403,7 +485,7 @@
         HOT.forEach(function (h) { hots += '<button type="button" class="dn-hot ' + h[6] + '" data-act="' + h[0] + '" data-tip="' + h[5] + '" aria-label="' + h[5] + '" style="' + box({ x: h[1], y: h[2], w: h[3], h: h[4] }) + '"></button>'; });
         el = document.createElement('div'); el.id = 'diner'; el.setAttribute('aria-hidden', 'true');
         el.innerHTML = '<div id="dn-stage">' +
-            '<div id="dn-view" style="' + box(WIN) + '"><i data-cv="out" class="dn-fill dn-out"></i><i class="dn-aurora"></i><i class="dn-dawn"></i><i data-cv="fw" class="dn-fill"></i><i class="dn-car dn-car-a"></i><i class="dn-car dn-car-b"></i>' +
+            '<div id="dn-view" style="' + box(WIN) + '"><i data-cv="out" class="dn-fill dn-out"></i><i data-cv="out-m" class="dn-fill dn-out dn-out-m"></i><i data-cv="out-d" class="dn-fill dn-out dn-out-d"></i><i class="dn-cast"></i><i class="dn-aurora"></i><i class="dn-dawn"></i><i data-cv="fw" class="dn-fill"></i><i class="dn-car dn-car-a"></i><i class="dn-car dn-car-b"></i>' +
             '<i data-cv="rain-far" class="dn-rain dn-rain-far"></i><i data-cv="rain-near" class="dn-rain dn-rain-near"></i><i data-cv="snow-far" class="dn-rain dn-snow dn-snow-far"></i><i data-cv="snow-near" class="dn-rain dn-snow dn-snow-near"></i><i data-cv="wet" class="dn-fill"></i><i data-cv="fog" class="dn-fill"></i><i class="dn-bolt"></i>' + runs +
             '<svg class="dn-sign" viewBox="0 -34 120 154"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M30 -34V-2M90 -34V-2" stroke="#05060a" stroke-width="1.5"/>' +
             '<g class="dn-sp" stroke="#ff6fbd" stroke-width="4.5"><path d="M26 52h58v20a29 29 0 0 1-58 0z"/><path d="M84 58h7a11 11 0 0 1 0 22h-9"/><path d="M16 110h78"/></g>' +
@@ -417,7 +499,7 @@
             '<i data-cv="cat" class="dn-spr dn-cat" style="' + box(CAT) + '"></i><i data-cv="tail" class="dn-spr dn-tail" style="' + box(TAIL) + '"></i><i class="dn-hearts">&#9829;<b>&#9829;</b><u>&#9829;</u></i>' +
             '<i data-cv="cup2" class="dn-spr dn-cup2" style="' + box(CUP2) + '"></i><i data-cv="shaker" class="dn-spr dn-shaker" style="' + box(SHK) + '"></i><i class="dn-grains"></i><i data-cv="leaves" class="dn-spr dn-leaves" style="' + box(LEAF) + '"></i>' +
             '<i class="dn-book" style="' + box(BOOK) + '"><i></i></i><div id="dn-card"><b>The Third Cup</b><span>Ninth &amp; Lantern &middot; Lowlight</span></div>' +
-            hots + '<div id="dn-toast"></div></div><i class="dn-vig"></i>' +
+            '<i class="dn-daylight"></i>' + hots + '<div id="dn-toast"></div></div><i class="dn-vig"></i>' +
             '<div id="dn-now" class="dn-glass"><div class="dn-top"><div class="dn-cov"><i class="fas fa-music"></i><img id="dn-cover" alt=""></div>' +
             '<div class="dn-meta"><b id="dn-t">Nothing playing</b><span id="dn-a">Press play for music</span></div>' +
             '<button type="button" data-act="play" class="dn-main" title="Play / pause"><i id="dn-playi" class="fas fa-play"></i></button></div>' +
@@ -429,7 +511,7 @@
             '<button type="button" data-act="min" title="Hide the player (M)"><i class="fas fa-chevron-down"></i></button></div></div></div>' +
             '<button id="dn-dock" type="button" data-act="min" title="Show the player (M)"><i class="fas fa-music"></i></button>' +
             '<button id="dn-leave" type="button" title="Leave (Esc)"><i class="fas fa-xmark"></i></button>' +
-            '<div id="dn-hint"><span id="dn-found"></span><b>Click things in the room</b><kbd>Space</kbd> next painting <kbd>&larr;</kbd> back <kbd>N</kbd> empty frame <kbd>M</kbd> hide player <kbd>B</kbd> guest book <kbd>Esc</kbd> leave</div>';
+            '<div id="dn-hint"><span id="dn-found"></span><b>Click things in the room</b><kbd>Space</kbd> next painting <kbd>&larr;</kbd> back <kbd>N</kbd> empty frame <kbd>M</kbd> hide player <kbd>T</kbd> time of day <kbd>B</kbd> guest book <kbd>Esc</kbd> leave</div>';
         document.body.appendChild(el);
         try { paint(); } catch (e) { console.error('diner paint', e); }
         imgs = Array.prototype.slice.call(el.querySelectorAll('.dn-img'));
@@ -520,6 +602,7 @@
         var pg = $('dn-prog'); if (pg) pg.style.width = (a && t && a.duration ? Math.min(100, a.currentTime / a.duration * 100) : 0) + '%';
         var vs = $('dn-vol'); if (vs && document.activeElement !== vs) vs.value = vol;
         var pi = $('dn-playi'); if (pi) pi.className = 'fas ' + (playing ? 'fa-pause' : 'fa-play');
+        if (todNow() !== curTod) applyRoom();              // the clock moved on: morning, day or night
     }
     function music(a) {
         var A = au(); if (!A) return;
@@ -530,7 +613,7 @@
         setTimeout(sync, 60);
     }
     // the state of the room (kept between visits)
-    var st = { lamp: 1, fairy: 0, sign: 1, wx: 0, pic: 1 }, sip = 0, pets = 0, refills = 0, found = {}, FOUND = 12;
+    var st = { lamp: 1, fairy: 0, sign: 1, wx: 0, pic: 1, tod: 0 }, sip = 0, pets = 0, refills = 0, found = {}, FOUND = 12;
     var IDS = { 'x-lamp': 'lamp', 'x-fairy': 'fairy', 'x-sign': 'sign', 'x-wx': 'wx', 'x-pic': 'pic', 'x-sip': 'sip', 'x-sugar': 'sugar', 'x-leaves': 'leaves', 'x-zoom': 'zoom', 'x-cat': 'cat', 'x-shuffle': 'juke' };
     try { (JSON.parse(localStorage.getItem('ultron_diner_found') || '[]') || []).forEach(function (k) { found[k] = 1; }); } catch (e) {}
     function nFound() { return Object.keys(found).length; }
@@ -558,11 +641,21 @@
         if (say) toast(t, say);
     }
     try { var sv = JSON.parse(localStorage.getItem('ultron_diner_room') || '{}'); Object.keys(st).forEach(function (k) { if (typeof sv[k] === 'number') st[k] = sv[k]; }); } catch (e) {}
+    // time of day: st.tod 0 = follow the clock, 1 morning, 2 day, 3 night. The story skies (the fifth night, first morning) keep their own.
+    var curTod = 'night', dark = null;                     // dark: lights still held off while the room wakes (see "the way in")
+    function todNow() {
+        if (st.wx >= 4) return 'night';
+        if (st.tod) return ['', 'morning', 'day', 'night'][st.tod] || 'night';
+        var h = new Date().getHours(); return h >= 6 && h < 12 ? 'morning' : h >= 12 && h < 18 ? 'day' : 'night';
+    }
     function applyRoom() {
-        if (!el) return; var c = el.classList;
-        if (!st.lamp && paintOff) paintOff();
-        c.toggle('lamp-off', !st.lamp); c.toggle('fairy-tw', st.fairy === 1); c.toggle('fairy-off', st.fairy === 2); c.toggle('sign-off', !st.sign);
-        c.toggle('wx-storm', st.wx === 1); c.toggle('wx-snow', st.wx === 2); c.toggle('wx-clear', st.wx === 3); c.toggle('wx-aurora', st.wx === 4); c.toggle('wx-dawn', st.wx === 5); c.toggle('pic-off', !st.pic); c.toggle('cup-empty', sip >= 4);
+        if (!el) return; var c = el.classList, m = dark || {}, td = todNow();
+        var lamp = m.lamp ? 0 : st.lamp, fairy = m.fairy ? 2 : st.fairy, sign = m.sign ? 0 : st.sign, pic = m.pic ? 0 : st.pic;
+        if (!lamp && paintOff) paintOff();
+        if (td !== 'night') paintTod(td);
+        curTod = td; c.toggle('tod-morning', td === 'morning'); c.toggle('tod-day', td === 'day');
+        c.toggle('lamp-off', !lamp); c.toggle('fairy-tw', fairy === 1); c.toggle('fairy-off', fairy === 2); c.toggle('sign-off', !sign);
+        c.toggle('wx-storm', st.wx === 1); c.toggle('wx-snow', st.wx === 2); c.toggle('wx-clear', st.wx === 3); c.toggle('wx-aurora', st.wx === 4); c.toggle('wx-dawn', st.wx === 5); c.toggle('pic-off', !pic); c.toggle('cup-empty', sip >= 4);
         el.style.setProperty('--sip', Math.min(sip, 4));
         var n = nFound(), f = $('dn-found'), fw = el.querySelector('[data-act="x-fw"]');
         if (f) f.textContent = lore('count') || '\u2605 ' + n + '/' + FOUND + ' found'; if (fw) fw.setAttribute('data-tip', n >= FOUND ? 'Fireworks' : '???');
@@ -578,7 +671,7 @@
         if (a === 'x-lamp') { st.lamp = st.lamp ? 0 : 1; say = st.lamp ? 'Lamp on' : 'Lamp off'; }
         else if (a === 'x-fairy') { st.fairy = (st.fairy + 1) % 3; say = ['Fairy lights on', 'Twinkle', 'Fairy lights off'][st.fairy]; }
         else if (a === 'x-sign') { st.sign = st.sign ? 0 : 1; if (st.sign) kick('.dn-sign'); say = st.sign ? 'Neon on' : 'Neon off'; }
-        else if (a === 'x-wx') { var ns = lore('nights') || [0, 1, 2, 3]; st.wx = ns[(ns.indexOf(st.wx) + 1) % ns.length]; say = ['Rain', 'Downpour', 'Snow', 'Clear night', 'The fifth night', 'First morning'][st.wx]; }
+        else if (a === 'x-wx') { var ns = lore('nights') || [0, 1, 2, 3]; st.wx = ns[(ns.indexOf(st.wx) + 1) % ns.length]; say = ['Rain', 'Downpour', 'Snow', 'Clear night', 'The fifth night', 'First morning'][st.wx]; if (st.wx === 3 && todNow() !== 'night') say = todNow() === 'morning' ? 'Clear morning' : 'Clear day'; }
         else if (a === 'x-pic') { st.pic = st.pic ? 0 : 1; say = st.pic ? 'Picture light on' : 'Picture light off'; }
         else if (a === 'x-sip') { if (sip >= 4) { sip = 0; refills++; say = 'Refilled'; } else { sip++; say = sip >= 4 ? 'Empty. Click for a refill' : 'Sip'; } }
         else if (a === 'x-sugar') { kick('.dn-shaker'); kick('.dn-grains'); say = 'A little sugar'; }
@@ -610,27 +703,105 @@
         else if (k === ' ' || k === 'ArrowRight') next();
         else if (k === 'ArrowLeft') prev();
         else if (k === 'n' || k === 'N') nothing();
+        else if (k === 't' || k === 'T') {
+            var wb = el.querySelector('[data-act="x-wx"]');
+            if (st.wx >= 4) toast(wb, 'This sky keeps its own time');
+            else { st.tod = (st.tod + 1) % 4; applyRoom(); toast(wb, ['Time of day: follows the clock', 'Morning', 'Day', 'Night'][st.tod]); }
+        }
         else used = false;
         if (used || !e.ctrlKey && !e.metaKey) { e.preventDefault(); e.stopPropagation(); }
     }
 
+    /* ---------- the way in ----------
+       In Gallery mode the painting behind the app is the first thing on the diner's wall: a copy of it (#dn-fly) fades in over the app,
+       then shrinks onto the frame while the room, still dark, shows around it. Then the lights come on: picture light, lamp, neon, fairy lights
+       (only the ones that were on; `dark` holds them off until their turn). Without a background painting the room just fades in dark and wakes.
+       Reduced motion: a plain fade, lights already on. */
+    var entering = false, fly = null, arrT = [];
+    function later(fn, ms) { arrT.push(setTimeout(fn, ms)); }
+    function noFly() { if (fly && fly.parentNode) fly.parentNode.removeChild(fly); fly = null; }
+    function bgPainting() {
+        try {
+            if (!document.documentElement.hasAttribute('data-art')) return null;
+            var n = document.querySelector('#bg-layer .bg-pic.top.on'); if (!n) return null;
+            var m = /url\((["']?)(.+?)\1\)/.exec(n.style.getPropertyValue('--art-pic') || ''); if (!m) return null;
+            var p = /([\d.]+)%\s+([\d.]+)%/.exec(n.style.getPropertyValue('--art-pos') || '');
+            return { url: m[2], px: p ? +p[1] : 50, py: p ? +p[2] : 50, id: (/\/([^\/?#]+)\.jpg/.exec(m[2]) || [])[1] || '' };
+        } catch (e) { return null; }
+    }
+    // where the picture ends up: the frame's opening on the resting stage (same numbers as #dn-stage in diner.css), the picture fitted inside it
+    function frameRect(nw, nh) {
+        var vw = innerWidth, vh = innerHeight, sw = Math.max(vw, vh * 16 / 9), sh = Math.max(vw * 9 / 16, vh), sx = (vw - sw) / 2, sy = (vh - sh) * .42;
+        var fw = ART.w / W * sw, fh = ART.h / H * sh, k = Math.min(fw / nw, fh / nh);
+        return { x: sx + ART.x / W * sw + (fw - nw * k) / 2, y: sy + ART.y / H * sh + (fh - nh * k) / 2, w: nw * k, h: nh * k };
+    }
+    function wake(t0) {                                     // the lights come on, one after the other
+        [['pic', 0], ['lamp', 420], ['sign', 840], ['fairy', 1240]].forEach(function (q) {
+            later(function () { if (!dark) return; delete dark[q[0]]; applyRoom(); if (q[0] === 'sign' && st.sign) kick('.dn-sign'); }, t0 + q[1]);
+        });
+        later(function () { dark = null; applyRoom(); if (open) kick('#dn-card'); }, t0 + 1600);
+    }
+    function hang(bgp) {                                    // the flown painting is now the one in the frame
+        var w = (works || []).filter(function (x) { return x.id === bgp.id; })[0] || { id: '_bg', url: bgp.url };
+        var nu = imgs[front]; nu.style.transition = 'none'; nu.src = bgp.url; nu.style.opacity = '1';
+        cur = w; if (seen.indexOf(w.id) < 0) seen.push(w.id); plaque(w.title ? w : null); lore('art', { id: w.id }); armDrift();
+    }
     function enter() {
+        if (open || entering) return;
+        var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+        var bgp = calm ? null : bgPainting();
+        if (!bgp) { settle(null, calm); return; }
+        entering = true;
+        var im = new Image(), gone = false, giveUp = setTimeout(function () { gone = true; entering = false; settle(null, calm); }, 500);
+        im.onerror = function () { if (gone) return; gone = true; clearTimeout(giveUp); entering = false; settle(null, calm); };
+        im.onload = function () {
+            if (gone) return; gone = true; clearTimeout(giveUp);
+            if (!entering) return;
+            var nw = im.naturalWidth || 1, nh = im.naturalHeight || 1, vw = innerWidth, vh = innerHeight, s0 = Math.max(vw / nw, vh / nh), cw = nw * s0, ch = nh * s0;
+            var cx = (vw - cw) * bgp.px / 100, cy = (vh - ch) * bgp.py / 100, P = frameRect(nw, nh);
+            noFly(); fly = im; im.id = 'dn-fly'; im.alt = '';
+            im.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;width:' + cw + 'px;height:' + ch + 'px';
+            document.body.appendChild(im); void im.getBoundingClientRect(); im.classList.add('in');           // the app dissolves into its painting
+            requestAnimationFrame(function () { requestAnimationFrame(function () {                             // (the first build is heavy: it runs behind that fade)
+                if (!entering) { noFly(); return; }
+                entering = false; settle(bgp, false);
+                later(function () {
+                    if (!fly) return;
+                    el.classList.add('on');
+                    fly.classList.add('go'); fly.style.transform = 'translate(' + (P.x - cx) + 'px,' + (P.y - cy) + 'px) scale(' + (P.w / cw) + ')';
+                    later(function () { if (!open) return; hang(bgp); wake(60); el.classList.remove('arrive'); later(function () { if (fly) fly.classList.add('out'); later(noFly, 600); }, 140); }, 1500);
+                }, 560);
+            }); });
+        };
+        im.src = bgp.url;
+    }
+    function settle(bgp, calm) {
         if (open) return;
         if (!el) build();
         open = true; empty = false; hist = []; seen = []; cur = null;
         imgs.forEach(function (i) { i.style.transition = 'none'; i.style.opacity = '0'; i.removeAttribute('src'); });
-        plaque(null); el.classList.remove('zoom'); lore('enter', { el: el, found: Object.keys(found), api: API }); applyRoom(); kick('#dn-card');
+        dark = calm ? null : { lamp: 1, fairy: 1, sign: 1, pic: 1 };
+        el.classList.add('snap'); el.classList.toggle('arrive', !!bgp);
+        plaque(null); el.classList.remove('zoom'); lore('enter', { el: el, found: Object.keys(found), api: API }); applyRoom();
         document.documentElement.classList.add('diner-open');
-        requestAnimationFrame(function () { if (open) el.classList.add('on'); });
-        load().then(function () { if (open) { if (lore('own')) { var jw = ownArt(); if (jw) addOwn(jw); } show(pick(), 1500); armDrift(); } });
+        requestAnimationFrame(function () { if (!open) return; if (!bgp) el.classList.add('on'); requestAnimationFrame(function () { if (el) el.classList.remove('snap'); }); });
+        load().then(function () {
+            if (!open) return;
+            if (lore('own')) { var jw = ownArt(); if (jw) addOwn(jw); }
+            if (bgp) { if (cur && cur.id === '_bg') { var w = works.filter(function (x) { return x.id === bgp.id; })[0]; if (w) { cur = w; seen.push(w.id); plaque(w); } } return; }
+            later(function () { if (open) { show(pick(), 1500); armDrift(); } }, calm ? 0 : 700);
+        });
+        if (calm) kick('#dn-card'); else if (!bgp) wake(750);
         sync(); clearInterval(syncT); syncT = setInterval(sync, 1000);
         wakeMouse(); clearTimeout(mouseT); mouseT = setTimeout(function () { if (el) el.classList.remove('mouse'); }, 6000);
     }
     function leave() {
+        if (entering) { entering = false; noFly(); return; }
         if (!open) return; open = false; lore('leave');
-        [driftT, fadeT].forEach(clearTimeout); clearInterval(syncT);
+        [driftT, fadeT].forEach(clearTimeout); arrT.forEach(clearTimeout); arrT = []; clearInterval(syncT);
+        dark = null; noFly();
         document.documentElement.classList.remove('diner-open');
-        if (el) el.classList.remove('on');
+        if (el) { el.classList.remove('on'); el.classList.remove('arrive'); }
     }
     addEventListener('keydown', onKey, true);
     var parT = 0;                                          // the street and the near leaves shift a little with the mouse, like moving your head
