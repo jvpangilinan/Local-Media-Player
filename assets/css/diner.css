@@ -1,0 +1,296 @@
+/* The Diner (diner.js): a full-window quiet room. Own layer on the --z-fx step; nothing else on the page is touched.
+   The scene is a 16:9 stage that always covers the window; everything in it is placed in % of the stage, text in cqw. */
+#diner { position: fixed; inset: 0; z-index: var(--z-fx); background: #07080d; overflow: hidden; opacity: 0; visibility: hidden;
+    transition: opacity 1.2s ease, visibility 0s linear 1.2s; cursor: none; font-family: Inter, 'Segoe UI', sans-serif; user-select: none; }
+#diner.on { opacity: 1; visibility: visible; transition: opacity 1.2s ease; }
+#diner.mouse { cursor: default; }
+#diner #dn-stage { position: absolute; left: 50%; top: 42%; width: max(100vw, 177.78vh); height: max(56.25vw, 100vh);
+    transform: translate(-50%, -42%); transform-origin: 63% 34.5%; transition: transform 1.5s cubic-bezier(.45, 0, .2, 1); container-type: size; }
+#diner .dn-room { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+#diner #dn-in { transition: opacity .45s ease; }           /* the room with the lamp on, laid over the same room with it off */
+#diner.lamp-off #dn-in { opacity: 0; }
+#diner .dn-vig { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 56% 46%, transparent 46%, rgba(3,2,8,.4) 80%, rgba(3,2,8,.74) 100%); }
+
+/* ---- the window: street, passing cars, rain, water on the glass, a neon sign ---- */
+#diner #dn-view { position: absolute; overflow: hidden; container-type: size; background: #0a0d1c; }
+#diner .dn-fill { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#diner .dn-rain { position: absolute; left: 0; top: 0; width: 111.111%; height: 200%; display: block; transform: translate(0, -50%); }
+#diner .dn-rain-far { animation: dn-rain 1.5s linear infinite; }
+#diner .dn-rain-near { animation: dn-rain .85s linear infinite; }
+@keyframes dn-rain { from { transform: translate(0, -50%); } to { transform: translate(-10%, 0); } }
+#diner .dn-car { position: absolute; left: 0; width: 16%; height: 7%; opacity: 0; }
+#diner .dn-car-a { top: 82.5%; animation: dn-car-a 37s linear infinite 6s;
+    background: radial-gradient(ellipse at 88% 50%, rgba(255,246,214,.95), rgba(255,236,190,.35) 18%, transparent 46%),
+                radial-gradient(ellipse at 62% 50%, rgba(255,246,214,.85), rgba(255,236,190,.3) 15%, transparent 40%); }
+#diner .dn-car-b { top: 89%; width: 20%; height: 9%; animation: dn-car-b 53s linear infinite 21s;
+    background: radial-gradient(ellipse at 14% 50%, rgba(255,40,60,.95), rgba(255,40,60,.3) 16%, transparent 42%),
+                radial-gradient(ellipse at 40% 50%, rgba(255,40,60,.85), rgba(255,40,60,.28) 14%, transparent 38%); }
+@keyframes dn-car-a { 0% { transform: translateX(-110%); opacity: 1; } 14% { transform: translateX(640%); opacity: 1; } 14.1%, 100% { transform: translateX(640%); opacity: 0; } }
+@keyframes dn-car-b { 0% { transform: translateX(520%); opacity: 1; } 12% { transform: translateX(-110%); opacity: 1; } 12.1%, 100% { transform: translateX(-110%); opacity: 0; } }
+#diner .dn-run { position: absolute; top: 0; width: .62%; aspect-ratio: 1 / 1.3; border-radius: 50%;
+    background: linear-gradient(rgba(4,5,18,.6), rgba(70,80,130,.25) 55%, rgba(228,236,255,.8)); animation: dn-run 20s linear infinite; }
+#diner .dn-run::before { content: ''; position: absolute; left: 22%; width: 56%; bottom: 70%; height: 1100%;
+    background: linear-gradient(transparent, rgba(220,230,255,.13)); }
+@keyframes dn-run { 0% { transform: translateY(-6cqh); } 12% { transform: translateY(7cqh); } 30% { transform: translateY(10cqh); } 38% { transform: translateY(33cqh); }
+    55% { transform: translateY(37cqh); } 64% { transform: translateY(69cqh); } 80% { transform: translateY(73cqh); } 100% { transform: translateY(112cqh); } }
+#diner .dn-sign { position: absolute; left: 74%; top: 22.6%; width: 17%; overflow: visible; animation: dn-buzz 11s linear infinite; }
+#diner .dn-sp { filter: drop-shadow(0 0 .25cqw #ff8fd0) drop-shadow(0 0 1.6cqw #ff2d95) drop-shadow(0 0 4cqw rgba(255,45,150,.7)); }
+#diner .dn-sc { filter: drop-shadow(0 0 .25cqw #b8fbff) drop-shadow(0 0 1.6cqw #2de1f0); }
+@keyframes dn-buzz { 0%, 91%, 93.5%, 95%, 100% { opacity: 1; } 92%, 94.2% { opacity: .55; } }
+
+/* ---- the painting, lit from above; the brass label under it ---- */
+#diner #dn-art { position: absolute; overflow: hidden; background: #cfc4aa; cursor: pointer; }
+#diner .dn-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; display: block; }
+#diner .dn-img:not([src]) { visibility: hidden; }
+#diner .dn-lit { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 1.4cqw rgba(0,0,0,.55), inset 0 .5cqw .8cqw rgba(0,0,0,.35);
+    background: radial-gradient(ellipse at 50% -12%, rgba(255,218,160,.2), transparent 62%),
+                linear-gradient(180deg, transparent 38%, rgba(14,8,26,.3)),
+                linear-gradient(118deg, rgba(255,255,255,.09), transparent 30%); }
+#diner .dn-nav { position: absolute; top: 50%; width: 2.5cqw; height: 2.5cqw; min-width: 30px; min-height: 30px; margin-top: -1.25cqw; border: 0; border-radius: 50%;
+    background: rgba(6,8,14,.6); color: #f4e6c8; font-size: max(11px, .9cqw); cursor: pointer; opacity: 0; transition: opacity .4s ease, background .2s; }
+#diner .dn-nav-l { left: 2%; } #diner .dn-nav-r { right: 2%; }
+#diner.mouse #dn-art:hover .dn-nav { opacity: .85; }
+#diner .dn-nav:hover { background: rgba(6,8,14,.9); }
+#diner #dn-plaque { position: absolute; left: 63%; top: 58.9%; transform: translateX(-50%); max-width: 27%; padding: .3em 1.1em .35em; text-align: center;
+    font: clamp(9px, .74cqw, 16px) / 1.35 Georgia, 'Times New Roman', serif; color: #2a1a06; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    background: linear-gradient(180deg, #e2c483, #a8853f 60%, #7c5f28); border-radius: 2px; box-shadow: 0 .15cqw .5cqw rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.4);
+    opacity: 0; transition: opacity 1.6s ease; pointer-events: none; }
+#diner #dn-plaque b { display: block; font-style: italic; font-size: 1.12em; overflow: hidden; text-overflow: ellipsis; }
+#diner #dn-plaque.on { opacity: .92; }
+
+/* ---- the jukebox: equaliser, title strip, a slow breath of neon while music plays ---- */
+#diner #dn-eq { position: absolute; left: 87.25%; top: 36.4%; width: 7.5%; height: 10.4%; display: flex; align-items: flex-end; gap: 5%; pointer-events: none; }
+#diner #dn-eq i { flex: 1; height: 100%; border-radius: .08cqw; transform-origin: 50% 100%; transform: scaleY(.07); transition: transform .9s ease;
+    background: linear-gradient(to top, #2de1f0, #7f7cff 55%, #ff3d9e); box-shadow: 0 0 .5cqw rgba(45,225,240,.55); }
+#diner.playing #dn-eq i { animation: dn-eq 1.1s ease-in-out infinite alternate; }
+#diner.playing #dn-eq i:nth-child(3n) { animation-duration: .8s; animation-delay: -.4s; }
+#diner.playing #dn-eq i:nth-child(3n+1) { animation-duration: 1.4s; animation-delay: -.9s; }
+#diner.playing #dn-eq i:nth-child(4n) { animation-duration: .95s; animation-delay: -.2s; }
+#diner.playing #dn-eq i:nth-child(5n) { animation-duration: 1.25s; animation-delay: -.65s; }
+@keyframes dn-eq { from { transform: scaleY(.1); } to { transform: scaleY(.95); } }
+#diner #dn-jb-title { position: absolute; left: 86.5%; top: 50.4%; width: 8.9%; height: 2.55%; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(7px, .62cqw, 14px); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #8cf6fa; text-shadow: 0 0 .5cqw #2de1f0;
+    white-space: nowrap; overflow: hidden; pointer-events: none; }
+#diner .dn-pulse { position: absolute; left: 76%; top: 8%; width: 30%; height: 84%; pointer-events: none; opacity: 0; transition: opacity 2s ease;
+    background: radial-gradient(ellipse at 50% 46%, rgba(255,45,150,.2), rgba(255,45,150,.07) 40%, transparent 68%); }
+#diner.playing .dn-pulse { animation: dn-pulse 4.2s ease-in-out infinite alternate; }
+@keyframes dn-pulse { from { opacity: .15; } to { opacity: 1; } }
+
+/* ---- steam off the cup ---- */
+#diner .dn-steam { opacity: calc(1 - var(--sip, 0) * .25); transition: opacity 1s ease; position: absolute; left: 38.6%; top: 65.6%; width: 5.4%; height: 15%; pointer-events: none; filter: blur(.42cqw); }
+#diner .dn-steam i { position: absolute; left: 30%; bottom: 0; width: 40%; height: 50%; border-radius: 50%; opacity: 0;
+    background: radial-gradient(ellipse, rgba(255,238,214,.8), transparent 70%); animation: dn-steam 6.5s ease-in-out infinite; }
+#diner .dn-steam i:nth-child(2) { left: 18%; animation-delay: -2.2s; animation-duration: 7.5s; }
+#diner .dn-steam i:nth-child(3) { left: 42%; animation-delay: -4.4s; animation-duration: 5.8s; }
+@keyframes dn-steam { 0% { transform: translate(0, 20%) scale(.5, .7); opacity: 0; } 25% { opacity: .55; }
+    60% { transform: translate(14%, -70%) scale(1, 1.3); opacity: .3; } 100% { transform: translate(-12%, -130%) scale(1.5, 1.6); opacity: 0; } }
+
+/* ---- the one music card: small while you sit, opens up when the mouse moves ---- */
+#diner .dn-glass { position: absolute; left: 22px; bottom: 22px; width: min(318px, 82vw); padding: 10px; border-radius: 18px; color: #f4e6c8;
+    background: rgba(10,9,16,.5); border: 1px solid rgba(255,226,180,.14); box-shadow: 0 12px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+    backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    opacity: .78; transition: opacity .6s ease, transform .6s ease; }
+#diner.mouse .dn-glass, #diner .dn-glass:hover, #diner .dn-glass:focus-within { opacity: 1; }
+#diner .dn-top { display: flex; align-items: center; gap: 11px; }
+#diner .dn-cov { position: relative; width: 48px; height: 48px; flex: none; border-radius: 11px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center;
+    overflow: hidden; color: rgba(244,230,200,.5); box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+#diner .dn-cov img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; visibility: hidden; }
+#diner .dn-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+#diner #dn-t { font-size: .92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#diner #dn-a { font-size: .76rem; opacity: .62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#diner .dn-glass button { border: 0; background: transparent; color: inherit; cursor: pointer; border-radius: 50%; width: 34px; height: 34px; flex: none; font-size: .86rem;
+    opacity: .75; transition: background .2s, opacity .2s, transform .15s; }
+#diner .dn-glass button:hover { background: rgba(255,255,255,.1); opacity: 1; }
+#diner .dn-glass button:active { transform: scale(.92); }
+#diner .dn-glass .dn-main { width: 42px; height: 42px; background: #ffd699; color: #22140a; opacity: 1; font-size: .95rem; box-shadow: 0 0 22px rgba(255,190,110,.35); }
+#diner .dn-glass .dn-main:hover { background: #ffe4b8; }
+#diner .dn-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.12); margin: 10px 2px 0; overflow: hidden; }
+#diner .dn-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: linear-gradient(90deg, #ffb46a, #ff5fae); transition: width 1s linear; }
+#diner .dn-more { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .45s ease, opacity .45s ease, margin .45s ease; }
+#diner .dn-more > div { overflow: hidden; display: flex; align-items: center; gap: 4px; min-height: 0; }
+#diner.mouse .dn-more, #diner .dn-glass:hover .dn-more, #diner .dn-glass:focus-within .dn-more { grid-template-rows: 1fr; opacity: 1; margin-top: 8px; }
+#diner .dn-vi { opacity: .5; margin-left: auto; font-size: .78rem; }
+#diner #dn-vol { width: 92px; height: 4px; accent-color: #ffd699; cursor: pointer; }
+#diner #dn-dock { position: absolute; left: 22px; bottom: 22px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,226,180,.18); background: rgba(10,9,16,.5);
+    color: #f4e6c8; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .5s ease; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#diner.jb-min .dn-glass { opacity: 0; pointer-events: none; transform: translateY(10px); }
+#diner.jb-min.mouse #dn-dock { opacity: .85; pointer-events: auto; }
+
+#diner #dn-leave { position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,226,180,.14);
+    background: rgba(10,9,16,.45); color: #f4e6c8; cursor: pointer; opacity: 0; transition: opacity .5s ease, background .2s; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#diner.mouse #dn-leave { opacity: .8; }
+#diner #dn-leave:hover { opacity: 1; background: rgba(10,9,16,.75); }
+#diner #dn-hint { position: absolute; right: 24px; bottom: 26px; color: rgba(244,230,200,.75); font-size: .74rem; white-space: nowrap;
+    opacity: 0; transition: opacity .8s ease; pointer-events: none; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+#diner #dn-found { font-weight: 600; color: #ffd699; margin-right: 16px; }
+#diner #dn-hint b { font-weight: 600; color: #ffd699; margin-right: 6px; }
+#diner #dn-hint kbd { font: inherit; padding: 1px 6px; margin: 0 3px 0 12px; border-radius: 5px; border: 1px solid rgba(244,230,200,.28); background: rgba(10,9,16,.5); }
+#diner.mouse #dn-hint { opacity: 1; }
+@media (max-width: 900px) { #diner #dn-hint { display: none; } }
+
+/* ---- things in the room that answer a click (HOT in diner.js) ---- */
+#diner #dn-fairy { position: absolute; inset: 0; pointer-events: none; transition: opacity .6s ease; }
+#diner #dn-fairy i { position: absolute; width: 7.5%; height: 13.333%;
+    background: radial-gradient(circle, #fff6dc 0, #fff0cf 2.5%, rgba(255,225,170,.9) 5%, rgba(255,180,100,.34) 14%, rgba(255,175,95,.12) 42%, transparent 68%); }
+#diner.fairy-tw #dn-fairy i { animation: dn-tw 2.6s ease-in-out infinite alternate; }
+#diner.fairy-tw #dn-fairy i:nth-child(3n) { animation-delay: -1.1s; animation-duration: 3.3s; }
+#diner.fairy-tw #dn-fairy i:nth-child(3n+1) { animation-delay: -2s; animation-duration: 2.1s; }
+@keyframes dn-tw { from { opacity: .2; } to { opacity: 1; } }
+#diner.fairy-off #dn-fairy { opacity: 0; }
+#diner .dn-sign.go { animation: dn-kick .9s linear; }
+#diner.sign-off .dn-sign { animation: none; }
+#diner.sign-off .dn-sp, #diner.sign-off .dn-sc { filter: none; stroke: #2e2a3c; }
+@keyframes dn-kick { 0% { opacity: .2; } 10% { opacity: 1; } 20% { opacity: .3; } 35% { opacity: 1; } 45% { opacity: .5; } 60%, 100% { opacity: 1; } }
+#diner .dn-rain, #diner .dn-run { transition: opacity 2s ease; }
+#diner .dn-rain-near { opacity: .8; }
+#diner.wx-storm .dn-rain-far { animation-duration: .95s; }
+#diner.wx-storm .dn-rain-near { animation-duration: .5s; opacity: 1; }
+#diner.wx-clear .dn-rain, #diner.wx-clear .dn-run { opacity: 0; }
+#diner .dn-bolt { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: linear-gradient(180deg, rgba(210,220,255,.9), rgba(160,170,255,.35)); }
+#diner.wx-storm .dn-bolt { animation: dn-bolt 11s linear infinite 2s; }
+@keyframes dn-bolt { 0%, 4%, 100% { opacity: 0; } .6% { opacity: .7; } 1.2% { opacity: .1; } 1.9% { opacity: .5; } }
+#diner .dn-dim { position: absolute; pointer-events: none; opacity: 0; transition: opacity .5s ease;
+    background: radial-gradient(ellipse at 50% 46%, rgba(6,7,14,.8) 0, rgba(6,7,14,.64) 42%, transparent 70%); }
+#diner .dn-dim i { position: absolute; left: 36.2%; top: 7.6%; width: 27.6%; height: 1%; background: #241a0c; }
+#diner.pic-off .dn-dim { opacity: 1; }
+#diner .dn-cupin { position: absolute; border-radius: 50%; overflow: hidden; pointer-events: none; }
+#diner .dn-cupin i { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(90deg, #7a4622, #2c160b 50%, #170a06);
+    transform: translateY(calc(var(--sip, 0) * 10%)) scale(calc(1 - var(--sip, 0) * .075)); transition: transform .7s ease, opacity .7s ease; }
+#diner .dn-cupin i::after { content: ''; position: absolute; left: 14%; top: 18%; width: 36%; height: 30%; border-radius: 50%; background: rgba(255,220,170,.5); }
+#diner.cup-empty .dn-cupin i { opacity: 0; }
+#diner .dn-spr { position: absolute; display: block; pointer-events: none; }
+#diner .dn-cup2 { display: none; }                       /* Juno's cup: only there when Juno is */
+#diner.juno-here .dn-cup2 { display: block; }
+#diner .dn-shaker { transform-origin: 50% 100%; }
+#diner .dn-shaker.go { animation: dn-shake .8s ease; }
+@keyframes dn-shake { 0%, 100% { transform: none; } 15% { transform: translateY(-22%) rotate(-16deg); } 30% { transform: translateY(-16%) rotate(14deg); }
+    45% { transform: translateY(-18%) rotate(-12deg); } 60% { transform: translateY(-12%) rotate(10deg); } 80% { transform: translateY(-4%) rotate(-4deg); } }
+#diner .dn-grains { position: absolute; left: 75%; top: 74%; width: .12cqw; height: .12cqw; border-radius: 50%; color: #fff; opacity: 0; pointer-events: none;
+    box-shadow: .5cqw .2cqw 0 currentColor, -.4cqw .5cqw 0 currentColor, .2cqw .9cqw 0 currentColor, -.7cqw 1.1cqw 0 currentColor, .8cqw 1.3cqw 0 currentColor, 0 1.6cqw 0 currentColor; }
+#diner .dn-grains.go { animation: dn-grains .9s ease-in .12s; }
+@keyframes dn-grains { 0% { opacity: 0; transform: translateY(-1cqw); } 20% { opacity: .9; } 100% { opacity: 0; transform: translateY(2.2cqw); } }
+#diner .dn-leaves { transform-origin: 100% 100%; filter: blur(.25cqw); animation: dn-sway 8s ease-in-out infinite alternate; }
+#diner .dn-leaves.go { animation: dn-rustle 1s ease; }
+@keyframes dn-sway { from { transform: rotate(-1deg); } to { transform: rotate(1.2deg); } }
+@keyframes dn-rustle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-4deg); } 45% { transform: rotate(3deg); } 70% { transform: rotate(-2deg); } }
+#diner .dn-hot { position: absolute; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; border-radius: 1cqw; outline: 0; }
+#diner .dn-hot::before { content: ''; position: absolute; inset: -6%; border-radius: 50%; opacity: 0; transition: opacity .3s ease; pointer-events: none;
+    background: radial-gradient(ellipse, rgba(255,236,200,.17), transparent 68%); }
+#diner .dn-hot::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + .4cqw); transform: translate(-50%, .3cqw); padding: .3em .85em; border-radius: 99px;
+    white-space: nowrap; font: 500 clamp(10px, .7cqw, 14px) / 1.3 Inter, 'Segoe UI', sans-serif; color: #f4e6c8; background: rgba(8,8,14,.8); border: 1px solid rgba(255,226,180,.2);
+    opacity: 0; transition: opacity .25s ease, transform .25s ease; pointer-events: none; }
+#diner.mouse .dn-hot:hover::before, #diner .dn-hot:focus-visible::before { opacity: 1; }
+#diner.mouse .dn-hot:hover::after, #diner .dn-hot:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+#diner .dn-hot.under::after { bottom: auto; top: calc(100% + .4cqw); }
+#diner .dn-hot.in::before { display: none; }
+#diner .dn-hot.in::after { bottom: auto; top: 31%; left: 30%; }
+#diner #dn-toast { position: absolute; transform: translate(-50%, -60%); padding: .25em .85em; border-radius: 99px; white-space: nowrap; opacity: 0; pointer-events: none;
+    font: 600 clamp(10px, .74cqw, 15px) / 1.3 Inter, 'Segoe UI', sans-serif; letter-spacing: .04em; color: #ffe2ae; background: rgba(8,8,14,.72); }
+#diner #dn-toast.go { animation: dn-toast 1.6s ease forwards; }
+@keyframes dn-toast { 0% { opacity: 0; transform: translate(-50%, -60%); } 15%, 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -210%); } }
+/* depth: the street and the near leaves shift a little with the mouse (--px / --py, -1..1, set in diner.js) */
+#diner .dn-out { scale: 1.05; translate: calc(var(--px, 0) * -1.5%) calc(var(--py, 0) * -1%); transition: translate .6s ease-out; }
+#diner .dn-leaves { scale: 1.05; translate: calc(var(--px, 0) * 1.4%) calc(var(--py, 0) * .8%); transition: translate .6s ease-out; }
+#diner .dn-snow { opacity: 0; }
+#diner.wx-snow .dn-snow { opacity: 1; }
+#diner.wx-snow .dn-snow-far { animation: dn-rain 14s linear infinite; }
+#diner.wx-snow .dn-snow-near { animation: dn-rain 8s linear infinite; }
+#diner.wx-snow .dn-rain:not(.dn-snow), #diner.wx-snow .dn-run { opacity: 0; }
+#diner .dn-cat { transform-origin: 50% 100%; animation: dn-breathe 4.5s ease-in-out infinite alternate; }
+@keyframes dn-breathe { from { transform: scaleY(1); } to { transform: scaleY(1.018); } }
+#diner .dn-cat.go { animation: dn-pet .7s ease; }
+@keyframes dn-pet { 0%, 100% { transform: none; } 35% { transform: scale(1.04, .94); } 70% { transform: scale(.98, 1.03); } }
+#diner .dn-tail { transform-origin: 30% 13.5%; animation: dn-tail 5.5s ease-in-out infinite alternate; }
+@keyframes dn-tail { from { transform: rotate(-7deg); } to { transform: rotate(9deg); } }
+#diner .dn-tail.go { animation: dn-flick .7s ease; }
+@keyframes dn-flick { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(22deg); } 60% { transform: rotate(-14deg); } }
+#diner .dn-hearts { position: absolute; left: 36.7%; top: 52.5%; font-style: normal; font-size: 1.1cqw; line-height: 1; color: #ff6fbd; opacity: 0; pointer-events: none; text-shadow: 0 0 .6cqw #ff2d95; }
+#diner .dn-hearts b, #diner .dn-hearts u { position: absolute; font-weight: 400; text-decoration: none; font-size: .7em; }
+#diner .dn-hearts b { left: 1.5em; top: -.7em; } #diner .dn-hearts u { left: -1.3em; top: -.2em; }
+#diner .dn-hearts.go { animation: dn-hearts 1.3s ease-out; }
+@keyframes dn-hearts { 0% { opacity: 0; transform: translateY(40%) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-190%) scale(1.15); } }
+/* lean in: the whole stage moves toward the painting, the controls step back */
+#diner.zoom #dn-stage { transform: translate(-63%, -30.5%) scale(1.55); }
+#diner.zoom .dn-glass, #diner.zoom #dn-hint, #diner.zoom #dn-dock { opacity: 0; pointer-events: none; }
+#diner.zoom .dn-hot:not([data-act="x-zoom"]) { pointer-events: none; }
+
+/* guest book: the notebook on the table, the paper page, the title card, the fifth night */
+#diner .dn-book { position: absolute; display: block; pointer-events: none; transform: skewX(-24deg); border-radius: .15cqw;
+    background: linear-gradient(100deg, #7a3b34 0%, #57272a 45%, #2c1519 100%);
+    box-shadow: 0 .42cqw 0 -.04cqw #d9c9a6, 0 .5cqw 0 0 #1a0d10, .5cqw 1.1cqw 1.2cqw rgba(0,0,0,.55); }
+#diner .dn-book > i { position: absolute; left: 14%; top: 0; bottom: 0; width: 3.5%; background: #d6a24a; opacity: .8; }
+#diner.lamp-off .dn-book { filter: brightness(.5); }
+#diner .dn-book.new { animation: dn-booknew 2.8s ease-in-out infinite; }
+@keyframes dn-booknew { 50% { filter: brightness(1.4); } }
+#diner #dn-book { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(5,6,12,.5); opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s .35s; }
+#diner #dn-book.on { opacity: 1; visibility: visible; transition: opacity .35s ease; }
+#diner .dn-page { position: relative; box-sizing: border-box; width: min(430px, 86vw); min-height: 448px; padding: 34px 38px 66px; border-radius: 4px; color: #3a2c22;
+    transform: rotate(-1.2deg) translateY(10px); transition: transform .35s ease;
+    background: repeating-linear-gradient(#f1e6cf 0 31px, #d9cbb0 31px 32px); box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 0 60px rgba(160,120,60,.18);
+    font: 400 19px/32px 'Ink Free', 'Segoe Print', 'Bradley Hand', cursive; }
+#diner #dn-book.on .dn-page { transform: rotate(-1.2deg); }
+#diner .dn-pg-n { position: absolute; right: 22px; top: 10px; font: 600 11px/1 Inter, 'Segoe UI', sans-serif; letter-spacing: .12em; color: #9a8468; }
+#diner .dn-pg-t { margin: 0 0 32px; font: inherit; font-size: 25px; font-weight: 700; color: #6e2f2a; }
+#diner .dn-pg-x { margin: 0; white-space: pre-line; }
+#diner .dn-pg-by { margin-top: 32px; text-align: right; color: #6b5a48; }
+#diner .dn-page.locked .dn-pg-t, #diner .dn-page.locked .dn-pg-x, #diner .dn-page.locked .dn-pg-by { color: #a89878; }
+#diner .dn-pg-nav { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 14px; }
+#diner .dn-pg-nav button { width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid rgba(58,44,34,.3); background: none; color: #3a2c22; font: 600 18px/1 Inter, sans-serif; cursor: pointer; }
+#diner .dn-pg-nav button:hover { background: rgba(58,44,34,.1); }
+#diner #dn-card { position: absolute; left: 0; right: 0; top: 71.5%; text-align: center; pointer-events: none; opacity: 0; color: #f4e6c8; text-shadow: 0 .15cqw 1.2cqw rgba(0,0,0,.85); }
+#diner #dn-card b { display: block; font: 600 1.5cqw/1.2 Inter, 'Segoe UI', sans-serif; letter-spacing: .42em; text-transform: uppercase; }
+#diner #dn-card span { display: block; margin-top: .6em; font: 400 .62cqw/1.2 Inter, 'Segoe UI', sans-serif; letter-spacing: .3em; text-transform: uppercase; color: rgba(244,230,200,.7); }
+#diner #dn-card.go { animation: dn-card 6.5s ease forwards; }
+@keyframes dn-card { 0%, 12% { opacity: 0; transform: translateY(.4cqw); } 30%, 72% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+#diner .dn-aurora { position: absolute; inset: 0 0 45% 0; opacity: 0; pointer-events: none; mix-blend-mode: screen; filter: blur(1.2cqw); transform-origin: 50% 0; transition: opacity 2.5s ease;
+    background: radial-gradient(60% 90% at 25% 0%, rgba(90,255,190,.55), transparent 70%), radial-gradient(50% 80% at 70% 10%, rgba(120,160,255,.45), transparent 70%), radial-gradient(40% 70% at 50% 0%, rgba(255,120,220,.3), transparent 70%); }
+#diner.wx-aurora .dn-aurora { opacity: 1; animation: dn-aurora 14s ease-in-out infinite alternate; }
+@keyframes dn-aurora { from { transform: translateX(-4%) scaleY(1); } to { transform: translateX(4%) scaleY(1.15); } }
+#diner .dn-dawn { position: absolute; inset: 0; opacity: 0; pointer-events: none; mix-blend-mode: screen; transition: opacity 6s ease;
+    background: linear-gradient(180deg, rgba(60,80,150,.25) 0%, rgba(255,150,110,.5) 55%, rgba(255,210,140,.65) 78%, rgba(255,180,120,.2) 100%); }
+#diner.wx-dawn .dn-dawn { opacity: 1; }
+#diner.wx-aurora .dn-rain, #diner.wx-aurora .dn-run, #diner.wx-dawn .dn-rain, #diner.wx-dawn .dn-run { opacity: 0; }
+
+/* Juno: the hotspot appears only while Juno is there (the second cup's two display rules sit with the sprites above) */
+#diner [data-act="x-juno"] { display: none; }
+#diner.juno-here [data-act="x-juno"] { display: block; }
+#diner.juno-here .dn-cup2 { animation: dn-junoglow 3.4s ease-in-out infinite alternate; }
+@keyframes dn-junoglow { from { filter: none; } to { filter: drop-shadow(0 0 .5cqw rgba(255,200,130,.75)); } }
+#diner #dn-talk { position: absolute; right: 24px; bottom: 24px; z-index: 19; width: min(480px, 92vw); padding: 16px 18px 12px; border-radius: 18px; color: #f4e6c8;
+    background: rgba(12,11,20,.72); border: 1px solid rgba(244,230,200,.14); backdrop-filter: blur(14px); box-shadow: 0 18px 50px rgba(0,0,0,.5);
+    opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease, visibility 0s .4s; font: 400 15px/1.55 Inter, 'Segoe UI', sans-serif; }
+#diner.talk #dn-talk { opacity: 1; visibility: visible; transform: none; transition: opacity .4s ease, transform .4s ease; }
+#diner.talk #dn-hint { opacity: 0; }
+#diner .dn-tk-who { font-weight: 600; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #ff9fd0; margin-bottom: 6px; min-height: 1em; }
+#diner .dn-tk-x { margin: 0; min-height: 3.1em; }
+#diner .dn-tk-x.nar { font-style: italic; color: rgba(244,230,200,.78); }
+#diner .dn-tk-opt { display: grid; gap: 8px; margin-top: 12px; }
+#diner .dn-tk-opt button { text-align: left; padding: 9px 14px; border-radius: 12px; border: 1px solid rgba(244,230,200,.2); background: rgba(244,230,200,.06); color: inherit; font: inherit; cursor: pointer; }
+#diner .dn-tk-opt button:hover, #diner .dn-tk-opt button:focus-visible { background: rgba(255,214,153,.16); border-color: rgba(255,214,153,.5); outline: 0; }
+#diner .dn-tk-esc { margin-top: 10px; font-size: 11px; color: rgba(244,230,200,.45); text-align: right; }
+#diner .dn-page { max-height: 84vh; overflow-y: auto; }
+/* the page buttons stay at the foot of the page, also when a long margin page scrolls */
+#diner .dn-page { display: flex; flex-direction: column; padding-bottom: 0; }
+#diner .dn-pg-nav { position: sticky; left: auto; right: auto; bottom: 0; flex: none; margin: auto -38px 0; padding: 18px 0 14px; background: linear-gradient(rgba(241,230,207,0), #f1e6cf 40%); }
+#diner .dn-page .juno { color: #1f4f6b; transform: rotate(-.6deg); margin: 0 0 32px; }
+#diner .dn-page .me { color: #3a2c22; text-align: right; margin: 0 0 32px; }
+#diner .dn-page .nar { color: #8a7a62; font-size: 16px; margin: 0 0 32px; }
+#diner .dn-page .dn-pg-opt { display: grid; gap: 6px; margin-top: 8px; }
+#diner .dn-page .dn-pg-opt button { text-align: left; padding: 0 8px; border: 0; border-bottom: 1px dashed rgba(58,44,34,.4); background: none; color: #3a2c22; font: inherit; cursor: pointer; }
+#diner .dn-page .dn-pg-opt button:hover { background: rgba(58,44,34,.08); }
+#diner .dn-page.scene .dn-pg-n, #diner .dn-page.scene .dn-pg-t, #diner .dn-page.scene .dn-pg-x, #diner .dn-page.scene .dn-pg-by { display: none; }
+#diner .dn-pg-sc:empty, #diner .dn-pg-extra:empty { display: none; }
+#diner .dn-pg-sc h4 { margin: 0 0 24px; font: inherit; font-size: 25px; font-weight: 700; color: #6e2f2a; }
+#diner .dn-pg-extra { margin-top: 24px; }
+
+@media (prefers-reduced-motion: reduce) {
+    #diner .dn-book.new, #diner .dn-aurora, #diner.wx-aurora .dn-aurora, #diner.juno-here .dn-cup2 { animation: none; }
+    #diner #dn-card.go { animation: none; }
+    #diner.fairy-tw #dn-fairy i, #diner .dn-leaves, #diner.wx-storm .dn-bolt, #diner .dn-cat, #diner .dn-tail, #diner.wx-snow .dn-snow { animation: none; }
+    #diner .dn-out, #diner .dn-leaves { translate: none; }
+    #diner #dn-stage { transition: none; }
+    #diner .dn-rain, #diner .dn-car, #diner .dn-run, #diner .dn-sign, #diner .dn-steam i, #diner.playing .dn-pulse, #diner.playing #dn-eq i { animation: none; }
+    #diner.playing #dn-eq i { transform: scaleY(.5); }
+    #diner .dn-pulse { opacity: .5; }
+}

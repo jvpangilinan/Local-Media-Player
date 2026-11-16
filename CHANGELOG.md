@@ -6,6 +6,15 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: The Diner, a quiet room with a story
+The mug button (sidebar, music bar, Now Playing) opens **The Diner**: a painted room on a rainy neon corner, with one framed painting, a jukebox that plays your own music, and a window onto the street.
+- **Things answer a click.** The lamp, the string lights, the neon sign, the window (weather), the coffee, the sugar, the picture light, the plant, the cat, the jukebox. Drag on the window to draw in the fog. Finding all 12 unlocks fireworks.
+- **The guest book (B).** A notebook on the table holds 27 pages written by people you never see: the cook, the radio voice, a child waiting for the bus. Each thing you use fills a page. Twelve more pages are secrets, and each blank page carries a hint. Nothing is timed against you.
+- **A fifth night.** Reading the whole book adds a new night to the window.
+- **Juno.** After a few pages, someone starts writing back in the margins. Later a second cup appears on the table: click it to talk. Nine nights, reply choices, four endings, and "Another night" on the last page of the book to play it again. Esc steps away from a conversation, and the cup waits for you.
+- **Keys:** Space / Right next painting, Left back, N empty frame, M hide the player, B guest book, Esc leave.
+- Progress is kept on this PC (in the page's local storage). `node tools/diner_story_check.js` checks the story script.
+
 ## V6: Gallery, Good by day and Evil by night
 A fourth background, **Gallery** (Settings > Background), shows open-access paintings from the National Gallery of Art behind the app.
 - **Two sides.** By day (06:00-18:00) the paintings are **Good**: light, grace, dawn, with gilt and sky accents. At night they turn **Evil**: storms, hell, candlelight, with ember and blood accents. Under the Gallery tile you can pick **Auto / Good / Evil**.

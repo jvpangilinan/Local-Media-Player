@@ -84,6 +84,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                     <button id="settings-btn" class="sb-tool" title="Settings" onclick="openSettings()"><i class="fas fa-gear"></i></button>
                 </div>
                 <div class="sb-row">
+                    <button id="diner-btn" class="sb-tool" title="The Diner: sit and look at paintings" onclick="diner.toggle()"><i class="fas fa-mug-hot"></i></button>
                     <button id="lock-btn" class="sb-tool" title="Private library" onclick="onLockClick()"><i id="lock-icon" class="fas fa-lock"></i></button>
                     <button id="tab-exit" class="sb-tool sb-exit" onclick="exitApp()" title="Close ULTRON (press twice)"><span class="sb-label">Exit</span></button>
                 </div>
@@ -329,6 +330,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
             </div>
             <span id="np-heart"></span>
             <button onclick="openNowPlaying()" class="h-8 w-8 flex-none rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Now Playing - full screen"><i class="fas fa-up-right-and-down-left-from-center text-xs"></i></button>
+            <button onclick="diner.open()" class="h-8 w-8 flex-none rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="The Diner: sit with the music"><i class="fas fa-mug-hot"></i></button>
         </div>
 
         <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
@@ -856,6 +858,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
         <div id="npg-glow" class="absolute inset-0 transition-all duration-700"></div>
         <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.45) 55%,rgba(0,0,0,.85))"></div>
         <button onclick="closeNowPlaying()" class="npg-close" title="Close (Esc)" aria-label="Close"><i class="fas fa-chevron-down"></i></button>
+        <button onclick="diner.open()" class="npg-close" style="left:4.2rem" title="The Diner: sit with the music" aria-label="The Diner"><i class="fas fa-mug-hot"></i></button>
         <div class="absolute top-6 left-1/2 -translate-x-1/2 z-20 text-[11px] font-bold tracking-[0.3em] uppercase text-white/60">Now Playing</div>
         <div class="relative z-10 h-full flex items-center justify-center gap-16 px-14 pb-4 pt-16">
             <img id="npg-cover" alt="" class="flex-none aspect-square object-cover rounded-2xl" style="width:min(32rem,56vh,38vw);box-shadow:0 30px 90px rgba(0,0,0,.65)" crossorigin="anonymous">
@@ -1021,6 +1024,11 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
     <link id="ultron-tiles" rel="stylesheet" href="/assets/css/tiles.css?v=2">
 <link id="zeno-gallery-bg" rel="stylesheet" href="/assets/css/gallery-bg.css?v=2">
 <script id="zeno-gallery-bg-js" src="/assets/js/gallery-bg.js?v=2"></script>
+<link id="zeno-diner" rel="stylesheet" href="/assets/css/diner.css?v=11">
+<script id="zeno-diner-js" src="/assets/js/diner.js?v=11"></script>
+<script id="zeno-diner-lore-js" src="/assets/js/diner-lore.js?v=1"></script>
+<script id="zeno-diner-story-js" src="/assets/js/diner-story.js?v=1"></script>
+<script id="zeno-diner-talk-js" src="/assets/js/diner-talk.js?v=1"></script>
 </body>
 </html>
 {% endraw %}
