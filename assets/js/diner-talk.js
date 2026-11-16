@@ -12,8 +12,12 @@
         they: { they: 'they', them: 'them', their: 'their', They: 'They', Their: 'Their', s: '', is: 'are', has: 'have', was: 'were' }
     };
     var ST = window.DINER_STORY || { order: [], scenes: {}, react: [], after: {} }, SC = ST.scenes, ORDER = ST.order;
-    var T = { at: 0, t: 0, p: 0, d: 0, flags: {}, name: '', pro: '', loop: 0, ends: [], own: false, cur: null, lastEnd: 0, afterN: 0, endId: '' };
-    try { var j = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; Object.keys(T).forEach(function (k) { if (j[k] != null && typeof j[k] === typeof T[k]) T[k] = j[k]; }); } catch (e) {}
+    var T = null;
+    function load() {
+        T = { at: 0, t: 0, p: 0, d: 0, flags: {}, name: '', pro: '', loop: 0, ends: [], own: false, cur: null, lastEnd: 0, afterN: 0, endId: '' };
+        try { var j = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; Object.keys(T).forEach(function (k) { if (j[k] != null && typeof j[k] === typeof T[k]) T[k] = j[k]; }); } catch (e) {}
+    }
+    load();
     function save() { try { localStorage.setItem(KEY, JSON.stringify(T)); } catch (e) {} }
 
     var el = null, api = null, box = null, wx = null, wo = null, wt = null, wopt = null;
@@ -76,7 +80,7 @@
         clearTimeout(refT); avail = null;
         var id = T.cur ? T.cur.id : nextId(), sc = id && SC[id];
         if (sc && (T.cur || cond(sc.gate))) {
-            if (T.cur || fresh || Date.now() - T.lastEnd >= WAIT_MS) avail = { id: id, where: sc.where };
+            if (T.cur || fresh || ST.user || Date.now() - T.lastEnd >= WAIT_MS) avail = { id: id, where: sc.where };
             else if (el && el.classList.contains('on')) refT = setTimeout(refresh, Math.max(1000, WAIT_MS - (Date.now() - T.lastEnd) + 200));
         }
         paintHere();
@@ -87,7 +91,7 @@
         if (!el) return;
         var here = cupForce != null ? !!cupForce : !!((avail && avail.where === 'stool') || (T.cur && SC[T.cur.id] && SC[T.cur.id].where === 'stool') || grace || T.ends.indexOf('stay') >= 0);
         el.classList.toggle('juno-here', here);
-        var h = el.querySelector('[data-act="x-juno"]'); if (h) h.setAttribute('data-tip', T.flags.met ? 'Juno' : "Someone's here");
+        var h = el.querySelector('[data-act="x-juno"]'); if (h) h.setAttribute('data-tip', ST.user ? (ST.title || 'A story') : T.flags.met ? 'Juno' : "Someone's here");
     }
 
     /* ---------- the runner (shared by the book page and the dialogue box) ---------- */
@@ -100,7 +104,7 @@
         if (V && inj.length && V.talk) { var l = inj.shift(); V.say(l[0], fill(l[1]), function () { drain(next); }); } else next();
     }
     function ensurePro(cb) {
-        if (T.pro) { cb(); return; }
+        if (T.pro || ST.user) { cb(); return; }
         V.choose('Juno is:', ['she', 'he', 'they'], function (k) { T.pro = ['she', 'he', 'they'][k]; save(); cb(); });
     }
     function begin(view) {
@@ -111,7 +115,8 @@
         if (!T.cur || !V) return;
         var c = T.cur, sc = SC[c.id]; if (!sc || c.i >= sc.steps.length) { finish(); return; }
         var s = sc.steps[c.i], k = s[0];
-        if (k === 'j' || k === 'n') { mode = 'line'; V.say(k, fill(s[1]), function () { c.i++; save(); drain(step); }); }
+        if (k === 'j' || k === 'n' || k === 's') { mode = 'line'; V.say(k, fill(k === 's' ? s[2] : s[1]), function () { c.i++; save(); drain(step); }, s[1], s[3]); }
+        else if (k === 'pic') { try { if (api && api.pic) api.pic(s[1] || ''); } catch (e) {} c.i++; save(); step(); }
         else if (k === '?') {
             mode = 'choice';
             var opts = s.slice(1); V.choose(null, opts.map(function (o) { return fill(o[0]); }), function (n) { var o = opts[n]; mode = null; fx(o[1]); if (o[2]) jump(o[2]); else c.i++; save(); step(); });
@@ -164,8 +169,10 @@
     }
     var talkView = {
         talk: true,
-        say: function (kind, text, cont) {
-            wopt.innerHTML = ''; pick = null; wo.textContent = kind === 'j' ? 'Juno' : ''; wt.className = 'dn-tk-x' + (kind === 'n' ? ' nar' : '');
+        say: function (kind, text, cont, name, mood) {
+            wopt.innerHTML = ''; pick = null; wo.textContent = kind === 'j' ? 'Juno' : kind === 's' ? (name || '') : '';
+            try { if (api && api.face) api.face(kind === 's' ? name : '', mood || ''); } catch (e) {}
+            wt.className = 'dn-tk-x' + (kind === 'n' ? ' nar' : '');
             stopType(); full = text; contFn = cont;
             if (calm) { wt.textContent = text; return; }
             var i = 0; wt.textContent = ''; typing = true;
@@ -210,7 +217,7 @@
     function para(cls, text) { var p = document.createElement('p'); p.className = cls; p.textContent = text; box.appendChild(p); if (bk && bk.page) bk.page.scrollTop = bk.page.scrollHeight; return p; }
     var bookView = {
         talk: false,
-        say: function (kind, text, cont) { para(kind === 'j' ? 'juno' : 'nar', text); cont(); },
+        say: function (kind, text, cont) { para(kind === 'j' || kind === 's' ? 'juno' : 'nar', text); cont(); },
         choose: function (prompt, labels, cb) {
             if (prompt) para('nar', prompt);
             var d = document.createElement('div'); d.className = 'dn-pg-opt';
@@ -322,5 +329,15 @@
         return false;
     }
 
-    window.dinerTalk = { on: on };
+    /* Swap the story (Juno's or a user's compiled story.txt). Refused while a scene is running. */
+    function use(story, key) {
+        if (T.cur) return false;
+        stepAway();
+        ST = story || { order: [], scenes: {}, react: [], after: {} };
+        ST.react = ST.react || []; ST.after = ST.after || {}; SC = ST.scenes || (ST.scenes = {}); ORDER = ST.order || (ST.order = []);
+        KEY = key || 'ultron_diner_story'; load();
+        fresh = true; grace = false; cupForce = null; noteDue = false; fired = {}; reacts = 0; lastReact = 0;
+        refresh(); return true;
+    }
+    window.dinerTalk = { on: on, use: use };
 })();

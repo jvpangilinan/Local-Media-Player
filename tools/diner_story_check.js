@@ -34,6 +34,8 @@ Object.keys(S.scenes).forEach(function (id) {
         if (!Array.isArray(s)) { err(W(i), 'step is not an array'); return; }
         var k = s[0];
         if (k === 'j' || k === 'n') chkText(W(i), s[1]);
+        else if (k === 's') { if (typeof s[1] !== 'string' || !s[1]) err(W(i), 'speaker name'); chkText(W(i), s[2]); }
+        else if (k === 'pic') { if (typeof s[1] !== 'string') err(W(i), 'picture file must be a string'); }
         else if (k === '?') {
             if (s.length < 3 || s.length > 5) { err(W(i), 'a reply list needs 2 to 4 options'); return; }
             s.slice(1).forEach(function (o) {
@@ -69,7 +71,7 @@ Object.keys(S.scenes).forEach(function (id) {
         if (r) memo[i] = true; return r;
     }
     st.forEach(function (s, i) { if (!Array.isArray(s)) return; if (!ends(i, {})) err(W(i), 'cannot reach an end (loops forever)'); });
-    var silent = { '#': 1, '>': 1, 'if': 1, 'do': 1 };
+    var silent = { '#': 1, '>': 1, 'if': 1, 'do': 1, 'pic': 1 };
     function loop(i, seen) {
         if (i >= st.length || !st[i] || !silent[st[i][0]]) return false; if (seen[i]) return true; seen[i] = 1;
         var r = next(i).some(function (j) { return j !== undefined && loop(j, seen); }); delete seen[i]; return r;
