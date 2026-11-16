@@ -217,8 +217,9 @@ html.in-player #lm-spot, body.np-open #lm-spot { display: none; }
 
 /* sheen that follows the cursor across a card */
 
-/* page change: blur-in */
-#main > div:not(.hidden):not(#music-view) { animation: lm-view .55s var(--ease) both !important; }
+/* page change: blur-in. "backwards", not "both": kept after the end, the last frame left filter: blur(0) and a transform on the page,
+   which broke the sticky Cinema header's backdrop blur (titles showed through it) and pinned position: fixed children to the page */
+#main > div:not(.hidden):not(#music-view) { animation: lm-view .55s var(--ease) backwards !important; }
 @keyframes lm-view { from { opacity: 0; transform: translateY(14px); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
 
 /* toasts */

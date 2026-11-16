@@ -11,6 +11,7 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 - **Time left.** Continue watching cards say "1h 14m left" (or "Almost done"), and the Home banner adds when the movie ends ("ends around 4:01 PM"). A movie in a folder of its own no longer shows its name twice.
 - **The banner** shows the movie's own wide picture, brighter, without the tall frame beside it. Only a real poster you put next to the video (for example `Dune (2021).jpg`) still appears there.
 - **Row arrows** are small buttons on the middle of the covers instead of dark bars over the first card, and each one hides at its end of the row. Cinema rows no longer turn see-through while you hover them, and each Cinema row has one number (REEL 02) instead of two.
+- **Cinema header.** With a Gallery, Colorful or Sync with time background, the Cinema bar (tabs, genre chips, Show / Sort) is solid again: titles no longer show through it as you scroll.
 
 ## V6: Holiday themes
 ULTRON knows the date. On a holiday the accent colours follow the day and a quiet effect plays behind the page, with a one-line greeting the first time you open the app that day (once per holiday, plus on the big day itself).

@@ -8,6 +8,8 @@
 #video-view .ubh-head { position: sticky; top: 0; z-index: var(--z-sticky); padding: 0 var(--ubh-gx);
   background: color-mix(in srgb, var(--v-bg) 88%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3);
   border-bottom: 1px solid var(--v-line); }
+/* Gallery, Colorful and Sync with time make --v-bg half see-through so the picture shows behind the page; the header must still hide what scrolls under it */
+html:is([data-bg="colorful"], [data-bg="time"]) #video-view .ubh-head { background: rgba(11, 10, 13, .9); }
 #video-view .ubh-top { display: flex; align-items: center; gap: .4rem 1.6rem; min-height: 4.1rem; flex-wrap: wrap; }
 #video-view .ubh-ttl h1 { font-family: var(--v-display) !important; font-weight: 800 !important; font-style: normal !important; text-transform: uppercase; letter-spacing: .01em !important;
   font-size: 1.45rem !important; line-height: 1; margin: 0; color: var(--v-ink); }
