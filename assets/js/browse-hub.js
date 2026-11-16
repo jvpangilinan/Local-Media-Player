@@ -114,6 +114,7 @@
         if (S.type === 'movies') return isMovie(v);
         return v.kind !== 'series' && !isMovie(v);
     }
+    function topRank(v) { return window.imdbRank ? imdbRank(v) : -1; }
     function rng(seed) { var s = seed || 1; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
     function sorted(list) {
         var a = list.slice(), k = S.sort;
@@ -125,7 +126,7 @@
             year_d: function (x, y) { return (y.year || 0) - (x.year || 0) || nat(x.title, y.title); },
             year_a: function (x, y) { return (x.year || 9999) - (y.year || 9999) || nat(x.title, y.title); },
             views: function (x, y) { return (y.view_count || y.watched || 0) - (x.view_count || x.watched || 0) || nat(x.title, y.title); },
-            rating: function (x, y) { return (y.avg_rating || 0) - (x.avg_rating || 0) || nat(x.title, y.title); }
+            rating: function (x, y) { return topRank(y) - topRank(x) || nat(x.title, y.title); }     // IMDb rating, weighted by how many voted
         }[k] || function (x, y) { return nat(x.title, y.title); };
         return a.sort(cmp);
     }
@@ -210,7 +211,7 @@
         if (f.genre) meta.push(esc(f.genre));
         if (f.collection) meta.push(esc(f.collection)); else if (f.series) meta.push(esc(f.series));
         meta.push(f.progress ? Math.round(f.progress * 100) + '% watched' : f.view_count ? 'Watched' : 'Not watched yet');
-        if (f.avg_rating != null) meta.push('&#9733; ' + f.avg_rating);
+        if (window.imdbHtml && f.imdb != null) meta.push(imdbHtml(f));
         return '<section class="hero-sec ubh-hero" onmouseenter="heroEnter(this, \'' + f.id + '\', \'public\')" onmouseleave="heroStop()">' +
             '<div class="ubh-hbg" style="background-image:url(\'' + esc(f.poster) + '\')"></div>' +
             '<img class="ubh-himg" src="' + esc(f.backdrop) + '" alt="" onerror="this.remove()">' +
@@ -317,21 +318,24 @@
     }
     // ---- Collections: the main page. Same layout as Music > Albums: heading, three chips (Collections / Singles / All), a grid with the name and a small grey line under each
     function collItem(c) {
-        var it = c.items, w = it.filter(function (v) { return v.view_count > 0; }).length, rated = it.filter(function (v) { return v.avg_rating != null; });
+        var it = c.items, w = it.filter(function (v) { return v.view_count > 0; }).length, rated = it.filter(function (v) { return v.imdb != null; });
         var ys = it.map(function (v) { return v.year; }).filter(Boolean);
         return { kind: 'collection', id: 'c:' + c.name, title: c.name, coll: c, count: c.count, started: w > 0, done: w === it.length && it.length > 0,
                  progress: it.some(function (v) { return v.progress > 0; }) ? 1 : 0, year: ys.length ? Math.min.apply(null, ys) : 0,
                  added: Math.max.apply(null, it.map(function (v) { return v.added || 0; }).concat([0])),
                  view_count: it.reduce(function (a, v) { return a + (v.view_count || 0); }, 0),
-                 avg_rating: rated.length ? rated.reduce(function (a, v) { return a + v.avg_rating; }, 0) / rated.length : null };
+                 imdb: rated.length ? rated.reduce(function (a, v) { return a + v.imdb; }, 0) / rated.length : null,     // the films' average, for "Top rated"
+                 imdb_votes: rated.length ? Math.min.apply(null, rated.map(function (v) { return v.imdb_votes || 0; })) : 0 };
     }
     // the tile already carries its own title and small line; only swap the small line, never add a second title
-    function subTile(v, bits) {
-        var tile = cards([v]).replace(/<div class="ut-sub">[\s\S]*?<\/div>/, '<div class="ut-sub">' + bits.filter(Boolean).map(esc).join(' &middot; ') + '</div>');
+    function subTile(v, bits, lead) {       // lead: html put first (the IMDb rating)
+        var txt = bits.filter(Boolean).map(esc).join(' &middot; ');
+        if (lead) txt = lead + (txt ? ' &middot; ' + txt : '');
+        var tile = cards([v]).replace(/<div class="ut-sub">[\s\S]*?<\/div>/, function () { return '<div class="ut-sub">' + txt + '</div>'; });
         return '<div class="ubh-st">' + tile + '</div>';
     }
     function singleTile(v) {       // "2019 · Action · Watched"
-        return subTile(v, [v.year || '', v.place || v.genre || v.collection || '', v.view_count ? 'Seen' : '']);
+        return subTile(v, [v.year || '', v.place || v.genre || v.collection || '', v.view_count ? 'Seen' : ''], window.imdbHtml ? imdbHtml(v) : '');
     }
     function clipTiles(items) { return items.map(function (v) { return subTile(v, [v.genre || 'Clip', v.view_count ? 'Watched' : '']); }).join(''); }
     function mTiles(items) { return items.map(function (x) { return x.kind === 'collection' ? collCard(x.coll) : x.kind === 'series' ? cards([x]) : singleTile(x); }).join(''); }

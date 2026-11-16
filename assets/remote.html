@@ -175,10 +175,7 @@
   .p-body .kick svg { width: 16px; height: 16px; }
   .p-body .duo { margin-top: 18px; }
   .rate-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; font-size: 14px; }
-  .stars { display: flex; gap: 2px; }
-  .stars button { width: 34px; height: 34px; display: grid; place-items: center; color: #3c3943; }
-  .stars button.on { color: var(--acc); }
-  .stars svg { width: 24px; height: 24px; }
+  .rate-row .imdb { color: #f5c518; }
   .link { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 18px; padding: 14px 0; border-top: 1px solid var(--line); font-weight: 600; font-size: 14.5px; }
   .link svg { width: 20px; height: 20px; color: var(--mute); }
   .scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); animation: fadein .2s; }
@@ -633,7 +630,6 @@
     if (now.can_audio && (now.audios || []).length > 1) r.push(mrow('audio', 'audio', 'Audio language', ''));
     if ((now.chapters || []).length) r.push(mrow('chap', 'chap', 'Chapters', now.chapters.length + ' chapters'));
     if (onSubs && now.can_chapters) r.push(mrow('delay', 'cc', 'Subtitle timing', 'If subtitles come early or late'));
-    if (!now.private && now.vid) r.push(mrow('rate', 'star', 'Rate', now.rating ? now.rating + ' of 5 stars' : 'Not rated yet'));
     r.push(mrow('fs', 'fs', 'Fullscreen on the PC', ''));
     r.push(mrow('stop', 'stop', 'Stop the video', ''));
     var d = sheet('', r.join(''));
@@ -644,7 +640,6 @@
       if (m === 'audio') options('Audio language', now.audios.map(function (a) { return { label: a.label, on: a.on, value: a.id }; }), function (v) { cmd('audio', v); });
       if (m === 'chap') options('Chapters', now.chapters.map(function (c, i) { return { label: fmt(c.t) + '   ' + c.title, on: false, value: i }; }), function (v) { cmd('chapter', v); });
       if (m === 'delay') delaySheet();
-      if (m === 'rate') rateSheet(now.vid, now.rating || 0, function (n) { now.rating = n; });
       if (m === 'fs') { closeTop(); cmd('fullscreen'); toast('Fullscreen on the PC'); }
       if (m === 'stop') { closeTop(); cmd('close'); toast('Stopped'); }
     };
@@ -653,15 +648,9 @@
     var d = sheet('Subtitle timing', '<div class="hint">Subtitles too early or too late? Nudge them.</div><div class="stepper"><button data-d="-0.1">−</button><b>0.1 s</b><button data-d="0.1">+</button></div>');
     d.onclick = function (e) { var b = e.target.closest('[data-d]'); if (b) { buzz(); cmd('sub_delay', parseFloat(b.dataset.d)); } };
   }
-  function stars(n) { var h = ''; for (var i = 1; i <= 5; i++) h += '<button data-star="' + i + '" class="' + (i <= n ? 'on' : '') + '">' + icon('star') + '</button>'; return h; }
-  function rateSheet(id, cur, done) {
-    var d = sheet('Your rating', '<div class="stars" style="justify-content:center;padding:14px 0 6px">' + stars(cur) + '</div>');
-    d.onclick = function (e) {
-      var b = e.target.closest('[data-star]'); if (!b) return; buzz();
-      var n = +b.dataset.star; if (n === cur) n = 0;
-      cmd('rate', { id: id, stars: n }); if (done) done(n); closeTop(); toast(n ? 'Rated ' + n + ' stars' : 'Rating cleared');
-    };
-  }
+  // IMDb rating found online (same as the PC): "Top rated" weighs it by how many people voted, so 9.0 from 300 votes is not on top
+  function votesTxt(n) { return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n || 0); }
+  function imdbRank(c) { var n = c.imdb_votes || 0; return c.imdb == null ? -1 : (n * c.imdb + 25000 * 6.8) / (n + 25000); }
   function renderUpNext() {
     var box = $('upnext');
     if (now.kind === 'video' && now.series_id) {
@@ -902,7 +891,7 @@
   };
 
   // ---------------------------------------------------------------- WATCH
-  var wKind = 'movies', wSort = 'recent', SORTS = { recent: 'Recently added', az: 'A–Z', unwatched: 'Not watched yet', rated: 'Your top rated' };
+  var wKind = 'movies', wSort = 'recent', SORTS = { recent: 'Recently added', az: 'A–Z', unwatched: 'Not watched yet', rated: 'Top rated (IMDb)' };
   $('w-kind').onclick = function (e) { var b = e.target.closest('[data-k]'); if (!b) return; buzz(); wKind = b.dataset.k; renderWatch(); };
   $('w-sort').onclick = function () {
     buzz();
@@ -910,6 +899,7 @@
   };
   function tileHtml(c) {
     var sub = c.kind === 'series' ? c.episodes + ' episodes' : (c.year || c.genre || '');
+    if (c.imdb != null) sub = '★ ' + Number(c.imdb).toFixed(1) + (sub ? ' · ' + sub : '');
     return '<button class="tile" data-' + (c.kind === 'series' ? 'series' : 'open') + '="' + esc(c.id) + '"><div class="pic">' + img(c.poster) +
       (c.progress ? '<div class="prog" style="width:' + Math.round(c.progress * 100) + '%"></div>' : '') + '</div><div class="t">' + esc(c.title) + '</div><div class="s">' + esc(sub) + '</div></button>';
   }
@@ -922,7 +912,7 @@
       if (wSort === 'az') list.sort(function (a, b) { return a.title.localeCompare(b.title); });
       else if (wSort === 'recent') list.sort(function (a, b) { return (b.added || 0) - (a.added || 0); });
       else if (wSort === 'unwatched') list = list.filter(function (c) { return !(c.view_count || c.watched); });
-      else if (wSort === 'rated') list = list.filter(function (c) { return c.user_rating; }).sort(function (a, b) { return b.user_rating - a.user_rating; });
+      else if (wSort === 'rated') list = list.filter(function (c) { return c.imdb != null; }).sort(function (a, b) { return imdbRank(b) - imdbRank(a); });
       $('w-grid').innerHTML = list.map(tileHtml).join('') || '<div class="empty">Nothing here.</div>';
     }).catch(function () { $('w-grid').innerHTML = '<div class="empty">Could not load your library.</div>'; });
   }
@@ -942,18 +932,12 @@
         (resume ? '<div class="meta">You stopped at ' + fmt(resume) + '</div>' : '') +
         '<div class="duo"><button class="btn primary" data-a="pc">' + icon('tv') + (resume ? 'Resume on PC' : 'Play on PC') + '</button><button class="btn" data-a="ph">' + icon('phone') + 'On this phone</button></div>' +
         (opts.surprise ? '<button class="btn wide" data-a="again">' + icon('dice') + 'Pick another</button>' : '') +
-        '<div class="rate-row"><span class="muted">Your rating</span><div class="stars" data-a="rate">' + stars(c.user_rating || 0) + '</div></div>' +
+        (c.imdb != null ? '<div class="rate-row"><span class="muted">IMDb</span><span><b class="imdb">★ ' + Number(c.imdb).toFixed(1) + '</b> <span class="muted">' + votesTxt(c.imdb_votes) + ' votes</span></span></div>' : '') +
         (info.series_id ? '<button class="link" data-a="ser">All episodes' + icon('right') + '</button>' : '') + '</div>', opts.reuse);
       if (opts.surprise) surprisePage = d;
       d.onclick = function (e) {
-        var s = e.target.closest('[data-star]');
-        if (s) {
-          buzz(); var n = +s.dataset.star; if (n === (c.user_rating || 0)) n = 0;
-          c.user_rating = n; d.querySelector('[data-a=rate]').innerHTML = stars(n); cmd('rate', { id: id, stars: n }); toast(n ? 'Rated ' + n + ' stars' : 'Rating cleared');
-          return;
-        }
         var b = e.target.closest('[data-a]'); if (!b) return;
-        var a = b.dataset.a; if (a === 'rate') return;
+        var a = b.dataset.a;
         buzz();
         if (a === 'pc') { cmd('play_video', id); toast('Starting on your PC'); go('now'); }
         if (a === 'ph') openPlayer(id, title, resume);

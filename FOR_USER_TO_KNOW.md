@@ -60,6 +60,22 @@ It's a small fix (download the poster again when its file is missing). It's also
 
 ---
 
+## Where the movie ratings come from
+
+- The **★ 7.9** under a movie's title is its **IMDb** rating, out of 10. Hover it to see how many people voted.
+  A dimmed star means fewer than 5,000 people voted, so treat that number lightly.
+- It only shows for movies and series that got a real poster online (same switch and same TMDB key as above).
+  TMDB tells ULTRON which IMDb title each movie is. The rating itself comes from IMDb's own free ratings list.
+- ULTRON downloads that list (about 9 MB) at most once a week, keeps it in the data folder (`imdb\`) and works
+  offline in between. No IMDb account or key is needed.
+- **Sort > Top rated** weighs the rating by how many people voted: a 9.0 from 300 votes ranks below an 8.3 from a
+  million. That's the same idea IMDb uses for its Top 250.
+- No rating on a movie? Either TMDB didn't know its IMDb page, or the movie has no poster match yet
+  (fix that in Needs review). It also asks TMDB again once a month.
+- Your own 1-5 star ratings are gone from the screen. Anything you had rated is still in the database, just not shown.
+
+---
+
 ## How auto-sort works
 
 - **It only reads names.** Nothing is ever moved or renamed on your disk.

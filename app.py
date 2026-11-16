@@ -1811,6 +1811,7 @@ def video_cards(private=False):
     clean_on = (not private) and get_prefs().get("clean_titles", True)
     ag_video = {} if private else autogenre.load_map(db, "video")        # Smart genres (never for the private library)
     ag_series = {} if private else autogenre.load_map(db, "series")
+    imdb = {} if private else autogenre.rating_map(db)                   # IMDb rating, votes (never for the private library)
     with closing(db()) as con:
         rows = con.execute("""
             SELECT v.id, v.view_count, v.last_viewed, v.added_at, v.mtime,
@@ -1937,7 +1938,8 @@ def video_cards(private=False):
         k = known[r["id"]]
         net = 0 if private else net_stamp("video", r["id"])
         stamp = f"-{net}" if net else ""
-        return {"kind": "video", "type": vtype(k, coll_of.get(r["id"], "")), "id": r["id"], "title": display_title(r["custom_title"], k["title"]),
+        sc = imdb.get(("video", r["id"])) or imdb.get(("series", k.get("from_series"))) or (None, 0)
+        return {"kind": "video", "imdb": sc[0], "imdb_votes": sc[1], "type": vtype(k, coll_of.get(r["id"], "")), "id": r["id"], "title": display_title(r["custom_title"], k["title"]),
                 "year": k.get("year"), "collection": coll_of.get(r["id"], ""),
                 "series": (clean_junk(k["series"]) if clean_on else pretty(k["series"])) if k["series"] else "", "genre": k["genre"],
                 "agenres": ag_video.get(r["id"]) or ag_series.get(k.get("from_series"), []),
@@ -1961,7 +1963,8 @@ def video_cards(private=False):
             resume = max(cont, key=lambda r: r["progress_at"] or 0)
         else:
             resume = next((r for r in eps if r["view_count"] == 0), eps[0])
-        return {"kind": "series", "id": s["id"], "title": s["name"], "genre": s["genre"], "agenres": ag_series.get(s["id"], []), "episodes": len(eps),
+        sc = imdb.get(("series", s["id"])) or imdb.get(("video", s.get("movie_id"))) or (None, 0)
+        return {"kind": "series", "imdb": sc[0], "imdb_votes": sc[1], "id": s["id"], "title": s["name"], "genre": s["genre"], "agenres": ag_series.get(s["id"], []), "episodes": len(eps),
                 "is_new": any(isnew(r) for r in eps), "watched": watched, "progress": round(watched / len(eps), 3), "resume": resume["id"],
                 "folder": s["folder"].name, "auto": bool(s.get("virtual")), "extras": is_extras(s["genre"], s["folder"].name) or bool(s.get("extras")),
                 "poster": f"/seriesart/{s['id']}?v={int(max(r['mtime'] or 0 for r in eps))}{series_stamp(s)}",
@@ -6230,6 +6233,90 @@ def net_save(w, cand):
 def net_done():
     """A lookup finished: the open page reloads its lists (new posters and genres show without a restart)."""
     SCAN_VER["v"] += 1
+    ratings_auto()
+
+
+# IMDb ratings on the movie cards. Every movie / series matched online asks TMDB once for its IMDb id; the scores come
+# from IMDb's own free ratings list (one file, fetched again once a week), so they work offline in between.
+IMDB_FILE = DATA_DIR / "imdb" / "title.ratings.tsv.gz"
+IMDB_MARK = DATA_DIR / "imdb" / "applied.txt"     # when the list was last read into the database
+IMDB_MAX_AGE = 7 * 86400
+IMDB_RETRY = 30 * 86400                            # TMDB knew no IMDb id: ask again after this long
+RATE = {"running": False}
+RATE_LOCK = threading.Lock()
+
+
+def ratings_auto():
+    """Fills in the IMDb ratings in the background when "Look movies up online" is on and a TMDB key is saved.
+    Cheap when there is nothing to do (no internet used). True when it started."""
+    try:
+        if not get_prefs().get("ag_online"):
+            return False
+        tmdb, _lfm = ag_keys()
+        if not tmdb:
+            return False
+    except Exception:
+        log.warning("IMDb ratings could not start", exc_info=True)
+        return False
+    with RATE_LOCK:
+        if RATE["running"]:
+            return False
+        RATE["running"] = True
+    threading.Thread(target=ratings_run, args=(tmdb,), daemon=True, name="imdb-ratings").start()
+    return True
+
+
+def ratings_run(key):
+    try:
+        now, changed = time.time(), False
+        have = autogenre.rating_rows(db)
+        fails = 0
+        for (kind, k), ref in autogenre.art_refs(db).items():
+            h = have.get((kind, k))
+            if h and h["ref"] == ref and (h["imdb"] or now - (h["at"] or 0) < IMDB_RETRY):
+                continue
+            try:
+                autogenre.rating_put_id(db, kind, k, ref, autogenre.tmdb_imdb_id(ref, key))
+                changed, fails = True, 0
+            except autogenre.Offline:
+                fails += 1
+                if fails >= 4:
+                    break
+            except autogenre.BadKey:
+                break
+        try:
+            age = now - IMDB_FILE.stat().st_mtime
+        except OSError:
+            age = None
+        if (age is None or age > IMDB_MAX_AGE) and autogenre.rating_ids(db):
+            try:
+                IMDB_FILE.parent.mkdir(parents=True, exist_ok=True)
+                autogenre.imdb_download(IMDB_FILE)
+                changed = True
+            except autogenre.Offline as e:
+                log.info("IMDb ratings list not downloaded: %s", e)
+        try:
+            st = IMDB_FILE.stat()
+            stamp = "%d-%d" % (st.st_mtime_ns, st.st_size)
+        except OSError:
+            return                                            # never downloaded yet (offline): try again after the next scan
+        try:
+            done = IMDB_MARK.read_text(encoding="utf-8").strip() == stamp
+        except OSError:
+            done = False
+        if changed or not done:
+            background_io(True)
+            try:
+                autogenre.rating_put_scores(db, autogenre.imdb_scores(IMDB_FILE, autogenre.rating_ids(db)))
+            finally:
+                background_io(False)
+            IMDB_MARK.write_text(stamp, encoding="utf-8")
+            SCAN_VER["v"] += 1                                # the open page reloads its lists with the new ratings
+    except Exception:
+        log.warning("IMDb ratings failed", exc_info=True)
+    finally:
+        with RATE_LOCK:
+            RATE["running"] = False
 
 
 def movie_work(redo=False):
@@ -6271,6 +6358,7 @@ def net_auto():
             return False
         work = movie_work()
         if not work:
+            ratings_auto()                                    # nothing new to look up: the IMDb ratings may still need filling in
             return False
         ok, _err = AG.start("movies", work, tmdb, lfm, net_done, net_save, quiet=True)
         return ok

@@ -8,7 +8,9 @@
   a choice you make by hand always beats an automatic one. Private-library items are never sent anywhere.
 """
 import difflib
+import gzip
 import json
+import os
 import re
 import sqlite3
 import threading
@@ -112,6 +114,38 @@ def _default_fetch_bytes(url, timeout=20):
 
 
 fetch_bytes = _default_fetch_bytes
+
+FILE_MAX = 80 * 1024 * 1024
+
+
+def _default_download(url, out, timeout=60):
+    """Saves a file (the IMDb ratings list) to out, all or nothing. Same errors as fetch."""
+    tmp = out.with_name(out.name + ".part")
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r, open(tmp, "wb") as f:
+            n = 0
+            while True:
+                b = r.read(1 << 16)
+                if not b:
+                    break
+                n += len(b)
+                if n > FILE_MAX:
+                    raise Offline("The file is bigger than expected.")
+                f.write(b)
+        os.replace(tmp, out)
+    except urllib.error.HTTPError as e:
+        raise Offline("HTTP %d" % e.code)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        raise Offline(str(getattr(e, "reason", e)) or "No internet connection.")
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+
+
+download = _default_download
 
 
 class Throttle:
@@ -267,6 +301,69 @@ def decide_movie(cands):
     return "none", [], best["conf"]
 
 
+# ---------------------------------------------------------------- IMDb ratings
+# The rating shown on movie cards. IMDb has by far the most voters, so its number says "a lot of people liked this" best.
+# IMDb shares every title's rating as one free file (personal use), refreshed daily; TMDB tells which IMDb title a match is.
+IMDB_RATINGS_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
+IMDB_HEAD = "tconst\taverageRating\tnumVotes"
+
+
+def tmdb_imdb_id(ref, key):
+    """A saved match ('movie/603', 'tv/1399') -> its IMDb id ('tt0133093'), or '' when TMDB knows none."""
+    media, _, tid = str(ref or "").partition("/")
+    if media not in ("movie", "tv") or not tid.isdigit():
+        return ""
+    data = _tmdb_call("%s/%s/external_ids" % (media, tid), {}, key) or {}
+    imdb = str(data.get("imdb_id") or "")
+    return imdb if re.fullmatch(r"tt\d{5,10}", imdb) else ""
+
+
+def imdb_file_ok(path):
+    """True when path is the IMDb ratings list (gzip, the right header)."""
+    try:
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
+            return f.readline().rstrip("\r\n") == IMDB_HEAD
+    except (OSError, EOFError, ValueError):
+        return False
+
+
+def imdb_download(out):
+    """Fetches the ratings list to out. A broken download never replaces a good list already there."""
+    tmp = out.with_name("_new_" + out.name)
+    try:
+        download(IMDB_RATINGS_URL, tmp)
+        if not imdb_file_ok(tmp):
+            raise Offline("The IMDb ratings file was not what was expected.")
+        os.replace(tmp, out)
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+
+
+def imdb_scores(path, wanted):
+    """{imdb id: (rating, votes)} for the ids in wanted, read from the ratings list."""
+    out = {}
+    if not wanted:
+        return out
+    try:
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
+            if f.readline().rstrip("\r\n") != IMDB_HEAD:
+                return out
+            for line in f:
+                tab = line.find("\t")
+                if line[:tab] in wanted:
+                    p = line.rstrip("\r\n").split("\t")
+                    try:
+                        out[p[0]] = (float(p[1]), int(p[2]))
+                    except (IndexError, ValueError):
+                        pass
+    except (OSError, EOFError, ValueError):
+        pass
+    return out
+
+
 # ---------------------------------------------------------------- music
 def canon_music(raw):
     """raw tags [(name, count)] or strings -> up to 2 of our genres, strongest first."""
@@ -344,6 +441,63 @@ def init_db(con):
     # posters found online: ok (pictures saved by the app) | none (no sure match, not asked again) | review (waits for your pick)
     con.execute("""CREATE TABLE IF NOT EXISTS net_art (
         kind TEXT NOT NULL, key TEXT NOT NULL, status TEXT NOT NULL, ref TEXT NOT NULL DEFAULT '', at REAL, PRIMARY KEY (kind, key))""")
+    # IMDb rating of a movie / series matched online: ref is the TMDB match it was found for, imdb '' = TMDB knows none
+    con.execute("""CREATE TABLE IF NOT EXISTS net_rating (
+        kind TEXT NOT NULL, key TEXT NOT NULL, ref TEXT NOT NULL DEFAULT '', imdb TEXT NOT NULL DEFAULT '',
+        score REAL, votes INTEGER, at REAL, PRIMARY KEY (kind, key))""")
+
+
+def art_refs(db):
+    """{(kind, key): 'movie/603'} for every movie / series whose online match was saved."""
+    try:
+        with closing(db()) as con:
+            return {(r["kind"], r["key"]): r["ref"] for r in con.execute("SELECT kind, key, ref FROM net_art WHERE status = 'ok' AND ref != ''")}
+    except sqlite3.Error:
+        return {}
+
+
+def rating_rows(db):
+    """{(kind, key): {ref, imdb, score, votes, at}}"""
+    try:
+        with closing(db()) as con:
+            return {(r["kind"], r["key"]): dict(r) for r in con.execute("SELECT * FROM net_rating")}
+    except sqlite3.Error:
+        return {}
+
+
+def rating_map(db):
+    """{(kind, key): (rating, votes)} of every item that has an IMDb rating (only for the match saved now)."""
+    try:
+        with closing(db()) as con:
+            rows = con.execute("""SELECT r.kind, r.key, r.score, r.votes FROM net_rating r JOIN net_art a
+                                  ON a.kind = r.kind AND a.key = r.key AND a.status = 'ok' AND a.ref = r.ref
+                                  WHERE r.score IS NOT NULL""").fetchall()
+        return {(r["kind"], r["key"]): (r["score"], r["votes"] or 0) for r in rows}
+    except sqlite3.Error:
+        return {}
+
+
+def rating_put_id(db, kind, key, ref, imdb):
+    with closing(db()) as con, con:
+        con.execute("INSERT OR REPLACE INTO net_rating (kind, key, ref, imdb, score, votes, at) VALUES (?,?,?,?,NULL,NULL,?)",
+                    (kind, key, ref, imdb, time.time()))
+
+
+def rating_put_scores(db, scores):
+    """scores: {imdb id: (rating, votes)}. Every item with that id takes it; an id missing from the list has no rating."""
+    with closing(db()) as con, con:
+        for r in con.execute("SELECT kind, key, imdb FROM net_rating WHERE imdb != ''").fetchall():
+            s = scores.get(r["imdb"])
+            con.execute("UPDATE net_rating SET score = ?, votes = ? WHERE kind = ? AND key = ?",
+                        (s[0] if s else None, s[1] if s else None, r["kind"], r["key"]))
+
+
+def rating_ids(db):
+    try:
+        with closing(db()) as con:
+            return {r["imdb"] for r in con.execute("SELECT DISTINCT imdb FROM net_rating WHERE imdb != ''")}
+    except sqlite3.Error:
+        return set()
 
 
 def art_rows(db):

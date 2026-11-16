@@ -520,56 +520,6 @@ class Toast(QLabel):
         self.t.start(ms)
 
 
-class StarBar(QWidget):
-    """Your rating for this video: five stars, click one to rate, click the same one again to clear."""
-    rated = Signal(int)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.value, self.hover = 0, 0
-        self.setFixedSize(132, 28)
-        self.setMouseTracking(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("Your rating")
-
-    def set_value(self, v):
-        self.value = max(0, min(5, int(v or 0)))
-        self.update()
-
-    def _at(self, x):
-        return max(1, min(5, int(x // 26) + 1))
-
-    def mouseMoveEvent(self, e):
-        self.hover = self._at(e.position().x())
-        self.update()
-
-    def leaveEvent(self, e):
-        self.hover = 0
-        self.update()
-
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            n = self._at(e.position().x())
-            self.rated.emit(0 if n == self.value else n)
-
-    def paintEvent(self, e):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing, True)
-        n = self.hover or self.value
-        import math
-        for i in range(5):
-            cx, cy = 13 + i * 26, 14
-            pts = []
-            for k in range(10):
-                r = 11 if k % 2 == 0 else 4.6
-                a = -math.pi / 2 + k * math.pi / 5
-                pts.append(QPointF(cx + r * math.cos(a), cy + r * math.sin(a)))
-            on = i < n
-            p.setPen(QPen(QColor(255, 255, 255, 120), 1.4) if not on else Qt.NoPen)
-            p.setBrush(QColor("#f5b301") if on else Qt.NoBrush)
-            p.drawPolygon(QPolygonF(pts))
-
-
 class TitleCard(QWidget):
     """The big title that fades in over the picture when a video starts, then fades away."""
 
@@ -1437,9 +1387,6 @@ class Player(QMainWindow):
         self.b_rename.clicked.connect(self.rename_title)
         tl.addWidget(self.b_rename, 0, Qt.AlignTop)
         tl.addStretch(1)
-        self.stars = StarBar()
-        self.stars.rated.connect(self.rate)
-        tl.addWidget(self.stars, 0, Qt.AlignTop)
         self.lbl_info = QLabel("")
         self.lbl_info.setStyleSheet("color:rgba(255,255,255,130);font:9pt 'Consolas';background:transparent;")
         tl.addWidget(self.lbl_info, 0, Qt.AlignTop | Qt.AlignRight)
@@ -1818,7 +1765,6 @@ class Player(QMainWindow):
         self.gen += 1
         self.upnext.stop()
         self.tcard.stop()
-        self.stars.set_value(sess.get("user_rating") or 0)
         self.thumbs.clear()
         self.sub_loaded.clear()
         self.ai_job = ""
@@ -2822,7 +2768,7 @@ class Player(QMainWindow):
         self._set_prop("sub-scale", v)
         self.toast.say("Subtitle size %d%%" % round(v * 100), 900)
 
-    # ---- rename + rating (same endpoints the library uses)
+    # ---- rename (same endpoint the library uses)
     def rename_title(self):
         from PySide6.QtWidgets import QInputDialog
         cur = self.lbl_title.text()
@@ -2856,20 +2802,6 @@ class Player(QMainWindow):
         self.lbl_title.setText(t)
         self.setWindowTitle("%s \u2014 ULTRON" % t)
         self.toast.say("Renamed" if r.get("custom") else "Original name restored", 1200)
-
-    def rate(self, n):
-        self.stars.set_value(n)
-        self.sess["user_rating"] = n
-        vid = self.vid
-        self.toast.say("Rating cleared" if n == 0 else "Rated %d of 5" % n, 1100)
-
-        def work():
-            try:
-                self.api.post_json("/api/videos/%s/rating" % vid, {"stars": n})
-            except Exception:
-                log("rating failed", traceback.format_exc())
-                self.bus.toast.emit("Could not save the rating")
-        threading.Thread(target=work, daemon=True).start()
 
     # ---- sleep timer: fades the sound out over the last 10 s, then pauses (the player stays open)
     SLEEP_FADE = 10.0

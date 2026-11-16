@@ -6,6 +6,12 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: IMDb ratings instead of stars
+Movie and series cards show the **IMDb rating** (★ 7.9) under the title, in place of your own 1-5 stars. Hover it for the number of votes. It's dimmed when fewer than 5,000 people voted.
+- **Top rated** sorts by the rating weighted by votes (as IMDb's Top 250 does), so a 9.0 from a few hundred fans never beats a well-loved film with a million votes.
+- Works with what you already set up: "Look movies up online" and your TMDB key. TMDB tells which IMDb title each matched movie is. The scores come from IMDb's free ratings list, downloaded at most once a week and read offline. No new key.
+- The stars are gone from the player window and the phone too. The phone's **Top rated** and its movie pages show the IMDb rating as well.
+
 ## V6: Movie cards your way
 **Settings > Appearance > Movie cards** sets how the movie, series and collection cards in Cinema look.
 - **Shape.** *Square* (as before), *Poster* (tall 2:3 cards that show each movie's whole poster instead of a square cut from it) or *Wide* (16:9 cards with a still from the film, good for clips and home videos). Collections of four films or more show four posters in the new shape too.

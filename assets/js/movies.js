@@ -83,7 +83,7 @@
         } else if (item) {
             if (item.year) bits.push(item.year);
             bits.push(item.view_count ? item.view_count + 'x viewed' : 'Not watched yet');
-            if (item.avg_rating != null) bits.push('&#9733; ' + item.avg_rating);
+            if (item.imdb != null && window.imdbHtml) bits.push(imdbHtml(item));
             if (item.collection) bits.push(esc2(item.collection));
             else if (item.series) bits.push(esc2(item.series));
         }

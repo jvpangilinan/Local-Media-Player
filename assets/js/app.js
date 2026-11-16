@@ -364,16 +364,20 @@
             if (scope !== 'private') { const cl = document.createElement('div'); cl.id = 'public-collections'; anchor.after(cl); }
         }
 
-        function starsHtml(id, rating) {
-            let html = '';
-            for (let i = 1; i <= 5; i++) {
-                html += i <= rating
-                    ? `<i class="fas fa-star text-yellow-400 cursor-pointer drop-shadow-md hover:scale-125 transition-transform" onclick="rateVideo(event, '${id}', ${i})"></i>`
-                    : `<i class="far fa-star text-gray-300 cursor-pointer drop-shadow-md hover:scale-125 hover:text-yellow-400 transition-transform" onclick="rateVideo(event, '${id}', ${i})"></i>`;
-            }
-            return html;
+        // IMDb rating of a movie / series found online: "★ 7.9", the number of votes in the tooltip, dimmed when few people voted.
+        // imdbRank is what "Top rated" sorts by: a 9.0 from 300 votes counts for less than an 8.5 from a million (as IMDb's Top 250 does).
+        const IMDB_FEW = 5000, IMDB_M = 25000, IMDB_C = 6.8;
+        function fmtVotes(n) { return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n); }
+        function imdbHtml(v) {
+            if (!v || v.imdb == null) return '';
+            const n = v.imdb_votes || 0, few = n < IMDB_FEW, r = Number(v.imdb).toFixed(1);
+            return `<span class="ut-imdb${few ? ' few' : ''}" title="IMDb ${r} / 10 from ${n.toLocaleString()} votes${few ? ' (only a few people voted)' : ''}">★ ${r}</span>`;
         }
-        const avgText = v => `<i class="fas fa-star text-yellow-500 mr-1"></i>${v.avg_rating == null ? '-' : v.avg_rating} / 5`;
+        function imdbRank(v) {
+            if (!v || v.imdb == null) return -1;
+            const n = v.imdb_votes || 0;
+            return (n * v.imdb + IMDB_M * IMDB_C) / (n + IMDB_M);
+        }
         const posterUrl = (v, scope) => scope === 'private' ? withToken(v.poster) : v.poster;
         const newBadge = (v, side) => v.is_new ? `<div class="absolute top-2 ${side || 'left-2'} z-20 text-[10px] font-black bg-accent rounded px-2 py-1 tracking-wider shadow-lg transition-opacity ${side ? '' : 'group-hover:opacity-0'}">NEW</div>` : '';
         const progressBar = v => v.progress
@@ -383,7 +387,7 @@
         // private cards: poster, title on hover, nothing else
         function createPrivateCard(v) {
             return `
-                <div class="video-card vcard flex-none aspect-[2/3] relative rounded-md overflow-hidden bg-lm-card cursor-pointer group" data-id="${v.id}" data-rating="${v.user_rating}" onclick="playVideo('${v.id}')">
+                <div class="video-card vcard flex-none aspect-[2/3] relative rounded-md overflow-hidden bg-lm-card cursor-pointer group" data-id="${v.id}" onclick="playVideo('${v.id}')">
                     <img src="${posterUrl(v, 'private')}" alt="" loading="lazy" class="w-full h-full object-cover">
                     ${progressBar(v)}
                     <div class="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/90 via-black/10 to-transparent flex items-end p-3">
@@ -405,17 +409,16 @@
             const year = v.year && !String(v.title || '').includes(String(v.year)) ? v.year : '';
             const sub = [sameTitle(v.series, v.title) ? '' : (v.series || ''), year, v.left ? leftText(v.left) : (v.view_count ? v.view_count + 'x viewed' : '')].filter(Boolean).join(' \u00b7 ');
             return `
-                <div class="video-card vcard utile group flex-none cursor-pointer" data-id="${v.id}" data-rating="${v.user_rating}" onclick="playVideo('${v.id}')">
+                <div class="video-card vcard utile group flex-none cursor-pointer" data-id="${v.id}" onclick="playVideo('${v.id}')">
                     <div class="ut-cover">
                         <img src="${tileUrl(v, scope)}" alt="" loading="lazy">
                         ${progressBar(v)}${v.is_new ? '<span class="ut-new">NEW</span>' : ''}
                         <button class="ut-edit" title="Rename" onclick="editTitle(event, '${v.id}')"><i class="fas fa-pen"></i></button>
                         <button class="ut-img" data-tk="video" data-tkey="${v.id}" title="Thumbnail"><i class="far fa-image"></i></button>
-                        <div class="ut-stars rating-stars" title="Your rating">${starsHtml(v.id, v.user_rating)}</div>
                         <span class="ut-play"><i class="fas fa-play"></i></span>
                     </div>
                     <div class="ut-title" data-title-id="${v.id}" title="${esc(v.title)}">${esc(v.title)}</div>
-                    <div class="ut-sub">${esc(sub) || 'Movie'}</div>
+                    <div class="ut-sub">${imdbHtml(v)}${imdbHtml(v) && sub ? ' &middot; ' : ''}${esc(sub) || (imdbHtml(v) ? '' : 'Movie')}</div>
                 </div>`;
         }
         // a series: one square tile with the show's title; opening it lists the episodes
@@ -431,7 +434,7 @@
                         <button class="ut-play" title="${s.watched ? 'Resume' : 'Play'}" onclick="event.stopPropagation(); playVideo('${s.resume}')"><i class="fas fa-play"></i></button>
                     </div>
                     <div class="ut-title" title="${esc(s.title)}">${esc(s.title)}</div>
-                    <div class="ut-sub">Series &middot; ${label}${s.watched ? ' &middot; ' + s.watched + ' watched' : ''}</div>
+                    <div class="ut-sub">${imdbHtml(s) ? imdbHtml(s) + ' &middot; ' : ''}Series &middot; ${label}${s.watched ? ' &middot; ' + s.watched + ' watched' : ''}</div>
                 </div>`;
         }
         const cardsHtml = (items, scope) => items.map(c => c.kind === 'series' ? createSeriesCard(c, scope) : createVideoCard(c, scope)).join('');
@@ -450,7 +453,7 @@
             const meta = priv ? '' : `
                             <div class="flex items-center gap-4 text-sm text-gray-200 mb-6">
                                 <span><i class="fas fa-eye mr-1 text-gray-400"></i>${f.view_count}x viewed</span>
-                                <span>${avgText(f)}</span>
+                                ${imdbHtml(f) ? `<span>${imdbHtml(f)}</span>` : ''}
                             </div>`;
             const buttons = priv ? `
                                 <button onclick="playVideo('${f.id}')" class="bg-white text-black font-semibold py-3 px-8 rounded-md flex items-center gap-2 hover:bg-white/80 transition-colors"><i class="fas fa-play"></i> ${f.progress ? 'Resume' : 'Play'}</button>
@@ -600,20 +603,9 @@
 
         function updateCards(id, stats) {
             document.querySelectorAll(`.video-card[data-id="${id}"]`).forEach(card => {
-                card.dataset.rating = stats.user_rating;
-                const rs = card.querySelector('.rating-stars'), vw = card.querySelector('.views'), av = card.querySelector('.avg');
-                if (rs) rs.innerHTML = starsHtml(id, stats.user_rating);
+                const vw = card.querySelector('.views');
                 if (vw) vw.textContent = stats.view_count + 'x Viewed';
-                if (av) av.innerHTML = avgText(stats);
             });
-        }
-
-        async function rateVideo(event, id, starIndex) {
-            event.stopPropagation();
-            const card = event.target.closest('.video-card');
-            const current = Number(card.dataset.rating || 0);
-            const stars = starIndex === current ? 0 : starIndex;
-            try { updateCards(id, await post(`/api/videos/${id}/rating`, { stars })); } catch (e) { console.error(e); }
         }
 
         // ======================= new genre / add videos =======================

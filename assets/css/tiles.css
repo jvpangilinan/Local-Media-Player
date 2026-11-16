@@ -68,7 +68,11 @@ html body .utile .ut-ph { position: absolute; inset: 0; display: flex; align-ite
 .utile .ut-prog, .utile .ut-cover > .absolute.bottom-0 { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .25); }
 html body .utile .ut-prog i, html body .utile .ut-cover > .absolute.bottom-0 > div { display: block; height: 100%; background: var(--pr1, #e50914); }
 
-/* hover extras: play button (bottom right), rename pencil (top right), your rating (bottom left) */
+/* IMDb rating at the start of the small line under the title; dimmed when only a few people voted */
+.ut-imdb { color: #f5c518; letter-spacing: .02em; }
+.ut-imdb.few { opacity: .55; }
+
+/* hover extras: play button (bottom right), rename pencil (top right) */
 .utile .ut-play { position: absolute; z-index: 7; right: .5rem; bottom: .5rem; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: var(--pr1, #fff); color: var(--v-on, #000); box-shadow: none; cursor: pointer; font-size: .9rem;
   opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
@@ -78,8 +82,6 @@ html body .utile .ut-prog i, html body .utile .ut-cover > .absolute.bottom-0 > d
   border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .7rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
 .utile .ut-edit:hover { background: #fff; color: #000; }
 .utile:hover .ut-edit { opacity: 1; }
-.utile .ut-stars { position: absolute; z-index: 7; left: .5rem; bottom: .8rem; display: flex; gap: .15rem; font-size: .72rem; opacity: 0; transition: opacity .2s; text-shadow: 0 1px 4px #000; }
-.utile:hover .ut-stars { opacity: 1; }
 
 /* ---------- collection page: watch-order number sits on the cover corner ---------- */
 #video-view .ubh-ord .ubh-n { top: .35rem; left: .35rem; }
@@ -110,7 +112,7 @@ html body .vgrid:not(.ubh-grid):has(> .utile) { grid-template-columns: repeat(au
 .ut-ic.wi { aspect-ratio: 16 / 9; }
 
 /* ---------- select mode keeps working on the tiles ---------- */
-body.ubh-selecting #ubh-body .vcard.utile .ut-play, body.ubh-selecting #ubh-body .vcard.utile .ut-edit, body.ubh-selecting #ubh-body .vcard.utile .ut-stars { display: none !important; }
+body.ubh-selecting #ubh-body .vcard.utile .ut-play, body.ubh-selecting #ubh-body .vcard.utile .ut-edit { display: none !important; }
 #video-view .vcard.utile.ubh-picked { outline: 0 !important; }
 #video-view .vcard.utile.ubh-picked .ut-cover { box-shadow: 0 0 0 3px var(--pr1, #fff); }
 
