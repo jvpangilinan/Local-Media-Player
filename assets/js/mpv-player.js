@@ -464,6 +464,34 @@
             (typeof d.avsync === 'number' ? '  (offset ' + (d.avsync * 1000).toFixed(1) + ' ms)' : '') +
             '  |  dropped frames: ' + (d.dropped || 0) + '  |  ' + (d.codec || '');
     }
+    /* Picture: the screen (refresh, bit depth) and what the picture of the playing video is doing. Read from /api/picture every
+       few seconds while the Playback tab is on screen. */
+    function hz(v) { v = +v || 0; return Math.abs(v - Math.round(v)) < 0.005 ? String(Math.round(v)) : v.toFixed(3).replace(/0+$/, ''); }
+    function pictureText(d) {
+        var s = d.screen || {}, out = [], dot = '  ·  ';
+        if (s.hz) out.push('Screen: ' + s.w + '×' + s.h + ' at ' + hz(s.hz_exact || s.hz) + ' Hz' +
+            (s.saved_hz && s.saved_hz !== s.hz ? ' (yours: ' + s.saved_hz + ' Hz)' : '') + (s.bits ? dot + s.bits + '-bit' : '') +
+            dot + (s.hdr ? 'Windows HDR on' : 'SDR') + (s.rates && s.rates.length ? dot + 'offers ' + s.rates.join(' / ') + ' Hz' : ''));
+        var r = d.now || d.last;
+        if (!r) { out.push('Start a video to see its frame rate, sync and dropped frames here.'); return out.join('\n'); }
+        var scr = +r.display_fps || +r.screen_hz || 0, fps = +r.fps || 0, bits = [], n = scr && fps ? Math.round(scr / fps) : 0;
+        var fits = n > 0 && Math.abs(scr / n - fps) / fps <= 0.01;
+        bits.push((fps ? hz(fps) + ' fps' : 'video') + (scr ? ' on ' + hz(scr) + ' Hz' : '') +
+            (fits ? ', each frame shown ' + n + '×' : (r.interp ? ', frames blended (smooth motion)' : (scr && fps ? ', uneven frame times' : ''))));
+        if (r.switched_from) bits.push('screen switched for this video');
+        var fix = +r.speed_fix || 0;
+        bits.push(/^display/.test(r.sync || '') && scr ? 'locked to the screen' + (Math.abs(fix) >= 0.01 ? ' (' + (fix > 0 ? '+' : '') + fix.toFixed(2).replace(/0$/, '') + ' % speed)' : '') : 'synced to the sound card');
+        if (r.bits) bits.push(r.bits + '-bit' + (r.hdr ? ' ' + r.hdr + ' → SDR (' + (r.tone || 'auto') + ')' : ''));
+        if (r.codec) bits.push(String(r.codec).toUpperCase() + (r.hwdec && r.hwdec !== 'no' ? ' on the GPU' : ' on the CPU'));
+        bits.push('dropped ' + ((+r.dropped || 0) + (+r.decoder_dropped || 0)) + ', late ' + (+r.delayed || 0));
+        out.push((d.now ? 'Playing: ' : 'Last video: ') + bits.join(dot));
+        return out.join('\n');
+    }
+    function loadPicture() {
+        var el = $('mpv-picture'); if (!el) return;
+        api('/api/picture').then(function (d) { el.textContent = pictureText(d || {}); }).catch(function () { el.textContent = 'Screen details are not available.'; });
+    }
+    setInterval(function () { var el = $('mpv-picture'); if (el && el.offsetParent !== null && !document.hidden) loadPicture(); }, 3000);
     function field(label, hint2, html) {
         return '<div class="flex items-center justify-between gap-4 mb-3"><div><div class="text-sm font-semibold">' + label + '</div><div class="text-xs text-gray-500">' + hint2 + '</div></div>' + html + '</div>';
     }
@@ -474,6 +502,8 @@
         box.innerHTML =
             '<div class="mt-5 mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">Playback (libmpv)</div>' +
             '<div id="mpv-stat" class="text-xs text-gray-400 mb-3">Checking...</div>' +
+            '<div class="text-sm font-semibold">Picture</div>' +
+            '<div id="mpv-picture" class="text-xs text-gray-500 mb-4" style="white-space:pre-line">Reading the screen...</div>' +
             field('Native player window', 'Videos open in their own player window where the controls, subtitles and previews are drawn together with the picture (no overlay glitches). Off = the player inside this window',
                 '<button id="mpv-native" class="set-switch" onclick="setPref({native_player: prefs.native_player === false})" title="Toggle"></button>') +
             field('Use libmpv', 'Plays MKV, HEVC, AV1, AC3, DTS and everything else as it is, on the GPU. Off = built-in web player',
@@ -484,10 +514,16 @@
             field('Video decoder', 'Auto = the Radeon through D3D11VA',
                 '<select id="mpv-hw" class="set-select text-sm" onchange="setPref({mpv_hwdec: this.value})"><option value="auto">Auto (GPU)</option><option value="d3d11va">GPU (d3d11va)</option><option value="d3d11va-copy">GPU copy (d3d11va-copy)</option><option value="no">CPU only</option></select>') +
             field('Sync', 'Display = the monitor clock leads, audio is stretched a hair (smoothest)',
-                '<select id="mpv-sync" class="set-select text-sm" onchange="setPref({mpv_sync: this.value})"><option value="display-resample">Display (smooth)</option><option value="audio">Audio clock</option></select>') + +
+                '<select id="mpv-sync" class="set-select text-sm" onchange="setPref({mpv_sync: this.value})"><option value="display-resample">Display (smooth)</option><option value="audio">Audio clock</option></select>') +
             '</details>' +
-            field('Smooth motion', 'Blends frames to the monitor refresh rate (uses the GPU)',
-                '<button id="mpv-interp" class="set-switch" onclick="setPref({mpv_interpolation: !prefs.mpv_interpolation})" title="Toggle"></button>') +
+            field('High-quality picture', 'Sharper scaling, smoother gradients (no banding) and better HDR. Applied the next time the player opens',
+                '<button id="mpv-hq" class="set-switch" onclick="setPref({mpv_hq: prefs.mpv_hq === false})" title="Toggle"></button>') +
+            field('Film refresh rate', 'While a film or episode plays in the player window, the screen moves to 120 Hz (24, 30 and 60 fps fit it exactly) and goes back when the player closes. Nothing changes when your screen already runs at a fitting rate',
+                '<button id="mpv-refresh" class="set-switch" onclick="setPref({mpv_refresh: prefs.mpv_refresh === false})" title="Toggle"></button>') +
+            field('Smooth motion', 'Blends frames when a video\'s frame rate does not fit the screen (25 / 50 fps at 120 Hz). Auto leaves fitting videos untouched',
+                '<select id="mpv-motion" class="set-select text-sm" onchange="setPref({mpv_motion: this.value})"><option value="auto">Auto</option><option value="always">Always</option><option value="off">Off</option></select>') +
+            field('HDR films', 'How HDR films are fitted to this SDR screen. Natural keeps highlights softer',
+                '<select id="mpv-hdr" class="set-select text-sm" onchange="setPref({mpv_hdr: this.value})"><option value="balanced">Balanced</option><option value="natural">Natural</option></select>') +
             field('Audio output', 'Part of the device name. Detected devices are listed below',
                 '<input id="mpv-dev" class="set-select text-sm" style="width:12rem" spellcheck="false" placeholder="e.g. M-Audio Duo" onchange="setPref({mpv_audio_device: this.value})">') +
             '<div id="mpv-devs" class="text-xs text-gray-500 mb-3"></div>' +
@@ -514,13 +550,13 @@
             (st.enabled === false ? 'Off: using the built-in web player.' : ('Not active: ' + (st.error || 'libmpv was not found')));
         el.style.color = st.engine === 'mpv' ? '#4ade80' : '#fbbf24';
         var set = function (id, v) { var e = $(id); if (e && document.activeElement !== e) e.value = v; };
-        set('mpv-hw', pf.mpv_hwdec || 'auto'); set('mpv-sync', pf.mpv_sync || 'display-resample'); set('mpv-dev', pf.mpv_audio_device || ''); set('mpv-dir', pf.mpv_dir || ''); set('mpv-extra', pf.mpv_extra || '');
-        [['mpv-native', pf.native_player !== false], ['mpv-on', pf.mpv_enabled], ['mpv-overlay', pf.mpv_overlay !== false], ['mpv-interp', pf.mpv_interpolation], ['mpv-stereo', pf.mpv_stereo], ['mpv-excl', pf.mpv_exclusive]].forEach(function (x) { var e = $(x[0]); if (e) e.classList.toggle('on', !!x[1]); });
+        set('mpv-hw', pf.mpv_hwdec || 'auto'); set('mpv-sync', pf.mpv_sync || 'display-resample'); set('mpv-motion', pf.mpv_motion || 'auto'); set('mpv-hdr', pf.mpv_hdr || 'balanced'); set('mpv-dev', pf.mpv_audio_device || ''); set('mpv-dir', pf.mpv_dir || ''); set('mpv-extra', pf.mpv_extra || '');
+        [['mpv-native', pf.native_player !== false], ['mpv-on', pf.mpv_enabled], ['mpv-overlay', pf.mpv_overlay !== false], ['mpv-hq', pf.mpv_hq !== false], ['mpv-refresh', pf.mpv_refresh !== false], ['mpv-stereo', pf.mpv_stereo], ['mpv-excl', pf.mpv_exclusive]].forEach(function (x) { var e = $(x[0]); if (e) e.classList.toggle('on', !!x[1]); });
         var a = st.audio, dv = $('mpv-devs');
         if (dv) dv.textContent = a ? ((a.found ? 'Using: ' : 'Wanted device not found, using: ') + a.using + (a.devices && a.devices.length ? '  |  Detected: ' + a.devices.map(function (d) { return d.label; }).filter(Boolean).join(', ') : '')) : '';
     }
     var _op = window.openSettings;
-    if (typeof _op === 'function') window.openSettings = function () { var r = _op.apply(this, arguments); statusP = loadStatus(); return r; };
+    if (typeof _op === 'function') window.openSettings = function () { var r = _op.apply(this, arguments); statusP = loadStatus(); setTimeout(loadPicture, 50); return r; };
     window.addEventListener('load', function () { setTimeout(paintSettings, 600); });
 
     window.UltronMpv = API;

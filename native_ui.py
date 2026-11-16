@@ -27,6 +27,7 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMainWindow, QMenu,
                                QPushButton, QVBoxLayout, QWidget)
 
+import display_mode
 import mpv_backend
 from native_player import APP_DIR, EXIT_FAIL, EXIT_OK, FROZEN, fmt_time, force_foreground, log
 
@@ -1240,6 +1241,8 @@ class Stage(QOpenGLWidget):
         self.pl = player
         self.rctx = None
         self.proc_fn = None
+        self._rendered = False
+        self.frameSwapped.connect(self._swapped)
         self.setMouseTracking(True)
         self._warned = False
         self._click = QTimer(self)
@@ -1261,10 +1264,21 @@ class Stage(QOpenGLWidget):
             self.rctx.update()                                   # tell mpv we handled its "new frame" notice
             self.rctx.render(opengl_fbo={"w": int(self.width() * dpr), "h": int(self.height() * dpr),
                                          "fbo": int(self.defaultFramebufferObject())}, flip_y=True, block_for_target_time=False)
+            self._rendered = True
         except Exception:
             if not self._warned:
                 self._warned = True
                 log("render failed:\n" + traceback.format_exc())
+
+    def _swapped(self):
+        """The frame mpv just drew reached the screen: tell mpv when (only for swaps that carried one of its frames). With these
+        timings and the screen's refresh rate, display-resample can lock the video to the monitor instead of the sound card."""
+        if self._rendered and self.rctx is not None:
+            self._rendered = False
+            try:
+                self.rctx.report_swap()
+            except Exception:
+                pass
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
@@ -1340,6 +1354,11 @@ class Player(QMainWindow):
         self._card_gen = -1                    # session generation the title card was already shown for
         self.sleep_at, self.sleep_eov, self.sleep_base = None, False, None      # sleep timer: deadline (time.time), stop after this video, volume before the fade
         self.fit, self.zoom, self.pan, self.aspect = "fit", 0.0, [0.0, 0.0], "-1"      # picture: fit|fill, video-zoom (log2), video-pan x/y, aspect override
+        self._disp_hz, self._disp_at = 0.0, 0.0  # refresh rate last told to mpv (display-fps-override), when it was last checked
+        self._rate_gen, self._rate_t0 = -1, 0.0  # session generation the screen rate was already fitted for; when that video loaded
+        self._switched = None                    # (device, your own Hz, Hz now) while the screen runs at a film rate
+        self._hold = False                       # paused for a moment while the screen changes rate
+        self._pic_at = 0.0                       # last picture report sent to Settings
 
         self.setWindowTitle("ULTRON")
         self.setStyleSheet("QMainWindow{background:#000;}")
@@ -1587,7 +1606,7 @@ class Player(QMainWindow):
             o.pop(k, None)
         hw = str(o.get("hwdec") or "auto")
         o.update({"vo": "libmpv", "osc": "no", "input-default-bindings": "no", "input-vo-keyboard": "no", "input-cursor": "no",
-                  "video-sync": "audio", "interpolation": "no", "idle": "yes", "keep-open": "yes",
+                  "idle": "yes", "keep-open": "yes",       # video-sync / interpolation come from Settings: display-fps is told below
                   "hwdec": "d3d11va-copy" if hw in ("d3d11va", "auto", "auto-safe") and os.name == "nt" else hw,
                   "config-dir": str(Path(self.sess.get("data_dir") or (APP_DIR / "data")) / "mpv")})
         Path(o["config-dir"]).mkdir(parents=True, exist_ok=True)
@@ -1616,6 +1635,7 @@ class Player(QMainWindow):
         m.observe_property("video-params", self._on_params)
         m.observe_property("video-format", self._putter("fmt", str))
         self._pick_audio_device(pr)
+        self.apply_display_fps()
 
         @m.event_callback("file-loaded")
         def _loaded(_ev):
@@ -1654,6 +1674,121 @@ class Player(QMainWindow):
                     return
         except Exception:
             log("audio device pick failed", traceback.format_exc())
+
+    # ---- the screen: refresh rate for mpv, film rate switching, smooth motion
+    def screen_dev(self):
+        try:
+            return display_mode.monitor_device(int(self.winId()))
+        except Exception:
+            return ""
+
+    def apply_display_fps(self):
+        """mpv draws into a Qt surface here, so it cannot see the monitor: tell it the refresh rate. Without it display-resample
+        silently falls back to the audio clock (frames then land on the screen at uneven times)."""
+        self._disp_at = time.time()
+        if self.m is None:
+            return self._disp_hz
+        hz = display_mode.precise_hz(self.screen_dev()) if os.name == "nt" else 0.0
+        if hz and abs(hz - self._disp_hz) > 0.0005:
+            for name in ("display-fps-override", "override-display-fps"):       # new name (mpv 0.37+), old name
+                try:
+                    self.m[name] = float(hz)
+                    self._disp_hz = float(hz)
+                    break
+                except Exception:
+                    continue
+        return self._disp_hz
+
+    def video_fps(self):
+        for k in ("container-fps", "estimated-vf-fps"):
+            try:
+                v = float(self.m._get_property(k) or 0)          # a live property (self.m[k] would read options/...)
+                if 1 < v < 400:
+                    return v
+            except Exception:
+                continue
+        return 0.0
+
+    def fit_screen(self):
+        """Once per video, when it has loaded: pick the refresh rate that fits it (Settings > Film refresh rate) and switch
+        smooth motion on only if the frames still cannot be shown for equal times."""
+        pr = self.sess.get("prefs") or {}
+        fps = self.video_fps()
+        if not fps and time.time() - self._rate_t0 < 4.0:
+            return False                                                   # frame rate not known yet: ask again on the next tick
+        self._rate_gen = self.gen
+        dev = self.screen_dev()
+        dur = float(self.st.get("dur") or 0)
+        if os.name == "nt" and dev and fps and pr.get("mpv_refresh", True) is not False and (dur >= 15 * 60 or self._switched):
+            own = int(display_mode.saved(dev).get("hz") or 0)
+            now = int(display_mode.current(dev).get("hz") or 0)
+            want = display_mode.pick_rate(fps, own, display_mode.rates(dev)) if own else now
+            if want and want != now:
+                self._change_rate(dev, own, want)
+        hz = self.apply_display_fps()
+        try:
+            self.m["interpolation"] = mpv_backend.motion_wanted(pr, fps, hz)
+        except Exception:
+            log("interpolation switch failed", traceback.format_exc())
+        self._pic_at = 0.0                                                 # Settings: report the new state right away
+        return True
+
+    def _change_rate(self, dev, own, want):
+        playing = not self.st.get("pause")
+        if playing:                                                        # most screens go dark for a second while they change rate
+            self._hold = True
+            self._set_prop("pause", True)
+        if want == own:
+            ok = display_mode.restore(dev)
+            if ok:
+                self._switched = None
+                display_mode.clear_marker(self._data_dir())
+        else:
+            display_mode.write_marker(self._data_dir(), dev, own, want)    # the app puts your rate back if this process dies
+            ok = display_mode.switch(dev, want)
+            if ok:
+                self._switched = (dev, own, want)
+                self.toast.say("Screen at %d Hz for this video (yours: %d Hz)" % (want, own), 2600)
+            elif not self._switched:
+                display_mode.clear_marker(self._data_dir())
+        log("screen rate", "restore" if want == own else "switch", own, "->", want, "ok" if ok else "refused")
+        if playing:
+            def go():
+                if self._hold and self.m is not None and not self.closing:
+                    self._hold = False
+                    self._set_prop("pause", False)
+            QTimer.singleShot(1600, go)
+
+    def restore_screen(self):
+        """The player is closing: your own refresh rate comes back."""
+        sw, self._switched = self._switched, None
+        if sw:
+            ok = display_mode.restore(sw[0])
+            log("screen rate restored", sw[2], "->", sw[1], "ok" if ok else "FAILED")
+        display_mode.clear_marker(self._data_dir())
+
+    def _data_dir(self):
+        return Path(self.sess.get("data_dir") or (APP_DIR / "data"))
+
+    def report_picture(self):
+        """Settings > Playback shows what the picture is doing (refresh, bit depth, dropped frames): send it every few seconds."""
+        self._pic_at = time.time()
+        if self.m is None:
+            return
+        try:
+            rep = mpv_backend.picture_report(self.m)
+        except Exception:
+            return
+        sw = self._switched
+        rep.update(screen_hz=self._disp_hz, switched_from=sw[1] if sw else 0, hq=(self.sess.get("prefs") or {}).get("mpv_hq", True) is not False)
+        api = self.api
+
+        def send():
+            try:
+                api.post_json("/api/native/picture", rep, timeout=4)
+            except Exception:
+                pass
+        threading.Thread(target=send, daemon=True).start()
 
     def init_render(self, stage):
         """Called once the GL context exists: create the mpv render context and start the first file."""
@@ -1958,6 +2093,7 @@ class Player(QMainWindow):
     def toggle_pause(self):
         if self.m is None or self.hp.active():
             return
+        self._hold = False                                   # your own play / pause wins over the pause around a refresh switch
         try:
             if self.st.get("eof"):
                 self.m.command("seek", 0, "absolute")
@@ -2184,7 +2320,7 @@ class Player(QMainWindow):
         s.ws = max(0.0, min(math.floor(float(self.st.get("t") or 0) / s.win) * s.win, max(0.0, d - 0.01)))
         for k in ("container-fps", "estimated-vf-fps"):
             try:
-                v = float(self.m[k] or 0)
+                v = float(self.m._get_property(k) or 0)          # a live property (self.m[k] would read options/...)
                 if 1 < v < 241:
                     self._fps = v
                     break
@@ -3023,6 +3159,15 @@ class Player(QMainWindow):
             if float(self.sess.get("resume") or 0) < 30:                 # not when you jump back into the middle of a film
                 sub = ("%s \u00b7 Episode %s" % (self.sess["series"], self.sess["index"])) if self.sess.get("series") else ""
                 self.tcard.show_card(self.lbl_title.text(), sub)
+        if st.get("loaded") and self._rate_gen != self.gen:
+            if getattr(self, "_rate_seen", None) != self.gen:
+                self._rate_seen, self._rate_t0 = self.gen, now
+            if now - self._rate_t0 > 0.4:                                  # the first frames have settled
+                self.fit_screen()
+        elif now - self._disp_at > 5.0:
+            self.apply_display_fps()                                       # moved to another screen, or the rate changed underneath
+        if st.get("loaded") and now - self._pic_at > 3.0:
+            self.report_picture()
         self.seek.playing = (not paused) and bool(st.get("loaded")) and not st.get("eof")
         a, b = self.ab
         self.seek.loop = (a / d if (a is not None and d > 0) else None, b / d if (b is not None and d > 0) else None)
@@ -3254,10 +3399,12 @@ class Player(QMainWindow):
 
     def on_fail(self, why):
         log("giving up:", why)
+        self.restore_screen()
         self.closing = True
         QApplication.exit(EXIT_FAIL)
 
     def closeEvent(self, e):
+        self.restore_screen()
         if not self.closing:
             self.closing = True
             self.tick_t.stop()

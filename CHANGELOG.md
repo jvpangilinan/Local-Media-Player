@@ -6,6 +6,15 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: Smoother, sharper playback
+Settings > Playback has a few new switches for the player window, and a **Picture** line that shows what the picture is doing.
+- **Locked to the screen.** The player window now follows the monitor's own clock (display-resample) instead of the sound card's, so every frame lands on the screen at the same moment it should. A 23.976 fps film plays 0.1 % faster to fit 120 Hz exactly and the sound is stretched to match; you cannot hear it. Settings > Playback > Advanced > Sync > Audio clock brings the old behaviour back.
+- **Film refresh rate.** If your screen runs at a rate films do not fit (165 Hz, for example), the screen moves to 120 Hz while a film or episode plays (24, 30 and 60 fps all fit 120 Hz exactly) and goes back when the player closes. The video pauses for the second the screen goes dark. The switch is temporary: Windows never saves it, it undoes it when the player stops or crashes, and ULTRON checks again when it starts. Short clips (under 15 minutes) never switch the screen. Nothing happens when your screen already runs at a fitting rate.
+- **Smooth motion: Auto.** Frames are blended only when a video's frame rate still cannot fit the screen (25 and 50 fps on 120 Hz). Fitting videos stay frame-exact. Always and Off are still there.
+- **High-quality picture** (on by default): mpv's high-quality profile with sharper scaling (ewa_lanczossharp), smoother gradients (no banding in skies and dark scenes).
+- **HDR films on an SDR screen** measure each scene's real brightness and recover detail in the highlights. Balanced (spline) or Natural (BT.2446a, softer highlights).
+- **Picture line:** the screen (resolution, refresh rate, bit depth, SDR / HDR, the rates it offers) and, while a video plays, its frame rate against the refresh rate, the sync, bit depth, HDR, GPU or CPU decoding, and dropped / late frames.
+
 ## V6: Real posters, found once
 With **Settings > Smart genres and posters > Look movies and music up online** on and a free TMDB key saved, every movie and series gets its real poster from the internet instead of a frame from the video.
 - **Automatic, and only once.** After each scan, new movies are looked up by themselves: the poster, the wide banner picture and the genre are saved on this PC and never asked for again. **Find posters and genres** does the same by hand and shows the progress.

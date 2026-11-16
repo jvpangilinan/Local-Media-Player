@@ -140,14 +140,19 @@ def build_options(p, kind="stage", title="ULTRON-mpv", geometry="", wid=None):
     hw = str(p.get("mpv_hwdec") or "auto")
     if hw == "auto":
         hw = "d3d11va" if IS_WIN else "auto-safe"
-    o = {
+    o = {}
+    if p.get("mpv_hq", True):
+        o["profile"] = "high-quality"                # FIRST: a profile sets many options at once, everything below wins over it
+        o["deband"] = "yes"                          # smooths the colour steps (banding) in skies and dark scenes of streamed files
+    o.update(hdr_options(p))
+    o.update({
         "vo": "gpu-next",
         "hwdec": hw,
         "hwdec-codecs": "all",                       # also 10-bit HEVC, VP9 and AV1 on the GPU
         "vd-lavc-dr": "yes",                         # direct rendering: fewer copies, easier on RAM bandwidth
         "video-sync": str(p.get("mpv_sync") or "display-resample"),
-        "interpolation": "yes" if p.get("mpv_interpolation") else "no",
-        "tscale": "oversample",
+        "interpolation": "yes" if motion_mode(p) == "always" else "no",   # "auto" turns it on per video (see motion_wanted)
+        "tscale": "oversample",                      # frame blending that only mixes the two frames at a change: no soap-opera look
         "audio-channels": "stereo" if p.get("mpv_stereo", True) else "auto-safe",
         "audio-normalize-downmix": "yes",            # 5.1 / 7.1 film mixes folded down without clipping
         "audio-pitch-correction": "yes",
@@ -172,7 +177,7 @@ def build_options(p, kind="stage", title="ULTRON-mpv", geometry="", wid=None):
         "title": title,
         "force-window": "yes" if kind == "mini" else "no",
         "idle": "yes",
-    }
+    })
     if IS_WIN:
         o.update({"gpu-api": "d3d11", "gpu-context": "d3d11", "ao": "wasapi"})
         if p.get("mpv_exclusive"):
@@ -192,11 +197,95 @@ def build_options(p, kind="stage", title="ULTRON-mpv", geometry="", wid=None):
     return o
 
 
+HDR_TONE = {"balanced": "spline", "natural": "bt.2446a"}
+
+
+def hdr_options(p):
+    """HDR films on an SDR screen. mpv measures each scene's real brightness (instead of trusting the file's metadata) and maps
+    it down to the screen; contrast recovery brings back the fine detail that squeezing the highlights would flatten."""
+    return {
+        "tone-mapping": HDR_TONE.get(str(p.get("mpv_hdr") or "balanced"), "spline"),
+        "hdr-compute-peak": "yes",
+        "hdr-peak-percentile": "99.995",             # ignore a few stray bright pixels when measuring the peak
+        "hdr-contrast-recovery": "0.30",
+        "gamut-mapping-mode": "perceptual",          # wide-gamut (BT.2020) colours squeezed in smoothly, not clipped
+    }
+
+
+def motion_mode(p):
+    m = str(p.get("mpv_motion") or "")
+    if m not in ("auto", "always", "off"):
+        m = "always" if p.get("mpv_interpolation") else "auto"
+    return m
+
+
+def motion_wanted(p, fps, hz):
+    """Should frame blending be on for this video on this screen? auto: only when the frames cannot be shown for equal times
+    (25 / 50 fps at 120 Hz). With a fitting rate (24 fps at 120 Hz) every frame is simply shown 5 times: sharpest possible."""
+    m = motion_mode(p)
+    if m != "auto":
+        return m == "always"
+    try:
+        import display_mode
+        return bool(fps and hz) and not display_mode.fits(fps, hz)
+    except Exception:
+        return False
+
+
+def video_bits(vp):
+    """Bit depth of the video from mpv's video-params: yuv420p10 / p010 -> 10, yuv420p / nv12 -> 8."""
+    if not isinstance(vp, dict):
+        return 0
+    f = str(vp.get("hw-pixelformat") or vp.get("pixelformat") or "").lower()
+    if not f or f in ("d3d11", "dxva2_vld", "cuda", "vaapi"):
+        return 0
+    if f in ("nv12", "nv21", "nv16", "nv24", "yuyv422", "uyvy422"):
+        return 8
+    if f in ("p010", "y210", "y410", "x2rgb10", "x2bgr10"):
+        return 10
+    hit = re.search(r"p(\d{1,2})(le|be)?$", f) or re.search(r"^p0?(\d{2})$", f)
+    return int(hit.group(1)) if hit else 8
+
+
+def picture_report(m):
+    """What the picture is doing right now (Settings > Playback shows it): frame rate vs refresh rate, sync, smooth motion,
+    bit depth, HDR, and the frame counters that reveal stutter."""
+    def g(name, default=None):
+        try:
+            v = m._get_property(name)                       # a live property (m[name] would read the OPTION of that name)
+            return default if v is None else v
+        except Exception:
+            return default
+    vp = g("video-params", {}) or {}
+    gamma = str(vp.get("gamma") or "")
+    fps = g("container-fps") or g("estimated-vf-fps") or 0
+    out = {
+        "fps": round(float(fps), 3) if fps else 0,
+        "display_fps": round(float(g("display-fps", 0) or 0), 3),
+        "sync": str(g("video-sync", "") or ""),
+        "interp": bool(g("interpolation", False)),
+        "dropped": int(g("frame-drop-count", 0) or 0),
+        "decoder_dropped": int(g("decoder-frame-drop-count", 0) or 0),
+        "delayed": int(g("vo-delayed-frame-count", 0) or 0),
+        "mistimed": int(g("mistimed-frame-count", 0) or 0),
+        "speed_fix": round((float(g("video-speed-correction", 1) or 1) - 1.0) * 100, 3),   # % faster / slower to fit the screen
+        "hwdec": str(g("hwdec-current", "") or ""),
+        "codec": str(g("video-format", "") or ""),
+        "w": int(vp.get("w") or 0), "h": int(vp.get("h") or 0),
+        "bits": video_bits(vp),
+        "hdr": "HDR10" if gamma == "pq" else ("HLG" if gamma == "hlg" else ""),
+        "tone": str(g("tone-mapping", "") or ""),
+        "scale": str(g("scale", "") or ""),
+    }
+    return out
+
+
 def safe_options(o):
     """The same thing with only options every libmpv from the last few years understands (used if the first start fails)."""
     o = dict(o)
     o["vo"] = "gpu"
-    for k in ("gpu-api", "gpu-context", "hwdec-codecs", "vd-lavc-dr", "tscale"):
+    for k in ("gpu-api", "gpu-context", "hwdec-codecs", "vd-lavc-dr", "tscale", "profile", "deband", "tone-mapping", "hdr-compute-peak",
+              "hdr-peak-percentile", "hdr-contrast-recovery", "gamut-mapping-mode", "display-fps-override"):
         o.pop(k, None)
     o["hwdec"] = "auto-safe"
     return o
@@ -601,6 +690,7 @@ class Engine:
             self.st["loaded"] = True
             self.st["eof"] = False
             self._emit(type="loaded")
+            threading.Thread(target=self._auto_motion, daemon=True).start()
 
         @m.event_callback("end-file")
         def _end(ev):
@@ -618,6 +708,17 @@ class Engine:
                 return
             self._emit(type="closed")
             threading.Thread(target=self.close_mini if self.kind == "mini" else self.shutdown, daemon=True).start()
+
+    def _auto_motion(self):
+        """Smooth motion "auto": blend frames only when this video's frame rate does not fit the screen (25 fps at 120 Hz)."""
+        m = self.m
+        if m is None:
+            return
+        try:
+            fps, hz = float(m._get_property("container-fps") or 0), float(m._get_property("display-fps") or 0)
+            m["interpolation"] = motion_wanted(self.get_prefs(), fps, hz)
+        except Exception:
+            log.debug("auto motion failed", exc_info=True)
 
     @staticmethod
     def _track(t):
@@ -986,10 +1087,11 @@ class Engine:
                           ("dropped", "frame-drop-count"), ("decoder_dropped", "decoder-frame-drop-count"),
                           ("audio_device", "audio-device"), ("audio_rate", "audio-params"), ("pix", "video-params")):
             try:
-                v = self.m[prop]
+                v = self.m._get_property(prop)                   # live properties, not options (m[...] reads options/...)
                 if prop in ("audio-params", "video-params") and isinstance(v, dict):
                     v = {k: v.get(k) for k in ("samplerate", "format", "hr-channels", "pixelformat", "colormatrix", "gamma")}
                 d[key] = v
             except Exception:
                 d[key] = None
+        d["picture"] = picture_report(self.m)
         return d

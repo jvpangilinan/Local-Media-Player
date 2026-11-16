@@ -68,6 +68,7 @@ from moviesort import clean_movie_title, clean_junk, group_franchises, parse_epi
 import remote                                        # Phone remote: a separate LAN-only server (off by default), see remote.py
 import autogenre                                     # Smart genres: TMDB / MusicBrainz / Last.fm lookups, cached locally
 import mpv_backend                                  # libmpv playback engine (needs python-mpv + libmpv-2.dll at run time, never at import time)
+import display_mode                                 # screen refresh rate / bit depth, and the temporary 120 Hz switch of the native player
 from mutagen.flac import Picture
 
 try:                                   # used for video posters; ffmpeg is the fallback
@@ -2248,6 +2249,48 @@ def api_headphones_ack():
 NATIVE_BEAT = {"t": 0.0}                         # when the native player last reported a private video playing
 
 
+NATIVE_PIC = {"t": 0.0, "playing": False, "report": None}   # what the native player's picture is doing (Settings > Playback)
+PIC_KEYS = {"fps": float, "display_fps": float, "screen_hz": float, "sync": str, "interp": bool, "dropped": int, "decoder_dropped": int,
+            "delayed": int, "mistimed": int, "speed_fix": float, "hwdec": str, "codec": str, "w": int, "h": int, "bits": int, "hdr": str,
+            "tone": str, "scale": str, "switched_from": int, "hq": bool}
+
+
+@app.post("/api/native/picture")
+def api_native_picture_post():
+    """The native player reports every few seconds. Only these plain numbers and words are kept: no title, no path."""
+    d = request.get_json(silent=True) or {}
+    rep = {}
+    for k, conv in PIC_KEYS.items():
+        try:
+            v = conv(d.get(k) or 0) if conv is not str else str(d.get(k) or "")[:40]
+            rep[k] = v if conv is not float or math.isfinite(v) else 0.0
+        except (TypeError, ValueError):
+            rep[k] = conv()
+    NATIVE_PIC.update(t=time.time(), playing=True, report=rep)
+    return jsonify({"ok": True})
+
+
+@app.get("/api/picture")
+def api_picture():
+    """Settings > Playback > Picture: the screen (refresh, bit depth, HDR) and, while a video plays, what the picture is doing."""
+    screen = {}
+    try:
+        hwnd = mpv_backend.find_main_window(APP_TITLE) if (mpv_backend.IS_WIN and WINDOW is not None) else 0
+        screen = display_mode.info(hwnd)
+    except Exception:
+        log.debug("display info failed", exc_info=True)
+    age = time.time() - NATIVE_PIC["t"]
+    now = NATIVE_PIC["report"] if (NATIVE_PIC["report"] and NATIVE_PIC["playing"] and age < 10) else None
+    eng = PLAYER["stage"]
+    if now is None and eng is not None and eng.m is not None and eng.st.get("loaded"):
+        try:
+            now = dict(mpv_backend.picture_report(eng.m), screen_hz=0.0, switched_from=0, hq=get_prefs()["mpv_hq"], engine="in-window")
+        except Exception:
+            now = None
+    last = NATIVE_PIC["report"] if (now is None and NATIVE_PIC["report"]) else None
+    return jsonify({"screen": screen, "now": now, "last": last})
+
+
 @app.post("/api/native/heartbeat")
 def api_native_heartbeat():
     if not valid_token(token_from_request()):
@@ -2587,7 +2630,7 @@ def api_native_session(vid):
         r = con.execute("SELECT duration FROM videos WHERE id = ?", (vid,)).fetchone()
     p = get_prefs()
     keys = ("default_volume", "default_speed", "subs_size", "subs_color", "subs_outline", "subs_pos", "subs_auto", "asub_lang", "asub_mode", "asub_enabled", "mpv_hwdec", "mpv_sync",
-            "mpv_interpolation", "mpv_stereo", "mpv_exclusive", "mpv_audio_device", "mpv_extra", "next_countdown", "default_fit", "remember_size", "hover_preview", "native_hints", "private_start_muted", "private_headphones")
+            "mpv_interpolation", "mpv_motion", "mpv_hq", "mpv_refresh", "mpv_hdr", "mpv_stereo", "mpv_exclusive", "mpv_audio_device", "mpv_extra", "next_countdown", "default_fit", "remember_size", "hover_preview", "native_hints", "private_start_muted", "private_headphones")
     return jsonify(dict(info, id=vid, path=str(v["path"]), duration=(r["duration"] if r and r["duration"] else 0),
                         user_rating=video_stats(vid).get("user_rating", 0),
                         data_dir=str(DATA_DIR), private=bool(v["private"]), hp_prompt=bool(v["private"]) and headphones_needed(token_from_request()),
@@ -3457,7 +3500,11 @@ PREF_DEFAULTS = {
     "mpv_overlay": True,           # the page's own controls sit over the picture (also in fullscreen). Off = old layout: picture between the bars, mpv's own controls in fullscreen
     "mpv_hwdec": "auto",           # auto (D3D11VA on the Radeon) | d3d11va | d3d11va-copy | no
     "mpv_sync": "display-resample",  # display-resample (monitor clock leads, audio is resampled a hair) | audio
-    "mpv_interpolation": False,    # blend frames up to the monitor refresh rate (uses the GPU)
+    "mpv_interpolation": False,    # old switch, kept for old settings files: True means mpv_motion "always"
+    "mpv_motion": "auto",          # smooth motion (frame blending): auto (only when the frame rate does not fit the screen, e.g. 25 / 50 fps at 120 Hz) | always | off
+    "mpv_hq": True,                # mpv's high-quality profile (sharper scaling, debanding, HDR peak detection); the RX 6950 XT has room to spare
+    "mpv_refresh": True,           # native player: move the screen to a rate that fits the film (120 Hz for 24 / 30 / 60 fps) while it plays, back afterwards
+    "mpv_hdr": "balanced",         # HDR films on an SDR screen: balanced (spline tone mapping) | natural (BT.2446a, softer highlights)
     "mpv_audio_device": "M-Audio Duo",  # part of the Windows audio device name; no match = the Windows default device
     "mpv_stereo": True,            # fold 5.1 / 7.1 down to stereo (headphones through the M-Audio Duo)
     "mpv_exclusive": False,        # WASAPI exclusive mode: bit-perfect to the interface, other apps are silent meanwhile
@@ -3489,12 +3536,16 @@ def clean_pref(key, value):
     """Return a safe value for a pref (falls back to the default if the value is junk)."""
     default = PREF_DEFAULTS[key]
     if key in ("wheel_rows", "remember_size", "close_to_tray", "subs_auto", "asub_auto", "asub_enabled", "native_player", "native_hints", "private_start_muted", "private_blur_covers", "hover_preview", "tile_motion", "ag_online", "fav_public", "fav_private", "show_clock", "home_clock", "auto_sort", "clean_titles", "holidays",
-               "mpv_enabled", "mpv_overlay", "mpv_interpolation", "mpv_stereo", "mpv_exclusive"):
+               "mpv_enabled", "mpv_overlay", "mpv_interpolation", "mpv_stereo", "mpv_exclusive", "mpv_hq", "mpv_refresh"):
         return bool(value)
     if key == "mpv_hwdec":
         return value if value in ("auto", "d3d11va", "d3d11va-copy", "no") else default
     if key == "mpv_sync":
         return value if value in ("display-resample", "audio") else default
+    if key == "mpv_motion":
+        return value if value in ("auto", "always", "off") else default
+    if key == "mpv_hdr":
+        return value if value in ("balanced", "natural") else default
     if key == "mpv_audio_device":
         return re.sub(r"[\r\n]+", " ", str(value or "")).strip()[:80]
     if key == "mpv_dir":
@@ -3580,6 +3631,8 @@ def clean_pref(key, value):
 def get_prefs():
     saved = load_settings().get("prefs") or {}
     out = {k: clean_pref(k, saved.get(k, d)) for k, d in PREF_DEFAULTS.items()}
+    if "mpv_motion" not in saved and saved.get("mpv_interpolation"):   # the old "Smooth motion" switch was on: keep blending always
+        out["mpv_motion"] = "always"
     if "sponsorblock-remove" in out.get("dl_margs", ""):      # old default silently trimmed the start of songs
         out["dl_margs"] = ""
     return out
@@ -7040,6 +7093,12 @@ def _native_watch(proc, vid, t0):
     rc = proc.wait()
     quick = time.time() - t0 < 25
     log.info("native player ended: code %s after %.0fs", rc, time.time() - t0)
+    try:
+        if display_mode.restore_from_marker(DATA_DIR, proc.pid):   # it died with the screen at 120 Hz: your own rate comes back
+            log.info("screen refresh rate restored after the native player ended (code %s)", rc)
+    except Exception:
+        log.warning("display restore failed", exc_info=True)
+    NATIVE_PIC["playing"] = False
     if getattr(proc, "_ultron_replaced", False) or NATIVE.get("proc") is not proc or WINDOW is None:
         return                                            # replaced by a newer one, or the app is closing
     js = ("window.nativePlayerFailed && nativePlayerFailed(%s)" % json.dumps(vid)) if (rc not in (0, None) and quick) \
@@ -7472,6 +7531,11 @@ def main():
     if not claim_single_instance():                       # already running: it has been asked to come forward
         sys.exit(0)
     kill_children_with_me()
+    try:
+        if display_mode.restore_from_marker(DATA_DIR):    # the last session ended with the screen still at a film rate: put yours back
+            log.info("screen refresh rate restored after an unclean player exit")
+    except Exception:
+        log.warning("display restore at start-up failed", exc_info=True)
     saved = load_settings().get("prefs") or {}            # folders chosen in Settings (command-line options still win)
     for key in FOLDER_KEYS.values():
         raw = str(saved.get(key) or "").strip()
