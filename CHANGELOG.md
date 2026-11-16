@@ -6,6 +6,12 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: Holiday themes
+ULTRON knows the date. On a holiday the accent colours follow the day and a quiet effect plays behind the page, with a one-line greeting the first time you open the app that day (once per holiday, plus on the big day itself).
+- **Christmas** (Dec 1-26): snow, red and green. **New Year** (Dec 31-Jan 1): gold sparkles. **Lunar New Year** (first three days): red lanterns rising. **Valentine's Day** (Feb 14): hearts. **Easter** (Sunday and Monday, worked out for every year): spring petals. **Halloween** (Oct 25-31): bats crossing a dim orange moon. **All Saints & All Souls** (Nov 1-2): candle embers and a warm glow from below. **Your birthday**: confetti.
+- Settings > Appearance > Holiday themes: on / off, your birthday (month and day), what is next ("Next: Christmas in 15 days"), and **Preview a holiday** to see any of them now (until you reload).
+- The effect is one small canvas behind the page: it stops while a video plays, when the window is hidden, with reduced motion and with Minimal UI. Plain mode keeps its grey colours.
+
 ## V6: The Diner, a quiet room with a story
 The mug button (sidebar, music bar, Now Playing) opens **The Diner**: a painted room on a rainy neon corner, with one framed painting, a jukebox that plays your own music, and a window onto the street.
 - **Things answer a click.** The lamp, the string lights, the neon sign, the window (weather), the coffee, the sugar, the picture light, the plant, the cat, the jukebox. Drag on the window to draw in the fog. Finding all 12 unlocks fireworks.

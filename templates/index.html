@@ -393,6 +393,19 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                     <div id="set-bg-pick" class="bg-presets"></div>
                     <input id="bg-file" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="pickBgImage(this)">
                 </div>
+                <div id="hol-row" class="mb-4">
+                    <div class="text-sm font-semibold">Holiday themes</div>
+                    <div class="text-xs text-gray-500 mb-3">On Christmas, Halloween, New Year, Lunar New Year, Valentine's, Easter, All Souls and your birthday, the colours and a quiet effect follow the day</div>
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <button id="hol-on" class="set-seg" onclick="holidays.set(true)">On</button>
+                        <button id="hol-off" class="set-seg" onclick="holidays.set(false)">Off</button>
+                        <select id="hol-try" class="set-seg" onchange="holidays.preview(this.value)"></select>
+                        <span class="text-xs text-gray-400 ml-2">Your birthday</span>
+                        <select id="hol-bm" class="set-seg" onchange="holidays.birthday()"></select>
+                        <select id="hol-bd" class="set-seg" onchange="holidays.birthday()"></select>
+                    </div>
+                    <div id="hol-now" class="text-xs text-gray-500"></div>
+                </div>
                 <div class="text-sm font-semibold">Diner story</div>
                 <div class="text-xs text-gray-500 mb-3">Your own stories for the Diner: a folder with a story.txt and pictures</div>
                 <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -1035,11 +1048,13 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
 <link id="zeno-gallery-bg" rel="stylesheet" href="/assets/css/gallery-bg.css?v=2">
 <script id="zeno-gallery-bg-js" src="/assets/js/gallery-bg.js?v=2"></script>
 <link id="zeno-diner" rel="stylesheet" href="/assets/css/diner.css?v=13">
+<link id="zeno-holidays" rel="stylesheet" href="/assets/css/holidays.css?v=1">
 <script id="zeno-diner-js" src="/assets/js/diner.js?v=13"></script>
 <script id="zeno-diner-lore-js" src="/assets/js/diner-lore.js?v=1"></script>
 <script id="zeno-diner-story-js" src="/assets/js/diner-story.js?v=1"></script>
 <script id="zeno-diner-talk-js" src="/assets/js/diner-talk.js?v=2"></script>
 <script id="zeno-diner-stories-js" src="/assets/js/diner-stories.js?v=1"></script>
+<script id="zeno-holidays-js" src="/assets/js/holidays.js?v=1"></script>
 </body>
 </html>
 {% endraw %}

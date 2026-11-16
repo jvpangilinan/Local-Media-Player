@@ -1,0 +1,17 @@
+/* Holiday themes (assets/js/holidays.js sets html[data-occasion]). Each occasion swaps the accent palette that darkroom-6
+   and the feature files read (--pr1 main accent, light enough for the dark --v-on text on it; --pr2 / --pr3 the other two).
+   html:not(.lm-plain)[...] = specificity 0,2,1: beats html[data-pal=...] and ties the Gallery palettes, so this file loads
+   after gallery-bg.css. Plain mode keeps its grey. */
+#hol-fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-below); pointer-events: none; }
+html.in-player #hol-fx, html.lm-lite #hol-fx, html.lm-plain #hol-fx { display: none; }
+
+html:not(.lm-plain)[data-occasion="xmas"]      { --pr1: #ff8a7a; --pr2: #e0313f; --pr3: #3fae6a; --pr1rgb: 255, 138, 122; --pr2rgb: 224, 49, 63; --pr3rgb: 63, 174, 106; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="halloween"] { --pr1: #ffa64d; --pr2: #ff6a00; --pr3: #8a4dff; --pr1rgb: 255, 166, 77; --pr2rgb: 255, 106, 0; --pr3rgb: 138, 77, 255; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="souls"]     { --pr1: #ffd59a; --pr2: #e89a4c; --pr3: #7a6a9e; --pr1rgb: 255, 213, 154; --pr2rgb: 232, 154, 76; --pr3rgb: 122, 106, 158; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="newyear"]   { --pr1: #f5d68a; --pr2: #e8b04a; --pr3: #c7cedc; --pr1rgb: 245, 214, 138; --pr2rgb: 232, 176, 74; --pr3rgb: 199, 206, 220; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="lunar"]     { --pr1: #ffcf5c; --pr2: #e8282b; --pr3: #b5121b; --pr1rgb: 255, 207, 92; --pr2rgb: 232, 40, 43; --pr3rgb: 181, 18, 27; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="valentine"] { --pr1: #ff9ec4; --pr2: #ff4f8b; --pr3: #c13584; --pr1rgb: 255, 158, 196; --pr2rgb: 255, 79, 139; --pr3rgb: 193, 53, 132; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="easter"]    { --pr1: #f9e79f; --pr2: #c9a7f5; --pr3: #9ee6c4; --pr1rgb: 249, 231, 159; --pr2rgb: 201, 167, 245; --pr3rgb: 158, 230, 196; --prism: var(--pr1); }
+html:not(.lm-plain)[data-occasion="birthday"]  { --pr1: #ffd166; --pr2: #ff5f8f; --pr3: #5ec8ff; --pr1rgb: 255, 209, 102; --pr2rgb: 255, 95, 143; --pr3rgb: 94, 200, 255; --prism: var(--pr1); }
+
+#hol-row select.set-seg { padding-right: .5rem; }

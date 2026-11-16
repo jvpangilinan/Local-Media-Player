@@ -3297,6 +3297,8 @@ PREF_DEFAULTS = {
     "wheel_rows": True,            # mouse wheel scrolls the video rows sideways
     "bg_mode": "dark",             # dark | colorful (your image) | time (colour follows the time of day)
     "clock_style": "logo",         # clock design on Home and in the corner: logo (your logo.png as the dial; old "auto" also means this) | gold | light | dark | emerald | minimal
+    "holidays": True,              # holiday themes: on Christmas, Halloween, New Year... (and your birthday) the colours and a quiet effect follow the day
+    "birthday": "",                # "MM-DD" or "": your birthday gets its own theme
     "diner_story": "",             # Diner story: "" (Juno's, built in) or the folder name of one of your own in data\\stories
     "art_side": "auto",            # Gallery background (bg_mode "art"): auto (Good by day, Evil by night) | good | evil
     "bg_image": "",                # colorful mode: "" (default) | "preset:<name>" | "custom" (the uploaded picture)
@@ -3373,7 +3375,7 @@ def _int_in(value, lo, hi, default):
 def clean_pref(key, value):
     """Return a safe value for a pref (falls back to the default if the value is junk)."""
     default = PREF_DEFAULTS[key]
-    if key in ("wheel_rows", "remember_size", "close_to_tray", "subs_auto", "asub_auto", "asub_enabled", "native_player", "native_hints", "private_start_muted", "private_blur_covers", "hover_preview", "tile_motion", "ag_online", "fav_public", "fav_private", "show_clock", "home_clock", "auto_sort", "clean_titles",
+    if key in ("wheel_rows", "remember_size", "close_to_tray", "subs_auto", "asub_auto", "asub_enabled", "native_player", "native_hints", "private_start_muted", "private_blur_covers", "hover_preview", "tile_motion", "ag_online", "fav_public", "fav_private", "show_clock", "home_clock", "auto_sort", "clean_titles", "holidays",
                "mpv_enabled", "mpv_overlay", "mpv_interpolation", "mpv_stereo", "mpv_exclusive"):
         return bool(value)
     if key == "mpv_hwdec":
@@ -3392,6 +3394,16 @@ def clean_pref(key, value):
         return value if value in CLOCK_STYLES else default
     if key == "bg_mode":
         return value if value in BG_MODES else default
+    if key == "birthday":
+        v = str(value or "").strip()
+        if not re.fullmatch(r"\d\d-\d\d", v):
+            return ""
+        try:
+            import datetime
+            datetime.date(2000, int(v[:2]), int(v[3:]))   # 2000 is a leap year, so 02-29 is allowed
+        except ValueError:
+            return ""
+        return v
     if key == "diner_story":
         v = str(value or "")
         return v if (v and _story_dir(v)) else ""
