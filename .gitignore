@@ -21,6 +21,7 @@ media/
 
 # Logs
 *.log
+*.log.[0-9]*
 download_log.txt
 
 # Android app build output (made by android/, copied here so the exe and the phone page can offer it)
