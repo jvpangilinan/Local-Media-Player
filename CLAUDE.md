@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ULTRON / ZENO: an offline Windows desktop player for local videos, music and photos. It's a Flask backend (`app.py`) serving a single-page frontend inside a pywebview window, with libmpv for playback. The user docs are `README.md` (feature notes for each version, newest first, as `## V6: ...` sections; `CHANGELOG.md` is a near-copy), `SETUP.txt` (dependencies) and `TODO.md` (audit and known debt). When a user-facing feature changes, add a note to the current version's section of the README.
 
+`FOR_USER_TO_KNOW.md` is the user's own plain-language notes: moving to another PC, how posters are downloaded, how auto-sort works, and known problems with what to do about them. When the user asks "what do I do if..." about those, or mentions moving PCs, read it first. Keep it true when that behaviour changes (and drop a known problem from it once it is fixed).
+
 ## Commands
 
 Use Python 3.12 (64-bit). Newer versions often lack wheels.
