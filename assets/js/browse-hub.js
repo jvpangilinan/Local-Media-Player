@@ -221,7 +221,10 @@
             '<div class="ubh-hmeta">' + meta.join('<i>&middot;</i>') + '</div>' +
             '<div class="ubh-hbtns"><button onclick="playVideo(\'' + f.id + '\')"><i class="fas fa-play"></i> ' + (f.progress ? 'Resume' : 'Play') + '</button>' +
             '<button data-act="roulette"><i class="fas fa-dice"></i> Roulette</button>' +
-            '<button onclick="editTitle(event, \'' + f.id + '\')" title="Rename"><i class="fas fa-pen"></i></button></div></div></div></section>';
+            '<button onclick="editTitle(event, \'' + f.id + '\')" title="Rename"><i class="fas fa-pen"></i></button></div></div>' +
+            // the real poster (next to the file or found online), big enough to tell the movie at a glance
+            (f.own_poster && f.poster ? '<img class="ubh-hposter" src="' + esc(f.poster) + '" alt="" title="Play" onclick="playVideo(\'' + f.id + '\')" onerror="this.remove()">' : '') +
+            '</div></section>';
     }
     function pickHero(m) {
         var d = m.src, c = (d.continue || [])[0];

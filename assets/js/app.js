@@ -3186,7 +3186,6 @@
                                     ${isSeries ? `<button class="bg-white/15 hover:bg-white/25 backdrop-blur font-bold py-2.5 px-5 rounded-md transition-colors" onclick="event.stopPropagation();openSeries('${pick.id}','public')"><i class="fas fa-list mr-2"></i>Episodes</button>` : ''}
                                 </div>
                             </div>
-                            ${pick.own_poster ? `<img src="${pick.poster}" alt="" class="dash-hero-poster hidden xl:block h-52 aspect-[2/3] object-cover rounded-lg shadow-2xl ring-1 ring-white/15">` : ''}
                         </div>
                     </div>`;
             } else {

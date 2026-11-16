@@ -56,6 +56,7 @@
 - **Picture in the card.** *Fill the card* fills it and cuts the edges. *Whole picture* never cuts anything: a poster of an odd size, or a clip in a poster card, sits whole in the card and a soft blur of the same picture fills the space around it, so every card in a row stays the same size.
 - **Card size.** Small, Medium, Large or Extra large. The slider next to Sort in Cinema is the same setting now and changes the rows (Continue watching, Recently added...) as well as the grids.
 - A thumbnail you choose yourself is now kept whole, so it fits every shape (square cards still show its middle).
+- The movie's poster now sits big on the right of the Cinema banner, so you can tell at a glance what it is (click it to play). The small one on the Home banner is gone.
 
 ## V6: Smoother, sharper playback
 Settings > Playback has a few new switches for the player window, and a **Picture** line that shows what the picture is doing.
