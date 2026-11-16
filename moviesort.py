@@ -17,7 +17,8 @@ _STRONG = (r"(?:2160p|1080p|1080i|720p|576p|480p|uhd|hdr10\+?|"
 # weaker words: only treated as junk when they follow the release year
 _WEAK = (r"(?:4k|hdr|dv|dolby[ ._-]?vision|web|hdcam|dvd|cam|ts|tc|r5|av1|avc|8[ ._-]?bit|dd\+?|5[ ._]1|7[ ._]1|2[ ._]0|6ch|2ch|8ch|"
          r"extended|unrated|remastered|directors?[ ._-]?cut|imax|proper|repack|internal|limited|multi|dual|dubbed|subbed|"
-         r"hindi|eng|english|subs?|esub|nf|amzn|dsnp|hmax|atvp|flac|mp3)")
+         r"hindi|eng|english|subs?|esub|nf|amzn|dsnp|hmax|atvp|flac|mp3|"
+         r"upscaled?|criterion|rm4k|diamond|platinum)")
 _SEP = r"(?:^|[ ._\-\[\(])"
 _END = r"(?=$|[ ._\-\]\)])"
 _JUNK_RE = re.compile(_SEP + _STRONG + _END, re.I)

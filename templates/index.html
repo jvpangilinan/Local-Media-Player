@@ -431,9 +431,9 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
             </section>
 
             <section class="mb-6" id="set-smartgenres">
-                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">SMART GENRES</h4>
+                <h4 class="text-xs font-bold tracking-widest text-gray-400 mb-3">SMART GENRES AND POSTERS</h4>
                 <div class="flex items-center justify-between gap-4 mb-2">
-                    <div><div class="text-sm font-semibold">Look genres up online</div><div class="text-xs text-gray-500">Finds each movie, series and artist once, then remembers it. Nothing is renamed or moved, and the private library is never sent anywhere</div></div>
+                    <div><div class="text-sm font-semibold">Look movies and music up online</div><div class="text-xs text-gray-500">Finds each movie's real poster and genre, and each artist's genre, once, then remembers it. New movies are looked up by themselves after a scan. Nothing is renamed or moved, and the private library is never sent anywhere</div></div>
                     <button id="set-agonline" class="set-switch" role="switch" onclick="sgToggleOnline()" title="Toggle"></button>
                 </div>
                 <input id="sg-tmdb" class="sg-field" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your free TMDB key">
@@ -444,7 +444,7 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
                     <button class="sg-btn" onclick="sgClearKeys()">Remove keys</button>
                 </div>
                 <div class="sg-btns">
-                    <button id="sg-go-movies" class="sg-btn pri" onclick="sgStart('movies')"><i class="fas fa-film"></i> Detect movie genres</button>
+                    <button id="sg-go-movies" class="sg-btn pri" onclick="sgStart('movies')"><i class="fas fa-film"></i> Find posters and genres</button>
                     <button id="sg-go-music" class="sg-btn pri" onclick="sgStart('music')"><i class="fas fa-music"></i> Detect music genres</button>
                     <button id="sg-pause" class="sg-btn hidden" onclick="sgPause()"><i class="fas fa-pause"></i> Pause</button>
                     <button id="sg-stop" class="sg-btn hidden" onclick="sgStop()"><i class="fas fa-stop"></i> Stop</button>

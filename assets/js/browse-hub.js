@@ -61,12 +61,22 @@
         var movieShelves = folders.filter(function (f) { return share(f, 'movie'); }), clipShelves = folders.filter(function (f) { return share(f, 'clip'); });
         // "Fuelled - Animated Short Film 2021" has a year but lives with the clips: it is a clip
         var clipFolder = {}; clipShelves.forEach(function (f) { clipFolder[f.name] = 1; });
-        loose.forEach(function (v) { if (v.type === 'movie' && clipFolder[v.genre] && !v.collection) v.type = 'clip'; });
+        loose.forEach(function (v) { if (v.type === 'movie' && clipFolder[v.genre] && !v.collection && !v.place) v.type = 'clip'; });
+        movieShelves = genreShelves(movieShelves, loose);
         var movies = loose.filter(isMovie), clips = loose.filter(function (v) { return vtype(v) === 'clip'; });
         M = { src: d, loose: loose, series: series, colls: colls, folders: folders, by: by, unsorted: unsorted, all: loose.concat(series), eps: eps,
               singles: movies.filter(function (v) { return !v.collection; }), byId: byId, movies: movies, clips: clips,
               movieShelves: movieShelves, clipShelves: clipShelves };
         return M;
+    }
+    // Smart genres: a movie lying in a pile ("Movies") sits on the shelf of the genre found online (v.place, set by the server).
+    // Only the shelves move it: the Folders tab still shows the folder the file is really in.
+    function genreShelves(shelves, loose) {
+        var by = {}, out = [];
+        function get(n) { if (!by[n]) { by[n] = { name: n, videos: [] }; out.push(by[n]); } return by[n]; }
+        shelves.forEach(function (f) { get(f.name).videos = f.videos.filter(function (v) { return !v.place; }); });
+        loose.forEach(function (v) { if (v.place && isMovie(v)) get(v.place).videos.push(v); });
+        return out.filter(function (f) { return f.videos.length; }).sort(function (a, b) { return nat(a.name, b.name); });
     }
     function folderIndex(name) { var g = (raw() && raw().genres) || []; for (var i = 0; i < g.length; i++) if (g[i].name === name) return i; return -1; }
 
@@ -124,7 +134,7 @@
             if (!seenOk(v)) return false;
             if (!agOk(v)) return false;
             if (!o.noFolder && S.folder) { if (S.folder === UNSORTED ? (v.genre || v.collection || v.kind === 'series') : v.genre !== S.folder) return false; }
-            if (o.chip && S.chip && v.genre !== S.chip) return false;
+            if (o.chip && S.chip && (v.place || v.genre) !== S.chip) return false;
             return true;
         }));
     }
@@ -237,10 +247,12 @@
             add('ubh-r-g' + i, f.name, more('movies', f.name, mv.length), mTiles(shuffled(mv, i + 7).slice(0, ROW_MAX)));
         });
         if (m.series.length) add('ubh-r-ser', 'Series', more('series', '', m.series.length), cards(sorted(m.series).slice(0, ROW_MAX)));
+        var movieRow = {}; m.movieShelves.forEach(function (f) { movieRow[f.name] = 1; });
         m.clipShelves.forEach(function (f, i) {
             var cl = f.videos.filter(function (v) { return vtype(v) === 'clip'; });
             if (!cl.length) return;
-            add('ubh-r-c' + i, f.name, more('clips', f.name, cl.length), clipTiles(cl.slice(0, ROW_MAX)));
+            // movies found online can join a clip folder's name (Animation): then this row says it holds the clips
+            add('ubh-r-c' + i, movieRow[f.name] ? f.name + ' clips' : f.name, more('clips', f.name, cl.length), clipTiles(cl.slice(0, ROW_MAX)));
         });
         out += '</div>';
         S._ids = ids;
@@ -311,7 +323,7 @@
         return '<div class="ubh-st">' + tile + '</div>';
     }
     function singleTile(v) {       // "2019 · Action · Watched"
-        return subTile(v, [v.year || '', v.genre || v.collection || '', v.view_count ? 'Seen' : '']);
+        return subTile(v, [v.year || '', v.place || v.genre || v.collection || '', v.view_count ? 'Seen' : '']);
     }
     function clipTiles(items) { return items.map(function (v) { return subTile(v, [v.genre || 'Clip', v.view_count ? 'Watched' : '']); }).join(''); }
     function mTiles(items) { return items.map(function (x) { return x.kind === 'collection' ? collCard(x.coll) : x.kind === 'series' ? cards([x]) : singleTile(x); }).join(''); }
@@ -389,7 +401,7 @@
         var cs = m.colls.filter(function (c) { return hit(c.name + ' ' + c.items.map(function (v) { return v.title; }).join(' '), tk); });
         var fs = m.folders.filter(function (f) { return hit(f.name, tk); });
         var ss = m.series.filter(function (s) { return hit(s.title + ' ' + (s.genre || ''), tk); }).sort(rank);
-        var vs = m.loose.filter(function (v) { return hit(v.title + ' ' + (v.collection || '') + ' ' + (v.genre || ''), tk); }).sort(rank);
+        var vs = m.loose.filter(function (v) { return hit(v.title + ' ' + (v.collection || '') + ' ' + (v.genre || '') + ' ' + (v.place || ''), tk); }).sort(rank);
         var n = cs.length + fs.length + ss.length + vs.length, out = '<div class="ubh-pad"><div class="ubh-rcount">' + plural(n, 'result') + ' for <b>' + esc(S.q) + '</b></div>';
         if (!n) return out + empty('fas fa-magnifying-glass', 'No results', 'Nothing matches &ldquo;' + esc(S.q) + '&rdquo;. Try fewer letters.', '<button class="ubh-btn" data-act="clearq">Clear search</button>') + '</div>';
         if (cs.length) out += '<h3 class="ubh-gh">Collections</h3><div class="ubh-gridc">' + cs.map(collCard).join('') + '</div>';

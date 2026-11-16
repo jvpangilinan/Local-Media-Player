@@ -206,6 +206,7 @@ THUMB_DIR = DATA_DIR / "thumbs"             # gallery thumbnails
 BACKDROP_DIR = DATA_DIR / "backdrops"        # wide stills for the hero banner
 TILE_DIR = DATA_DIR / "tiles"                # clean square thumbnails for the Cinema tiles
 CUSTOM_TILE_DIR = DATA_DIR / "custom_tiles"  # thumbnails you set yourself (movie / series / collection)
+NET_DIR = DATA_DIR / "net_art"               # real posters / backdrops of movies and series, found online once (Smart genres)
 DB_PATH = DATA_DIR / "media_stats.db"
 MUSIC_CACHE = DATA_DIR / "music_cache.json"      # legacy: imported into SQLite once, then renamed
 SETTINGS_PATH = DATA_DIR / "settings.json"
@@ -224,6 +225,10 @@ CONTINUE_MAX = 0.95          # ... and less than 95%
 
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".wmv", ".flv"}
 EXTRAS_FOLDERS = {"extras", "featurettes", "bonus", "behind the scenes"}      # first-level folders that hold bonus material, not movies
+# first-level folders that are a pile, not a genre: a movie in one is shown under the genre found online (nothing moves on disk)
+UNSORTED_FOLDERS = {"movies", "movie", "films", "film", "new", "new movies", "downloads", "download", "unsorted", "to sort", "inbox",
+                    "misc", "other", "others", "videos", "torrents", "complete", "completed"}
+MOVIE_FOLDER_RATIO = 2.5     # a movie folder: its biggest file is at least this many times bigger than anything else in it
 MUSIC_EXTS = {".mp3", ".flac", ".ogg", ".m4a", ".wav", ".opus"}
 SUB_EXTS = {".srt", ".vtt"}
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
@@ -605,6 +610,26 @@ def scan_videos():
         return _scan_videos()
 
 
+def movie_folder_main(s, found):
+    """(movie video, title, year) when a series folder really holds ONE movie: a year in the folder name
+    ('Finding Nemo (2003) (1080p BluRay x265 Tigole)') and one file directly inside it that is far bigger than the rest
+    (featurettes, a sample). A real series has episodes of about the same size, so it never qualifies."""
+    if s["private"] or s.get("virtual") or s["genre"].lower() in EXTRAS_FOLDERS or s["folder"].name.lower().endswith(" - extras"):
+        return None
+    title, year = autogenre.query_parts(s["folder"].name)       # "Dinosaur (2000) + Extras (1080p ...)" -> ("Dinosaur", 2000)
+    if not year:
+        return None
+    eps = [found[e] for e in s["episodes"] if e in found]
+    top = [e for e in eps if not e["season"]]
+    if not top:
+        return None
+    main = max(top, key=lambda e: e["size"] or 0)
+    rest = [e["size"] or 0 for e in eps if e is not main]
+    if (main["size"] or 0) <= 0 or (rest and max(rest) * MOVIE_FOLDER_RATIO > main["size"]):
+        return None
+    return main, title, year
+
+
 def schedule_scan():
     """Rescan in the background so uploads / moves return at once. Overlapping requests are merged into one rerun."""
     with SCAN_GUARD:
@@ -727,8 +752,20 @@ def _scan_videos():
         s["episodes"].sort(key=(lambda e: e.get("ep") or (0, 0)) if s.get("virtual") else (lambda e: (natkey(e["season"]), natkey(e["path"].name))))
         s["episodes"] = [e["id"] for e in s["episodes"]]
         s["art"] = pick_image(side.get(dir_key(s["folder"])), series_art_names(s))
+    for sid, s in list(series.items()):                       # "Cars (2006) (1080p ... Tigole)/" is one movie (plus featurettes), not a series
+        hit = movie_folder_main(s, found)
+        if not hit:
+            continue
+        main, title, year = hit
+        main.update(series="", series_id="", season="", title=title if _clean else pretty(s["folder"].name), year=year,
+                    from_series=sid, folder_art=s["art"])
+        s["episodes"].remove(main["id"])
+        if s["episodes"]:
+            s.update(extras=True, movie_id=main["id"], name=(title if _clean else pretty(s["folder"].name)) + " - Extras")
+        else:
+            del series[sid]
     for v in found.values():                                  # your own poster next to the video, found without touching the disk again
-        v["side_poster"] = pick_image(side.get(dir_key(v["path"].parent)), sidecar_names(v["path"]))
+        v["side_poster"] = pick_image(side.get(dir_key(v["path"].parent)), sidecar_names(v["path"])) or v.get("folder_art")
     with LIB_LOCK:
         LIB["videos"] = found
         LIB["series"] = series
@@ -1652,13 +1689,19 @@ def ensure_tile(vid, video):
 
 
 def pregenerate_posters():
+    st = AG.status()
+    if net_auto() or (st["running"] and st["what"] == "movies"):     # new movies get their real poster first: no frames to cut for them
+        for _ in range(900):
+            if not AG.status()["running"]:
+                break
+            time.sleep(2)
     with LIB_LOCK:
         todo = [(v["id"], v["path"], v.get("side_poster") is not None) for v in LIB["videos"].values()]
     background_io(True)                                       # low disk priority: torrents and playback come first
     try:
         for vid, path, has_side in todo:
-            if has_side:
-                continue                                      # your own poster is used instead (the scan found it)
+            if has_side or net_stamp("video", vid):
+                continue                                      # your own poster, or the real one found online, is used instead
             if (POSTER_DIR / f"{vid}.jpg").exists() and (TILE_DIR / f"{vid}.jpg").exists():
                 continue                                      # already made: no disk work at all
             ensure_poster(vid, path)
@@ -1735,6 +1778,11 @@ def clean_coll_name(v):
     return re.sub(r"\s+", " ", str(v or "")).strip()[:80]
 
 
+GENRE_ALIASES = {"sci-fi": ("science fiction", "scifi", "sci fi"), "science fiction": ("sci-fi",), "kids": ("family",),
+                 "animated": ("animation",), "anime": ("animation",), "romance": ("romantic",), "documentary": ("documentaries",),
+                 "documentaries": ("documentary",), "war": ("war & politics",), "action": ("action & adventure",)}
+
+
 def video_cards(private=False):
     STARTUP_SCAN.wait(180)                                # first start-up scan runs in the background; lists wait for it, never show half a library
     now = time.time()
@@ -1761,6 +1809,69 @@ def video_cards(private=False):
     def frac(r):
         d = r["duration"] or 0
         return (r["position"] or 0) / d if d > 0 else 0
+
+    root = CFG["private_dir"] if private else CFG["video_dir"]
+    try:
+        names = sorted((d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")
+                        and not (private and d.name.lower() == PHOTO_FOLDER.lower())), key=natkey)
+    except OSError:
+        names = []
+    # Smart genres: a movie lying in a pile ("Movies", the videos folder itself) is shown under your folder for its genre
+    shelf_of = {} if private else {n.lower(): n for n in names if n.lower() not in UNSORTED_FOLDERS and n.lower() not in EXTRAS_FOLDERS}
+    for n in list(shelf_of.values()):
+        for alias in GENRE_ALIASES.get(n.lower(), ()):
+            shelf_of.setdefault(alias, n)
+
+    def placements():
+        """{video id: one of your folders} for movies lying in a pile, sorted the way YOU sort: a sequel joins the folder where
+        you put the others of its series, animated films go where you keep yours, anything else to its first genre found online."""
+        if not shelf_of:
+            return {}
+        mine, pile = [], []
+        for r in rows:
+            k = known[r["id"]]
+            if k["series_id"] or not k.get("year"):
+                continue
+            ag = ag_video.get(r["id"]) or ag_series.get(k.get("from_series"), [])
+            g = (k["genre"] or "").lower()
+            if g in shelf_of:
+                mine.append((r["id"], display_title(r["custom_title"], k["title"]), ag, shelf_of[g]))
+            elif ag and (not g or g in UNSORTED_FOLDERS):
+                pile.append((r["id"], display_title(r["custom_title"], k["title"]), ag))
+        if not pile:
+            return {}
+        out = {}
+        groups = list(group_franchises([m[1] for m in mine] + [p[1] for p in pile]).values())
+        for idxs in groups:
+            for i in idxs:
+                if i < len(mine):
+                    continue
+                ag = set(pile[i - len(mine)][2])
+                # the same series AND alike genres: "Captain Underpants" is no "Captain America"
+                homes = Counter(mine[j][3] for j in idxs if j < len(mine) and mine[j][2]
+                                and len(ag & set(mine[j][2])) >= 0.4 * len(ag | set(mine[j][2])))
+                if homes:
+                    out[pile[i - len(mine)][0]] = homes.most_common(1)[0][0]
+        anim = Counter(m[3] for m in mine if "Animation" in m[2])
+        top = anim.most_common(1)
+        anim_home = top[0][0] if top and sum(anim.values()) >= 2 and top[0][1] * 2 >= sum(anim.values()) else ""
+        for vid, _title, ag in pile:
+            if vid in out:
+                continue
+            pick = anim_home if (anim_home and "Animation" in ag) else next((shelf_of[x.lower()] for x in ag if x.lower() in shelf_of), "")
+            if pick:
+                out[vid] = pick
+        for idxs in groups:                                   # a series you never sorted stays together: where most of it went
+            if any(i < len(mine) for i in idxs):
+                continue
+            ids = [pile[i - len(mine)][0] for i in idxs]
+            got = Counter(out[v] for v in ids if v in out).most_common(1)
+            if got and got[0][1] * 2 > len(ids):
+                for v in ids:
+                    out[v] = got[0][0]
+        return out
+
+    place = placements()
 
     coll_of, collections = {}, []
     ovr = {} if private else collection_overrides()
@@ -1802,18 +1913,21 @@ def video_cards(private=False):
     def card(r):
         f = frac(r)
         k = known[r["id"]]
+        net = 0 if private else net_stamp("video", r["id"])
+        stamp = f"-{net}" if net else ""
         return {"kind": "video", "type": vtype(k, coll_of.get(r["id"], "")), "id": r["id"], "title": display_title(r["custom_title"], k["title"]),
                 "year": k.get("year"), "collection": coll_of.get(r["id"], ""),
                 "series": (clean_junk(k["series"]) if clean_on else pretty(k["series"])) if k["series"] else "", "genre": k["genre"],
-                "agenres": ag_video.get(r["id"], []),
+                "agenres": ag_video.get(r["id"]) or ag_series.get(k.get("from_series"), []),
+                "place": place.get(r["id"], ""),
                 "is_new": isnew(r), "custom_title": bool(r["custom_title"]), "view_count": r["view_count"],
                 "avg_rating": round(r["avg_rating"], 1) if r["avg_rating"] is not None else None,
                 "rating_count": r["rating_count"], "user_rating": r["mine"] or 0,
                 "progress": round(f, 3) if CONTINUE_MIN < f < CONTINUE_MAX else 0,
                 "left": int(max(0, (r["duration"] or 0) - (r["position"] or 0))) if CONTINUE_MIN < f < CONTINUE_MAX else 0,   # seconds still to watch
-                "own_poster": k.get("side_poster") is not None,   # a real poster file next to the video (else /poster is a frame made into 2:3)
-                "poster": f"/poster/{r['id']}?v={int(r['mtime'] or 0)}",
-                "backdrop": f"/backdrop/{r['id']}?v={int(r['mtime'] or 0)}", "added": int(r["mtime"] or 0)}
+                "own_poster": k.get("side_poster") is not None or bool(net),   # a real poster: next to the video or found online (else a frame made into 2:3)
+                "poster": f"/poster/{r['id']}?v={int(r['mtime'] or 0)}{stamp}",
+                "backdrop": f"/backdrop/{r['id']}?v={int(r['mtime'] or 0)}{stamp}", "added": int(r["mtime"] or 0)}
 
     def series_card(s):
         eps = [by_id[e] for e in s["episodes"] if e in by_id]
@@ -1827,8 +1941,8 @@ def video_cards(private=False):
             resume = next((r for r in eps if r["view_count"] == 0), eps[0])
         return {"kind": "series", "id": s["id"], "title": s["name"], "genre": s["genre"], "agenres": ag_series.get(s["id"], []), "episodes": len(eps),
                 "is_new": any(isnew(r) for r in eps), "watched": watched, "progress": round(watched / len(eps), 3), "resume": resume["id"],
-                "folder": s["folder"].name, "auto": bool(s.get("virtual")), "extras": is_extras(s["genre"], s["folder"].name),
-                "poster": f"/seriesart/{s['id']}?v={int(max(r['mtime'] or 0 for r in eps))}",
+                "folder": s["folder"].name, "auto": bool(s.get("virtual")), "extras": is_extras(s["genre"], s["folder"].name) or bool(s.get("extras")),
+                "poster": f"/seriesart/{s['id']}?v={int(max(r['mtime'] or 0 for r in eps))}{series_stamp(s)}",
                 "added": int(max(r["mtime"] or 0 for r in eps))}
 
     cont = sorted((r for r in rows if CONTINUE_MIN < frac(r) < CONTINUE_MAX), key=lambda r: -(r["progress_at"] or 0))
@@ -1862,12 +1976,6 @@ def video_cards(private=False):
         pick = random.choice(movie_rows(unwatched)[:12] or movie_rows(most)[:12] or unwatched[:12] or most[:12] or rows)
         featured = card(pick)
 
-    root = CFG["private_dir"] if private else CFG["video_dir"]
-    try:
-        names = sorted((d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")
-                        and not (private and d.name.lower() == PHOTO_FOLDER.lower())), key=natkey)
-    except OSError:
-        names = []
     genres = []
     for g in names:
         items = []
@@ -2584,6 +2692,9 @@ def series_art(sid):
     art = find_series_art(s)
     if art:
         return send_file(art, max_age=3600)
+    net = series_net_art(s)
+    if net:
+        return send_file(net, mimetype="image/jpeg", max_age=86400)
     with LIB_LOCK:
         first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
     if first:
@@ -4357,6 +4468,9 @@ def poster(vid):
     side = find_sidecar_poster(v)
     if side:
         return send_file(side, max_age=86400)
+    net = None if v["private"] else net_art("video", vid)
+    if net:
+        return send_file(net, mimetype="image/jpeg", max_age=86400)
     if ensure_poster(vid, v["path"]):
         return send_file(POSTER_DIR / f"{vid}.jpg", mimetype="image/jpeg", max_age=86400)
     return Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
@@ -4440,6 +4554,9 @@ def tile(vid):
     side = find_sidecar_poster(v)
     if side:
         return send_file(side, max_age=86400)
+    net = None if v["private"] else net_art("video", vid, "sq")
+    if net:
+        return send_file(net, mimetype="image/jpeg", max_age=86400)
     if ensure_tile(vid, v["path"]):
         return send_file(TILE_DIR / f"{vid}.jpg", mimetype="image/jpeg", max_age=86400)
     return Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
@@ -4454,6 +4571,9 @@ def series_tile(sid):
     art = find_series_art(s)
     if art:
         return send_file(art, max_age=3600)
+    net = series_net_art(s, "sq")
+    if net:
+        return send_file(net, mimetype="image/jpeg", max_age=86400)
     with LIB_LOCK:
         first = LIB["videos"].get(s["episodes"][0]) if s["episodes"] else None
     if first:
@@ -4565,6 +4685,9 @@ def api_tile_reset():
 @app.get("/backdrop/<vid>")
 def backdrop(vid):
     v = get_video_checked(vid)
+    net = None if v["private"] else net_art("video", vid, "bd")
+    if net:
+        return send_file(net, mimetype="image/jpeg", max_age=86400)
     out = BACKDROP_DIR / f"{vid}.jpg"
     if ensure_backdrop(vid, v["path"]):
         return send_file(out, mimetype="image/jpeg", max_age=86400)
@@ -5860,6 +5983,182 @@ def api_music_for_you():
 
 # ----------------------------------------------------------------------------- Smart genres
 AG = autogenre.Engine(db, log)
+TMDB_IMG = "https://image.tmdb.org/t/p/"
+NET_KINDS = {"video": "v", "series": "s"}
+NET_LOCK = threading.Lock()
+NET = {"map": None}                  # (kind, key) -> when its poster was saved (also the page's cache-buster)
+
+
+def net_file(kind, key, part=""):
+    """Where a poster found online lives. part: '' the 2:3 poster, 'sq' the square cut for tiles, 'bd' the wide backdrop."""
+    p = NET_KINDS.get(kind)
+    if not p or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", str(key or "")):
+        return None
+    return NET_DIR / ("%s_%s%s.jpg" % (p, key, "_" + part if part else ""))
+
+
+def net_map():
+    with NET_LOCK:
+        if NET["map"] is None:
+            NET["map"] = {k: int(at) for k, (st, at) in autogenre.art_rows(db).items() if st == "ok"}
+        return NET["map"]
+
+
+def net_stamp(kind, key):
+    return net_map().get((kind, key), 0) if key else 0
+
+
+def net_art(kind, key, part=""):
+    """The saved picture of a public movie / series, or None."""
+    if not net_stamp(kind, key):
+        return None
+    f = net_file(kind, key, part)
+    try:
+        return f if f is not None and f.is_file() else None
+    except OSError:
+        return None
+
+
+def series_net_art(s, part=""):
+    """A series' own poster found online; for a movie's extras folder, the movie's."""
+    if s["private"]:
+        return None
+    return net_art("series", s["id"], part) or (net_art("video", s["movie_id"], part) if s.get("movie_id") else None)
+
+
+def series_stamp(s):
+    n = 0 if s["private"] else (net_stamp("series", s["id"]) or net_stamp("video", s.get("movie_id")))
+    return f"-{n}" if n else ""
+
+
+def net_write(data, out, square=None):
+    """Checks that the bytes are a picture, then saves them (and a square cut for the tiles). False when they are not one."""
+    if not data or out is None:
+        return False
+    NET_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_name("_tmp_%d.jpg" % threading.get_ident())
+    is_jpg = data[:3] == b"\xff\xd8\xff"
+    try:
+        if cv2 is None:
+            if not is_jpg:
+                return False
+            tmp.write_bytes(data)
+            os.replace(tmp, out)
+            if square is not None:
+                shutil.copyfile(out, square)                    # the page crops it to a square
+            return True
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        if img is None or not img.size:
+            return False
+        if is_jpg:
+            tmp.write_bytes(data)
+        elif not cv2.imwrite(str(tmp), img, [cv2.IMWRITE_JPEG_QUALITY, 90]):
+            return False
+        os.replace(tmp, out)
+        if square is not None:
+            h, w = img.shape[:2]
+            side = min(h, w)
+            y0, x0 = int((h - side) * 0.3), (w - side) // 2      # above the middle: faces and top titles, not the credits block
+            sq = cv2.resize(img[y0:y0 + side, x0:x0 + side], (TILE_SIZE, TILE_SIZE),
+                            interpolation=cv2.INTER_AREA if side > TILE_SIZE else cv2.INTER_CUBIC)
+            if cv2.imwrite(str(tmp), sq, [cv2.IMWRITE_JPEG_QUALITY, 90]):
+                os.replace(tmp, square)
+        return True
+    except OSError:
+        log.warning("net_write: OSError ignored", exc_info=True)
+        return False
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+
+
+def net_save(w, cand):
+    """Downloads the poster (and backdrop) of a sure match, once. True when the poster was saved.
+    No internet: nothing is written, so the next scan tries again."""
+    kind, key = w.get("kind") or "video", w["id"]
+    out = net_file(kind, key)
+    if out is None:
+        return False
+    if not cand.get("poster"):
+        autogenre.art_put(db, kind, key, "none")
+        return False
+    try:
+        data = autogenre.fetch_bytes(TMDB_IMG + "w500" + cand["poster"])
+    except autogenre.Offline:
+        log.info("poster for %s not downloaded (offline)", key)
+        return False
+    if not net_write(data, out, net_file(kind, key, "sq")):
+        autogenre.art_put(db, kind, key, "none")
+        return False
+    bd = net_file(kind, key, "bd")
+    try:
+        bd.unlink()                                             # never keep the backdrop of an earlier, different match
+    except OSError:
+        pass
+    if cand.get("backdrop"):
+        try:
+            net_write(autogenre.fetch_bytes(TMDB_IMG + "w1280" + cand["backdrop"]), bd)
+        except autogenre.Offline:
+            pass
+    autogenre.art_put(db, kind, key, "ok", "%s/%s" % (cand.get("media") or "movie", cand.get("id") or ""))
+    net_map()
+    with NET_LOCK:
+        NET["map"][(kind, key)] = int(time.time())
+    return True
+
+
+def net_done():
+    """A lookup finished: the open page reloads its lists (new posters and genres show without a restart)."""
+    SCAN_VER["v"] += 1
+
+
+def movie_work(redo=False):
+    """Every public movie and series the online lookup still has to do: its genre, its real poster, or both.
+    Posters are only looked for when the name carries a year ('Dune (2021)') or it is a series, so clips keep their frames.
+    An item handled once is never asked again (a poster found, none found, or waiting in Needs review)."""
+    every = ("auto", "manual", "review", "none")
+    have = {k: set() if redo else set(autogenre.load_map(db, k, every)) for k in ("video", "series")}
+    weak = {k: set(autogenre.load_map(db, k, ("review", "none"))) for k in ("video", "series")}
+    manual = {k: autogenre.load_map(db, k, ("manual",)) for k in ("video", "series")}
+    art = autogenre.art_rows(db)
+    with LIB_LOCK:
+        vids = [("video", v["id"], v["title"], v.get("year") or 0, False) for v in LIB["videos"].values()
+                if not v["private"] and not v["series_id"]]
+        sers = [("series", s["id"], s["name"], 0, True) for s in LIB["series"].values()
+                if not s["private"] and not s.get("extras") and s["genre"].lower() not in EXTRAS_FOLDERS
+                and not s["folder"].name.lower().endswith(" - extras")]
+    work = []
+    for kind, key, title, year, tv in vids + sers:
+        st = art.get((kind, key), ("",))[0]
+        wants_art = bool(tv or year)
+        need_art = wants_art and (not st or (redo and st != "ok"))
+        # the first poster pass also gives "not found" items a second try with the better matching
+        need_genre = key not in have[kind] or (need_art and key in weak[kind])
+        if need_genre or need_art:
+            work.append({"id": key, "kind": kind, "title": title, "year": year, "tv": tv,
+                         "need_genre": need_genre, "need_art": need_art, "genres": manual[kind].get(key) or []})
+    return work
+
+
+def net_auto():
+    """After a scan: look new public movies and series up online (genre and real poster), once each. Only when
+    "Look movies up online" is on and a TMDB key is saved. True when a lookup started."""
+    try:
+        if not get_prefs().get("ag_online"):
+            return False
+        tmdb, lfm = ag_keys()
+        if not tmdb or AG.status()["running"]:
+            return False
+        work = movie_work()
+        if not work:
+            return False
+        ok, _err = AG.start("movies", work, tmdb, lfm, net_done, net_save, quiet=True)
+        return ok
+    except Exception:
+        log.warning("online poster lookup could not start", exc_info=True)
+        return False
 
 
 def ag_keys():
@@ -5870,7 +6169,7 @@ def ag_keys():
 @app.get("/api/autogenre/status")
 def api_ag_status():
     tmdb, lfm = ag_keys()
-    return jsonify({"state": AG.status(), "counts": autogenre.counts(db), "has_tmdb": bool(tmdb), "has_lfm": bool(lfm),
+    return jsonify({"state": AG.status(), "counts": dict(autogenre.counts(db), posters=len(net_map())), "has_tmdb": bool(tmdb), "has_lfm": bool(lfm),
                     "online": bool(get_prefs().get("ag_online"))})
 
 
@@ -5894,18 +6193,13 @@ def api_ag_start():
     what, redo = d.get("what"), bool(d.get("redo"))
     tmdb, lfm = ag_keys()
     online = bool(get_prefs().get("ag_online"))
+    art = None
     if what == "movies":
         if not online:
-            return jsonify({"error": "Turn on \"Look genres up online\" first."}), 400
+            return jsonify({"error": "Turn on \"Look movies up online\" first."}), 400
         if not tmdb:
             return jsonify({"error": "Paste your free TMDB key first."}), 400
-        have = set() if redo else set(autogenre.load_map(db, "video", ("auto", "manual", "review", "none"))) | set(autogenre.load_map(db, "series", ("auto", "manual", "review", "none")))
-        with LIB_LOCK:
-            vids = [v for v in LIB["videos"].values() if not v["private"] and not v["series_id"]]
-            sers = [s for s in LIB["series"].values() if not s["private"]]
-        work = [{"id": v["id"], "title": v["title"], "year": v.get("year") or 0, "tv": False} for v in vids if v["id"] not in have]
-        work += [{"id": s["id"], "title": s["name"], "year": 0, "tv": True} for s in sers if s["id"] not in have]
-        done = lambda: None
+        work, done, art = movie_work(redo), net_done, net_save
     elif what == "music":
         have = set() if redo else set(autogenre.load_map(db, "track", ("auto", "manual", "none")))
         with LIB_LOCK:
@@ -5918,7 +6212,7 @@ def api_ag_start():
         return jsonify({"error": "Pick movies or music."}), 400
     if not work:
         return jsonify({"ok": True, "nothing": True})
-    ok, err = AG.start(what, work, tmdb, lfm, done)
+    ok, err = AG.start(what, work, tmdb, lfm, done, art)
     return (jsonify({"ok": True, "total": len(work)}) if ok else (jsonify({"error": err}), 409))
 
 
@@ -5947,10 +6241,17 @@ def api_ag_pick():
     genres = [str(g)[:30] for g in (d.get("genres") or [])][:4]
     if kind not in ("video", "series") or not key:
         return jsonify({"error": "Unknown item."}), 400
+    cands = autogenre.review_cands(db, kind, key)                # read before your pick replaces the row
+    j = d.get("cand")
+    pick = cands[j] if isinstance(j, int) and 0 <= j < len(cands) else None
     if genres:
         autogenre.set_manual(db, kind, key, genres)
     else:
         autogenre._put(db, kind, key, [], "you", 1.0, "none")
+    if pick and pick.get("poster"):                             # the poster of the movie you picked
+        threading.Thread(target=lambda: (net_save({"id": key, "kind": kind}, pick), net_done()), daemon=True).start()
+    elif isinstance(j, int) and j < 0:
+        autogenre.art_put(db, kind, key, "none")
     return jsonify({"ok": True})
 
 

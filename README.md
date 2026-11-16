@@ -50,6 +50,15 @@
 # What's new
 
 
+## V6: Real posters, found once
+With **Settings > Smart genres and posters > Look movies and music up online** on and a free TMDB key saved, every movie and series gets its real poster from the internet instead of a frame from the video.
+- **Automatic, and only once.** After each scan, new movies are looked up by themselves: the poster, the wide banner picture and the genre are saved on this PC and never asked for again. **Find posters and genres** does the same by hand and shows the progress.
+- **Matched by name and year.** `Dune (2021).mkv` or a torrent folder like `Cars (2006) (1080p BluRay x265 Tigole)` is enough; edition words (Criterion, IMAX, Extended, Diamond, RM4K...) are ignored. Only names with a year get a poster, so clips and memes keep their own frame. When two movies fit equally, the item waits in **Needs review**, and the one you pick brings its poster.
+- **Your pictures still win.** A thumbnail you set on a tile, or a poster file next to the video, is always used over the one found online. The private library is never looked up.
+- **A folder that holds one movie is a movie.** `Finding Nemo (2003) (...)/` with the film and its featurettes used to show as a series. Now the film is a movie card, and the featurettes stay together as "Finding Nemo - Extras" in the Folders tab.
+- **Piles sort themselves, the way you sort.** A movie lying in a catch-all folder (`Movies`, `Downloads`, `New`...) or loose in the videos folder shows on one of your genre shelves: a sequel joins the folder where you put the rest of its series (Shrek 2 next to your Shrek), animated films go where you keep yours (Family, if that is where your Shrek and WALL-E are), anything else to its first genre you have a folder for (Heat under Crime). A series you never sorted stays together. Nothing moves on disk: the Folders tab still shows where each file really is, and a movie you put in a genre folder yourself stays there.
+- Edition words after the year (UpScaled, Criterion, RM4K, Diamond, Platinum) no longer hide the year, so `Hercules (1997) UpScaled` is now just *Hercules*, 1997.
+
 ## V6: Clearer cards and banner
 - **Full titles.** Long movie titles wrap onto a second line instead of being cut after a few words; hover a title for the whole name if it is longer still.
 - **Time left.** Continue watching cards say "1h 14m left" (or "Almost done"), and the Home banner adds when the movie ends ("ends around 4:01 PM"). A movie in a folder of its own no longer shows its name twice.

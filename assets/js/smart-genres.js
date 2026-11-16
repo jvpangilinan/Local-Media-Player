@@ -1,4 +1,4 @@
-/* Smart genres: Settings panel (keys, scan buttons, progress) and the "Needs review" list.
+/* Smart genres and posters: Settings panel (keys, scan buttons, progress) and the "Needs review" list (your pick also brings its poster).
    The lookups themselves run in the Python app (autogenre.py); this file only talks to /api/autogenre/*. */
 (function () {
     'use strict';
@@ -27,13 +27,14 @@
         if (txt) {
             var what = s.what === 'music' ? 'Songs' : 'Movies and series';
             if (run) txt.textContent = (s.paused ? 'Paused. ' : '') + what + ': ' + s.done + ' of ' + s.total + (s.current ? ' \u00b7 ' + s.current : '');
-            else if (s.finished) txt.textContent = (s.error ? s.error + ' ' : 'Done. ') + s.found + ' found' + (s.review ? ', ' + s.review + ' need a look' : '') + (s.none ? ', ' + s.none + ' not found' : '') + '.';
+            else if (s.finished) txt.textContent = (s.error ? s.error + ' ' : 'Done. ') + s.found + ' found' + (s.review ? ', ' + s.review + ' need a look' : '') + (s.none ? ', ' + s.none + ' not found' : '') + '.' +
+                (s.art ? ' ' + s.art + ' new poster' + (s.art === 1 ? '' : 's') + '.' : '');
         }
         ['sg-go-movies', 'sg-go-music'].forEach(function (id) { var b = $(id); if (b) b.disabled = run; });
         var pb = $('sg-pause'), sb = $('sg-stop');
         if (pb) { pb.classList.toggle('hidden', !run); pb.innerHTML = s.paused ? '<i class="fas fa-play"></i> Resume' : '<i class="fas fa-pause"></i> Pause'; }
         if (sb) sb.classList.toggle('hidden', !run);
-        var cn = $('sg-counts'); if (cn) cn.textContent = 'Detected so far: ' + (c.video + c.series) + ' movies and series, ' + c.track + ' songs.';
+        var cn = $('sg-counts'); if (cn) cn.textContent = 'Detected so far: ' + (c.video + c.series) + ' movies and series, ' + c.track + ' songs, ' + (c.posters || 0) + ' posters.';
         var rv = $('sg-review'); if (rv) { rv.classList.toggle('hidden', !c.review); rv.textContent = 'Needs review (' + c.review + ')'; }
         if (wasRunning && !run) {                                   // a scan just finished: show the new genres right away
             try { if (s.what === 'movies' && typeof loadVideos === 'function') loadVideos('public'); } catch (e) {}
@@ -97,7 +98,7 @@
                 var b = e.target.closest('.sg-cand'); if (!b) return;
                 var it = items[+b.dataset.i], j = +b.dataset.j; if (!it) return;
                 var genres = j >= 0 ? (it.cands[j].genres || []) : [];
-                call('/api/autogenre/pick', { kind: it.kind, key: it.key, genres: genres }).then(function () {
+                call('/api/autogenre/pick', { kind: it.kind, key: it.key, genres: genres, cand: j }).then(function () {
                     items.splice(+b.dataset.i, 1); paintReview(); refresh();
                 }).catch(function (er) { say(er.message); });
             });
