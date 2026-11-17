@@ -50,6 +50,15 @@
 # What's new
 
 
+## V6: More than one video or music folder
+Ran out of space on one drive? **Settings > Library > Add another folder** (under Video folder and under Music folder) adds a folder on another drive. Its videos and songs join the same library; nothing is copied or moved.
+- Lay it out like your main folder: `D:\Movies\Action\Heat.mkv` sits on the Action shelf with the Action movies from your main drive. A series can be spread over drives (season 1 on one, season 2 on another) and is still one series.
+- Moving a video to another genre keeps it on its own drive, so it's instant. Renaming a series renames its folder on every drive. Deleting an empty genre removes it from every drive.
+- An unplugged drive is handled like the main one: its videos and songs wait, with their views and progress, until it's back.
+- New downloads and uploads still go to the main folder.
+- The **x** next to a folder stops using it. The files stay where they are, and their history comes back if you add it again.
+- Folders are kept per PC, so restoring a Backup doesn't change them.
+
 ## V6: IMDb ratings instead of stars
 Movie and series cards show the **IMDb rating** (★ 7.9) under the title, in place of your own 1-5 stars. Hover it for the number of votes. It's dimmed when fewer than 5,000 people voted.
 - **Top rated** sorts by the rating weighted by votes (as IMDb's Top 250 does), so a 9.0 from a few hundred fans never beats a well-loved film with a million votes.

@@ -17,11 +17,16 @@ favorites, settings, your TMDB key, and all the posters ULTRON downloaded.
 3. Copy the app folder (with `ULTRON.exe`) and your videos / music / photos.
 4. On the new PC, install what `SETUP.txt` lists (ffmpeg, libmpv). Without them videos won't play and clips get no picture.
 5. Open ULTRON. If your videos sit on a different drive now, set the folders again in **Settings > Library**.
+   Extra folders (**Add another folder**) are not copied with the data either: add them again on the new PC.
 
 **Keep the inside of your videos folder the same** (`Action\Heat (1995).mkv` stays `Action\Heat (1995).mkv`).
 The drive letter can change. ULTRON knows each movie by its path inside the videos folder, so the same layout means
 your progress, posters and your own thumbnails all line up. It also recognises moved or renamed files by their
 size and date, but the same layout is the safe choice.
+
+**An extra drive got a new letter** (it was `D:` and is now `F:`)? In **Settings > Library** press the **x** on the
+old one FIRST, then **Add another folder** with the new path. ULTRON then matches the movies by size and date and
+keeps their views and progress. (Adding the new one before removing the old one makes them show up as new.)
 
 **Don't use the Backup zip to move PCs (for now).** See "Known problem" below. Copying the folder is better anyway:
 nothing has to be downloaded again.

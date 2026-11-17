@@ -188,6 +188,13 @@
              ['set-aargs', 'dl_aargs'], ['set-margs', 'dl_margs'], ['set-asub', 'dl_audio_sub'], ['set-msub', 'dl_music_sub']]
                 .forEach(([id, key]) => { const el = $(id); if (document.activeElement !== el) el.value = prefs[key] || ''; });
             ['video', 'music', 'private', 'photos', 'clips', 'shots'].forEach(k => { const el = $('set-f-' + k); if (document.activeElement !== el) el.value = (prefs.folders || {})[k] || ''; });
+            ['video', 'music'].forEach(k => {                         // extra folders (other drives) that join the same library
+                const box = $('set-fx-' + k); if (!box) return;
+                box.innerHTML = ((prefs.extra_folders || {})[k] || []).map(p =>
+                    '<div class="flex gap-2 items-center"><div class="set-select text-xs flex-1 min-w-0 truncate" title="' + esc(p) + '">' + esc(p) + '</div>' +
+                    '<button class="set-seg" data-fx-remove="' + esc(p) + '" title="Stop using this folder (the files stay where they are)"><i class="fas fa-xmark"></i></button></div>').join('');
+                box.querySelectorAll('[data-fx-remove]').forEach(b => { b.onclick = () => setExtraFolder(k, b.getAttribute('data-fx-remove'), true); });
+            });
         }
         async function setPref(patch) {
             applyPrefs(patch); paintSettings();                       // instant feedback
@@ -203,6 +210,21 @@
                 toast('Folder updated. Scanning...', 2500);
                 await rescan();
             } catch (e) { toast(errMsg(e)); paintSettings(); }
+        }
+        async function setExtraFolder(kind, path, remove) {
+            if (remove && !confirm('Stop using this folder?\n\n' + path + '\n\nThe files on it are not touched. Their views and progress come back if you add it again.')) return;
+            try {
+                applyPrefs(await post('/api/folders/extra', { kind, path, remove: !!remove })); paintSettings();
+                toast(remove ? 'Folder removed. Scanning...' : 'Folder added. Scanning...', 2500);
+                await rescan();
+            } catch (e) { toast(errMsg(e)); paintSettings(); }
+        }
+        async function addExtraFolder(kind) {
+            const bridge = window.pywebview && window.pywebview.api;
+            let p = '';
+            if (bridge && bridge.pick_folder) p = await bridge.pick_folder();
+            else p = prompt('Path of the extra ' + (kind === 'music' ? 'music' : 'video') + ' folder (for example D:\\Movies):') || '';
+            if (p) setExtraFolder(kind, p, false);
         }
         async function browseFolder(kind) {
             const bridge = window.pywebview && window.pywebview.api;

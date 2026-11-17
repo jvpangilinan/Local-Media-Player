@@ -122,6 +122,9 @@ CFG = {
 CFG["clips_dir"] = None                           # None = "Clips" inside the video folder (see effective_dir)
 CFG["shots_dir"] = Path.home() / "Pictures" / "ULTRON"     # screenshots taken in the player
 DEFAULT_CFG = dict(CFG)                           # built-in folder locations, for "reset to default"
+CFG["video_extra"] = []                           # more video folders (other drives); they join the same library
+CFG["music_extra"] = []                           # more music folders
+EXTRA_KEYS = {"video": "video_extra", "music": "music_extra"}     # kind -> CFG / prefs key (a list of paths)
 
 
 def effective_dir(key):
@@ -129,6 +132,40 @@ def effective_dir(key):
     if key == "clips_dir":
         return CFG["clips_dir"] or (CFG["video_dir"] / "Clips")
     return CFG[key]
+
+
+def extra_prefix(path):
+    """Library key prefix for an extra media folder: "@" + a short hash of where it is (the main folder has none)."""
+    return "@" + hashlib.sha1(os.path.normcase(os.path.normpath(str(path))).encode("utf-8")).hexdigest()[:8] + "/"
+
+
+def video_roots(private=False):
+    """[(folder, key prefix)] the videos come from: the video folder plus your extra ones, or the private folder."""
+    if private:
+        return [(CFG["private_dir"], "private/")]
+    return [(CFG["video_dir"], "")] + [(p, extra_prefix(p)) for p in CFG["video_extra"]]
+
+
+def music_roots():
+    return [(CFG["music_dir"], "")] + [(p, extra_prefix(p)) for p in CFG["music_extra"]]
+
+
+def key_prefix(rel, roots):
+    """Which of roots a library key (rel_path) belongs to: its prefix ("" = the main folder)."""
+    rel = rel or ""
+    for _, pre in roots:
+        if pre and rel.startswith(pre):
+            return pre
+    return "private/" if rel.startswith("private/") else ""
+
+
+def video_root(v):
+    """(folder, key prefix) a scanned video lives under."""
+    if v.get("root_dir") is not None:
+        return v["root_dir"], v["prefix"]
+    return (CFG["private_dir"], "private/") if v["private"] else (CFG["video_dir"], "")
+
+
 def _has_user_data(d):
     """True when folder d already holds a ZENO database or settings file."""
     try:
@@ -559,7 +596,7 @@ def set_offline(name, root, online):
 
 def offline_json():
     """Offline media folders for the page. The private folder's location is never sent, only that it is offline."""
-    return [{"lib": n, "path": "" if n == "private" else p} for n, p in sorted(OFFLINE.items())]
+    return [{"lib": n.split(":", 1)[0], "path": "" if n == "private" else p} for n, p in sorted(OFFLINE.items())]
 
 
 def probe_duration(path):
@@ -664,17 +701,18 @@ def _scan_videos():
     """Public videos live in media/videos, private ones in media/private (hidden until unlocked)."""
     found = {}
     side = {}                                                       # image files per folder, noted during the same walk
-    offline = set()                                                 # False = public root, True = private root
-    for root, private in ((CFG["video_dir"], False), (CFG["private_dir"], True)):
+    offline = set()                                                 # key prefixes of folders that are not there right now
+    roots = video_roots() + video_roots(True)
+    for root, prefix in roots:
+        private = prefix == "private/"
         online = folder_online(root)
-        set_offline("private" if private else "videos", root, online)
+        set_offline("private" if private else ("videos:" + str(root) if prefix else "videos"), root, online)
         if not online:                                              # unplugged drive: do not treat every video as deleted
-            offline.add(private)
+            offline.add(prefix)
             continue
         for p, entry in walk_entries(root, VIDEO_EXTS, SIDE_IMAGE_EXTS, side):
             parts = p.relative_to(root).parts
             rel = "/".join(parts)
-            prefix = "private/" if private else ""
             key = prefix + rel
             try:
                 st = entry.stat()
@@ -687,9 +725,10 @@ def _scan_videos():
             series = parts[1] if len(parts) >= 3 else ""                # folder inside a genre = series
             season = " / ".join(parts[2:-1]) if len(parts) >= 4 else ""
             stem = re.sub(r"^\d{3} - ", "", p.stem) if series else p.stem          # "003 - Title" -> "Title" inside a series
+            sprefix = "private/" if private else ""                    # a series split over two drives is still one series
             found[vid] = {"id": vid, "path": p, "rel": key, "title": pretty(stem), "mtime": mtime, "size": st.st_size, "private": private,
-                          "genre": genre, "series": series, "season": season,
-                          "series_id": item_id(prefix + genre + "/" + series) if series else ""}
+                          "genre": genre, "series": series, "season": season, "root_dir": root, "prefix": prefix,
+                          "series_id": item_id(sprefix + genre + "/" + series) if series else ""}
     try:
         _prefs = get_prefs()
         _auto, _clean = _prefs.get("auto_sort", True), _prefs.get("clean_titles", True)
@@ -716,7 +755,7 @@ def _scan_videos():
             if y:
                 v["year"] = y
     now = time.time()
-    is_off = lambda rel: (rel or "").startswith("private/") in offline     # a row whose folder is offline: leave it alone
+    is_off = lambda rel: key_prefix(rel, roots) in offline       # a row whose folder is offline: leave it alone
     # moved outside the app? carry views / ratings / progress / title over to the file's new place
     try:
         with closing(db()) as con:
@@ -743,12 +782,15 @@ def _scan_videos():
     for v in found.values():
         if not v["series_id"]:
             continue
-        root = CFG["private_dir"] if v["private"] else CFG["video_dir"]
+        root = video_root(v)[0]
         virt = bool(v.get("virtual"))
         s = series.setdefault(v["series_id"], {"id": v["series_id"], "name": v["series"] if virt else (clean_junk(v["series"]) if (_clean and not v["private"]) else pretty(v["series"])), "genre": v["genre"],
                                                 "private": v["private"], "folder": root if virt else root / v["genre"] / v["series"],
-                                                "virtual": virt, "episodes": []})
+                                                "virtual": virt, "episodes": [], "folders": []})
         s["episodes"].append(v)
+        here = root if virt else root / v["genre"] / v["series"]
+        if here not in s["folders"]:                          # one per drive the series is spread over
+            s["folders"].append(here)
     for s in series.values():
         s["episodes"].sort(key=(lambda e: e.get("ep") or (0, 0)) if s.get("virtual") else (lambda e: (natkey(e["season"]), natkey(e["path"].name))))
         s["episodes"] = [e["id"] for e in s["episodes"]]
@@ -853,14 +895,22 @@ def music_busy():
 def _scan_music():
     STATUS["music_scanning"] = True
     try:
-        root = CFG["music_dir"]
-        set_offline("music", root, folder_online(root))
+        roots = music_roots()
+        online = set()
+        for root, prefix in roots:
+            up = folder_online(root)
+            set_offline("music:" + str(root) if prefix else "music", root, up)
+            if up:
+                online.add(prefix)
         with closing(db()) as con:
             cached = {r["rel_path"]: r for r in con.execute("SELECT * FROM tracks")}
         tracks, to_save, seen = {}, [], set()
         first_scan = not cached                  # very first index: use file dates, so nothing is "new" yet
-        for p, entry in walk_entries(root, MUSIC_EXTS):
-            rel = p.relative_to(root).as_posix()
+        walk = ((p, entry, root, prefix) for root, prefix in roots if prefix in online
+                for p, entry in walk_entries(root, MUSIC_EXTS))
+        for p, entry, root, prefix in walk:
+            inner = p.relative_to(root).as_posix()
+            rel = prefix + inner
             try:
                 st = entry.stat()
             except OSError:
@@ -873,7 +923,7 @@ def _scan_music():
                 meta = {c: row[c] for c in TRACK_COLS}
                 meta["added_at"] = prev or st.st_mtime
             else:
-                meta = read_track(p, rel)
+                meta = read_track(p, inner)
                 meta["added_at"] = prev or (st.st_mtime if (row or first_scan) else time.time())
                 to_save.append(track_row(rel, st.st_mtime, st.st_size, meta))
             tid = item_id(rel)
@@ -881,8 +931,8 @@ def _scan_music():
         try:
             with closing(db()) as con, con:
                 con.executemany(TRACK_SQL, to_save)
-                if folder_online(root):      # don't wipe the index just because a drive is unplugged
-                    con.executemany("DELETE FROM tracks WHERE rel_path = ?", [(r,) for r in set(cached) - seen])
+                con.executemany("DELETE FROM tracks WHERE rel_path = ?",     # don't wipe the index just because a drive is unplugged
+                                [(r,) for r in set(cached) - seen if key_prefix(r, roots) in online])
         except sqlite3.Error:
             log.warning("scan_music: sqlite3.Error ignored", exc_info=True)
         with LIB_LOCK:
@@ -1833,12 +1883,19 @@ def video_cards(private=False):
         d = r["duration"] or 0
         return (r["position"] or 0) / d if d > 0 else 0
 
-    root = CFG["private_dir"] if private else CFG["video_dir"]
-    try:
-        names = sorted((d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")
-                        and not (private and d.name.lower() == PHOTO_FOLDER.lower())), key=natkey)
-    except OSError:
-        names = []
+    names = set()
+    for root, _ in video_roots(private):
+        try:
+            names |= {d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")
+                      and not (private and d.name.lower() == PHOTO_FOLDER.lower())}
+        except OSError:
+            pass
+    seen_lower, uniq = set(), []
+    for n in sorted(names, key=natkey):                   # "Action" on two drives is one folder
+        if n.lower() not in seen_lower:
+            seen_lower.add(n.lower())
+            uniq.append(n)
+    names = uniq
     # Smart genres: a movie lying in a pile ("Movies", the videos folder itself) is shown under your folder for its genre
     shelf_of = {} if private else {n.lower(): n for n in names if n.lower() not in UNSORTED_FOLDERS and n.lower() not in EXTRAS_FOLDERS}
     for n in list(shelf_of.values()):
@@ -2799,17 +2856,19 @@ def api_genre_create():
 @app.post("/api/genres/<genre>/delete")
 def api_genre_delete(genre):
     """Removes a genre folder - only when nothing is inside it (move the videos out first)."""
-    root = genre_root(bool((request.get_json(silent=True) or {}).get("private")))
+    private = bool((request.get_json(silent=True) or {}).get("private"))
+    genre_root(private)                                   # 403 without the private token
     g = clean_folder(genre)
-    gdir = root / g
-    if not g or not gdir.is_dir():
+    gdirs = [r / g for r, _ in video_roots(private) if g and (r / g).is_dir()]    # the same genre on every drive
+    if not gdirs:
         return jsonify({"error": "That genre folder does not exist."}), 404
     try:
-        if any(gdir.iterdir()):
+        if any(any(d.iterdir()) for d in gdirs):
             return jsonify({"error": "This genre still has videos or series in it. Move them to another genre first."}), 409
-        gdir.rmdir()
+        for d in gdirs:
+            d.rmdir()
     except OSError as e:
-        log.warning("genre delete failed: %s", gdir, exc_info=True)
+        log.warning("genre delete failed: %s", gdirs, exc_info=True)
         return jsonify({"error": "Could not delete the folder: %s" % e}), 500
     schedule_scan()
     return jsonify({"ok": True, "name": g})
@@ -3676,6 +3735,7 @@ def prefs_payload():
     bg = bg_file()
     out["bg_custom_v"] = int(bg.stat().st_mtime) if bg else 0     # lets the page cache-bust the picked image
     out["folders"] = {kind: str(effective_dir(key)) for kind, key in FOLDER_KEYS.items()}
+    out["extra_folders"] = {kind: [str(x) for x in CFG[key]] for kind, key in EXTRA_KEYS.items()}
     return out
 
 
@@ -3930,6 +3990,47 @@ def api_folder_set():
             prefs.pop(key, None)
         SETTINGS_PATH.write_text(json.dumps(settings), encoding="utf-8")
     CFG[key] = path
+    return jsonify(prefs_payload())
+
+
+def _same_or_inside(a, b):
+    """True when folder a is b or lies inside it (or the other way round)."""
+    a, b = os.path.normcase(os.path.abspath(str(a))), os.path.normcase(os.path.abspath(str(b)))
+    return a == b or a.startswith(b.rstrip("\\/") + os.sep) or b.startswith(a.rstrip("\\/") + os.sep)
+
+
+@app.post("/api/folders/extra")
+def api_folder_extra():
+    """More video / music folders (other drives) that join the same library. Body {kind, path, remove}."""
+    d = request.get_json(silent=True) or {}
+    kind = d.get("kind")
+    if kind not in EXTRA_KEYS:
+        abort(400)
+    key = EXTRA_KEYS[kind]
+    raw = str(d.get("path") or "").strip().strip('"')
+    if not raw:
+        return jsonify({"error": "Pick a folder."}), 400
+    path = Path(raw).expanduser()
+    norm = lambda x: os.path.normcase(os.path.abspath(str(x)))
+    cur = list(CFG[key])
+    if d.get("remove"):
+        cur = [x for x in cur if norm(x) != norm(path)]
+    else:
+        if not path.is_dir():
+            return jsonify({"error": "That folder does not exist (is the drive connected?)."}), 400
+        taken = [CFG["video_dir"], CFG["private_dir"]] + list(CFG["video_extra"]) if kind == "video" else [CFG["music_dir"]] + list(CFG["music_extra"])
+        if any(_same_or_inside(path, t) for t in taken):
+            return jsonify({"error": "That folder is already in your library, or inside / around one that is."}), 400
+        cur.append(path)
+    with SETTINGS_LOCK:
+        settings = load_settings()
+        prefs = settings.setdefault("prefs", {})
+        if cur:
+            prefs[key] = [str(x) for x in cur]
+        else:
+            prefs.pop(key, None)
+        SETTINGS_PATH.write_text(json.dumps(settings), encoding="utf-8")
+    CFG[key] = cur
     return jsonify(prefs_payload())
 
 
@@ -5413,7 +5514,7 @@ def api_backup_import():
                 with SETTINGS_LOCK:                       # folder paths belong to this PC: keep the ones in use here
                     cur = load_settings()
                     new_prefs = new.setdefault("prefs", {}) if isinstance(new.get("prefs", {}), dict) else {}
-                    for key in FOLDER_KEYS.values():
+                    for key in list(FOLDER_KEYS.values()) + list(EXTRA_KEYS.values()):
                         new_prefs.pop(key, None)
                         if key in (cur.get("prefs") or {}):
                             new_prefs[key] = cur["prefs"][key]
@@ -5527,7 +5628,7 @@ def _tree_signature(roots, exts, side_exts=()):
 
 def _folder_signature():
     """Fingerprint of the video and private folders (see _tree_signature)."""
-    return _tree_signature((CFG["video_dir"], CFG["private_dir"]), VIDEO_EXTS, SIDE_IMAGE_EXTS)[0]
+    return _tree_signature([r for r, _ in video_roots() + video_roots(True)], VIDEO_EXTS, SIDE_IMAGE_EXTS)[0]
 
 
 WATCH_FAST, WATCH_SLOW = 30, 300      # seconds between folder checks: while the page is open / while idle or playing
@@ -5551,9 +5652,9 @@ def folder_watcher():
     purpose: change notifications hold the folders open, and Windows then refuses to safely remove a USB drive."""
     background_io(True)
     trees = {
-        "videos": (lambda: _tree_signature((CFG["video_dir"], CFG["private_dir"]), VIDEO_EXTS, SIDE_IMAGE_EXTS),
+        "videos": (lambda: _tree_signature([r for r, _ in video_roots() + video_roots(True)], VIDEO_EXTS, SIDE_IMAGE_EXTS),
                    lambda: SCAN_STATE["running"], schedule_scan),
-        "music": (lambda: _tree_signature((CFG["music_dir"],), MUSIC_EXTS),
+        "music": (lambda: _tree_signature([r for r, _ in music_roots()], MUSIC_EXTS),
                   lambda: music_busy(), lambda: schedule_music_scan()),
     }
     state = {k: {"last": None, "dirty": False, "unsettled": False} for k in trees}
@@ -5722,19 +5823,26 @@ def api_videos_move():
     ids = [str(i) for i in (d.get("ids") or [])]
     if not ids:
         return jsonify({"error": "Pick at least one video."}), 400
-    dest = root / g / sr if g else root
     try:
-        dest.mkdir(parents=True, exist_ok=True)
+        (root / g / sr if g else root).mkdir(parents=True, exist_ok=True)
     except OSError as e:
         return jsonify({"error": "Could not create the folder: %s" % e}), 500
     prefix = "private/" if private else ""
     with LIB_LOCK:
         vids = [LIB["videos"][i] for i in ids if i in LIB["videos"] and LIB["videos"][i]["private"] == private]
-    pairs, old_dirs = [], set()
+    pairs, old_dirs, roots = [], set(), set()
     for v in vids:
         src = v["path"]
+        vroot, vpre = video_root(v)                       # a video on another drive is sorted on that drive (no slow copy)
+        dest = vroot / g / sr if g else vroot
         if src.parent == dest:
             continue
+        try:
+            dest.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            log.warning("api_videos_move: could not create %s", dest, exc_info=True)
+            continue
+        roots.add(vroot)
         side = _sidecars(src)
         target = unique_target(dest, src.name)
         try:
@@ -5744,12 +5852,12 @@ def api_videos_move():
         except OSError:
             log.debug("api_videos_move: OSError ignored", exc_info=True)
             continue
-        pairs.append((v["rel"], prefix + target.relative_to(root).as_posix()))
+        pairs.append((v["rel"], vpre + target.relative_to(vroot).as_posix()))
         old_dirs.add(src.parent)
     rekey_videos(pairs)
     for folder in old_dirs:                               # tidy: an emptied series folder goes away (genres never do)
         try:
-            if folder.parent.parent == root and not any(folder.iterdir()):
+            if folder.parent.parent in roots and not any(folder.iterdir()):
                 folder.rmdir()
         except OSError:
             log.warning("api_videos_move: OSError ignored", exc_info=True)
@@ -5765,21 +5873,32 @@ def api_series_rename(sid):
         return jsonify({"error": "Give the series a name."}), 400
     if s.get("virtual"):
         return jsonify({"error": "This series was sorted automatically from the file names. Make a folder for it to rename it."}), 400
-    old = s["folder"]
-    new = old.parent / name
-    if new == old:
+    olds = s.get("folders") or [s["folder"]]             # a series spread over two drives has a folder on each
+    if olds[0].name == name:
         return jsonify({"id": sid, "name": name})
-    if new.exists() and new.name.lower() != old.name.lower():
-        return jsonify({"error": "A series with that name already exists in this genre."}), 409
-    root = CFG["private_dir"] if s["private"] else CFG["video_dir"]
+    for old in olds:
+        new = old.parent / name
+        if new.exists() and new.name.lower() != old.name.lower():
+            return jsonify({"error": "A series with that name already exists in this genre."}), 409
     prefix = "private/" if s["private"] else ""
     with LIB_LOCK:
         eps = [LIB["videos"][e] for e in s["episodes"] if e in LIB["videos"]]
-    try:
-        os.rename(old, new)
-    except OSError as e:
-        return jsonify({"error": "Could not rename the folder: %s" % e}), 500
-    pairs = [(v["rel"], prefix + (new / v["path"].relative_to(old)).relative_to(root).as_posix()) for v in eps]
+    pairs = []
+    for old in olds:
+        new = old.parent / name
+        try:
+            os.rename(old, new)
+        except OSError as e:
+            if not pairs:
+                return jsonify({"error": "Could not rename the folder: %s" % e}), 500
+            log.warning("series rename: %s failed", old, exc_info=True)
+            continue
+        for v in eps:
+            root, pre = video_root(v)
+            try:
+                pairs.append((v["rel"], pre + (new / v["path"].relative_to(old)).relative_to(root).as_posix()))
+            except ValueError:                            # this episode is on another drive
+                pass
     rekey_videos(pairs)
     scan_videos()
     return jsonify({"id": item_id(prefix + s["genre"] + "/" + name), "name": name})
@@ -7705,6 +7824,8 @@ def main():
                 else:
                     print(f"Saved folder {raw} is not available, using the default.")
                     log.warning("saved folder %s (%s) not available, using the default", raw, key, exc_info=True)
+    for key in EXTRA_KEYS.values():
+        CFG[key] = [Path(str(x)).expanduser() for x in (saved.get(key) or []) if str(x).strip()]
     if args.videos:
         CFG["video_dir"] = Path(args.videos).expanduser()
     if args.music:
