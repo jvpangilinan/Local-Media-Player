@@ -2831,21 +2831,28 @@ def api_series(sid):
                    (SELECT stars FROM ratings r WHERE r.video_id = v.id AND r.profile = ?) AS mine
             FROM videos v WHERE v.id IN ({marks})""", [PROFILE] + [e["id"] for e in eps])}
     out, resume, newest = [], None, 0
+    info = {} if s["private"] else ep_info()
     for e in eps:
         r = rows.get(e["id"])
         if not r:
             continue
         f = (r["position"] or 0) / r["duration"] if (r["duration"] or 0) > 0 else 0
         mid = CONTINUE_MIN < f < CONTINUE_MAX
-        out.append({"id": e["id"], "title": display_title(r["custom_title"], e["title"]), "season": e["season"],
+        ei = info.get(e["id"]) or {}
+        title = e["title"]
+        if ei.get("name") and (GENERIC_EP_RE.fullmatch(title.strip()) or title.startswith("Episode ")):
+            title = ei["name"]                            # "S01E02" / "Episode 2" -> the episode's real name
+        stamp = "%d%s" % (int(r["mtime"] or 0), "s" if ei.get("still") else "")
+        out.append({"id": e["id"], "title": display_title(r["custom_title"], title), "season": e["season"],
                     "view_count": r["view_count"], "user_rating": r["mine"] or 0, "progress": round(f, 3) if mid else 0,
-                    "poster": f"/poster/{e['id']}?v={int(r['mtime'] or 0)}"})
+                    "overview": ei.get("overview") or "", "poster": f"/poster/{e['id']}?v={stamp}"})
         if mid and (r["progress_at"] or 0) >= newest:
             resume, newest = e["id"], r["progress_at"] or 0
     if resume is None:
         resume = next((o["id"] for o in out if o["view_count"] == 0), out[0]["id"] if out else None)
     first = out[0]["id"] if out else None
     return jsonify({"id": s["id"], "name": s["name"], "folder": s["folder"].name, "genre": s["genre"],
+                    "overview": "" if s["private"] else autogenre.info_overview(db, "series", s["id"]),
                     "episodes": out, "resume": resume,
                     "poster": f"/seriesart/{s['id']}", "backdrop": f"/backdrop/{first}" if first else ""})
 
@@ -4698,6 +4705,9 @@ def poster(vid):
     net = None if v["private"] else net_art("video", vid)
     if net:
         return send_file(net, mimetype="image/jpeg", max_age=86400)
+    still = (ep_info().get(vid) or {}).get("still") if (v["series_id"] and not v["private"]) else None
+    if still:                                             # an episode: its official still (found online once)
+        return send_file(still, mimetype="image/jpeg", max_age=86400)
     if ensure_poster(vid, v["path"]):
         return send_file(POSTER_DIR / f"{vid}.jpg", mimetype="image/jpeg", max_age=86400)
     return Response(PLACEHOLDER_SVG, mimetype="image/svg+xml")
@@ -6398,6 +6408,173 @@ def net_done():
     """A lookup finished: the open page reloads its lists (new posters and genres show without a restart)."""
     SCAN_VER["v"] += 1
     ratings_auto()
+    info_auto()
+
+
+# Summaries and episode pictures. Every movie / series matched online asks TMDB once for its summary; every season of a
+# matched show you have episodes of is asked once for its episodes (name, summary, official still). Stills are saved in
+# net_art as e_<video id>_<show>.jpg and shown in place of the frame taken from the video (your own picture still wins).
+INFO = {"running": False}
+INFO_LOCK = threading.Lock()
+INFO_RETRY = 30 * 86400                            # TMDB had no summary / no such season: ask again after this long
+EPI = {"ver": None, "map": None}                   # episode id -> {name, overview, still}, rebuilt when the library changes
+GENERIC_EP_RE = re.compile(r"(?i)(?:episode|ep|e)?[\s._-]*\d{1,3}|s\d{1,2}e\d{1,3}|\d{1,2}x\d{1,3}")
+
+
+def still_file(vid, tv):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", str(vid or "")) or not str(tv).isdigit():
+        return None
+    return NET_DIR / ("e_%s_%s.jpg" % (vid, tv))
+
+
+def episode_numbers(v):
+    """(season, episode) of a library episode, from its name ('S04E01', '1x02') or its season folder + 'E05' / '05'; else None."""
+    if v.get("ep"):
+        return tuple(v["ep"])
+    stem = v["path"].stem
+    ep = episode_name(stem)
+    if ep:
+        return ep[0], ep[1]
+    p = parse_episode(stem)
+    if p:
+        return p[1], p[2]
+    m = re.fullmatch(r"(?i)season\s*(\d{1,2})", v.get("season") or "")
+    sn = int(m.group(1)) if m else (1 if not v.get("season") else 0)
+    e = re.search(r"(?i)(?:^|[\s._-])(?:e|ep|episode)[\s._-]?(\d{1,3})(?=$|\D)", stem) or re.match(r"(\d{1,3})(?=$|[\s._-])", stem)
+    return (sn, int(e.group(1))) if (sn and e) else None
+
+
+def _public_series_eps():
+    with LIB_LOCK:
+        vids = LIB["videos"]
+        return [(s["id"], [vids[e] for e in s["episodes"] if e in vids]) for s in LIB["series"].values()
+                if not s["private"] and not s.get("extras")]
+
+
+def ep_info():
+    """{episode id: {name, overview, still (Path or None)}} for the episodes of shows matched online."""
+    ver = SCAN_VER["v"]
+    if EPI["ver"] == ver and EPI["map"] is not None:
+        return EPI["map"]
+    refs, seasons, out = autogenre.art_refs(db), autogenre.season_rows(db), {}
+    for sid, eps in _public_series_eps():
+        ref = refs.get(("series", sid), "")
+        if not ref.startswith("tv/"):
+            continue
+        tv = ref[3:]
+        for v in eps:
+            n = episode_numbers(v)
+            e = n and (seasons.get((tv, n[0])) or ({}, 0))[0].get(str(n[1]))
+            if not e:
+                continue
+            f = still_file(v["id"], tv)
+            try:
+                f = f if f is not None and f.is_file() else None
+            except OSError:
+                f = None
+            out[v["id"]] = {"name": e.get("name") or "", "overview": e.get("overview") or "", "still": f}
+    EPI.update(ver=ver, map=out)
+    return out
+
+
+def info_auto():
+    """Fills in summaries and episode stills in the background when "Look movies up online" is on and a TMDB key is saved."""
+    try:
+        if not get_prefs().get("ag_online"):
+            return False
+        tmdb, _lfm = ag_keys()
+        if not tmdb:
+            return False
+    except Exception:
+        log.warning("summaries could not start", exc_info=True)
+        return False
+    with INFO_LOCK:
+        if INFO["running"]:
+            return False
+        INFO["running"] = True
+    threading.Thread(target=info_run, args=(tmdb,), daemon=True, name="tmdb-info").start()
+    return True
+
+
+def info_run(key):
+    """One pass: missing summaries first, then each season of each matched show, then the stills. Stops after a few
+    network errors in a row (offline); whatever is left is tried again after the next scan."""
+    try:
+        now, changed, fails = time.time(), False, [0]
+        refs = autogenre.art_refs(db)
+        have = autogenre.info_rows(db)
+
+        def net_error():
+            fails[0] += 1
+            return fails[0] >= 4
+
+        for (kind, k), ref in refs.items():
+            h = have.get((kind, k))
+            if h and h["ref"] == ref and (h["overview"] or now - (h["at"] or 0) < INFO_RETRY):
+                continue
+            try:
+                autogenre.info_put(db, kind, k, ref, autogenre.tmdb_overview(ref, key))
+                changed, fails[0] = True, 0
+            except autogenre.Offline:
+                if net_error():
+                    return
+            except autogenre.BadKey:
+                return
+        seasons = autogenre.season_rows(db)
+        for sid, eps in _public_series_eps():
+            ref = refs.get(("series", sid), "")
+            if not ref.startswith("tv/"):
+                continue
+            tv = ref[3:]
+            nums = {v["id"]: episode_numbers(v) for v in eps}
+            for sn in sorted({n[0] for n in nums.values() if n}):
+                got = seasons.get((tv, sn))
+                if got is None or (not got[0] and now - got[1] > INFO_RETRY):
+                    try:
+                        got = (autogenre.tmdb_season(tv, sn, key), now)
+                        autogenre.season_put(db, tv, sn, got[0])
+                        seasons[(tv, sn)], changed, fails[0] = got, True, 0
+                    except autogenre.Offline:
+                        if net_error():
+                            return
+                        continue
+                    except autogenre.BadKey:
+                        return
+                for v in eps:
+                    n = nums[v["id"]]
+                    e = got[0].get(str(n[1])) if (n and n[0] == sn) else None
+                    out = still_file(v["id"], tv) if e and e.get("still") else None
+                    if out is None or out.is_file():
+                        continue
+                    try:
+                        img = autogenre.fetch_bytes(TMDB_IMG + "w300" + e["still"])
+                    except autogenre.Offline:
+                        if net_error():
+                            return
+                        continue
+                    if img and net_write(img, out):
+                        changed, fails[0] = True, 0
+    except Exception:
+        log.warning("summaries / episode stills failed", exc_info=True)
+    finally:
+        if changed:
+            SCAN_VER["v"] += 1                            # the open page reloads: new stills and summaries show
+        with INFO_LOCK:
+            INFO["running"] = False
+
+
+@app.get("/api/info/<vid>")
+def api_info(vid):
+    """The summary for a banner: the movie's, or the episode's (else its show's). Never for private videos."""
+    v = get_video_checked(vid)
+    if v["private"]:
+        return jsonify({"overview": ""})
+    text = ""
+    if v["series_id"]:
+        text = (ep_info().get(vid) or {}).get("overview") or autogenre.info_overview(db, "series", v["series_id"])
+    else:
+        text = autogenre.info_overview(db, "video", vid)
+    return jsonify({"overview": text})
 
 
 # IMDb ratings on the movie cards. Every movie / series matched online asks TMDB once for its IMDb id; the scores come
@@ -6525,6 +6702,7 @@ def net_auto():
         work = movie_work()
         if not work:
             ratings_auto()                                    # nothing new to look up: the IMDb ratings may still need filling in
+            info_auto()
             return False
         ok, _err = AG.start("movies", work, tmdb, lfm, net_done, net_save, quiet=True)
         return ok

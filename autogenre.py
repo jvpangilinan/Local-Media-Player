@@ -332,6 +332,76 @@ def tmdb_imdb_id(ref, key):
     return imdb if re.fullmatch(r"tt\d{5,10}", imdb) else ""
 
 
+def tmdb_overview(ref, key):
+    """A saved match ('movie/603', 'tv/1399') -> its summary on TMDB ('' when it has none)."""
+    media, _, tid = str(ref or "").partition("/")
+    if media not in ("movie", "tv") or not tid.isdigit():
+        return ""
+    data = _tmdb_call("%s/%s" % (media, tid), {"language": "en-US"}, key) or {}
+    return str(data.get("overview") or "").strip()
+
+
+def tmdb_season(tv, season, key):
+    """Every episode of one season of a show: {"1": {name, overview, still}} (still: TMDB picture path or '')."""
+    if not str(tv).isdigit():
+        return {}
+    data = _tmdb_call("tv/%s/season/%d" % (tv, int(season)), {"language": "en-US"}, key) or {}
+    out = {}
+    for e in data.get("episodes") or []:
+        n = e.get("episode_number")
+        if isinstance(n, int):
+            out[str(n)] = {"name": str(e.get("name") or "").strip(), "overview": str(e.get("overview") or "").strip(),
+                           "still": str(e.get("still_path") or "")}
+    return out
+
+
+def info_rows(db):
+    """{(kind, key): {ref, overview, at}}"""
+    try:
+        with closing(db()) as con:
+            return {(r["kind"], r["key"]): dict(r) for r in con.execute("SELECT * FROM net_info")}
+    except sqlite3.Error:
+        return {}
+
+
+def info_put(db, kind, key, ref, overview):
+    with closing(db()) as con, con:
+        con.execute("INSERT OR REPLACE INTO net_info (kind, key, ref, overview, at) VALUES (?,?,?,?,?)",
+                    (kind, key, ref, overview or "", time.time()))
+
+
+def info_overview(db, kind, key):
+    """The summary of one item, only while its match is still the one saved for its poster ('' otherwise)."""
+    try:
+        with closing(db()) as con:
+            r = con.execute("""SELECT i.overview FROM net_info i JOIN net_art a ON a.kind = i.kind AND a.key = i.key
+                               AND a.status = 'ok' AND a.ref = i.ref WHERE i.kind = ? AND i.key = ?""", (kind, key)).fetchone()
+        return r["overview"] if r else ""
+    except sqlite3.Error:
+        return ""
+
+
+def season_rows(db):
+    """{(tv, season): (data, at)}"""
+    try:
+        with closing(db()) as con:
+            out = {}
+            for r in con.execute("SELECT * FROM net_season"):
+                try:
+                    out[(r["tv"], r["season"])] = (json.loads(r["data"] or "{}"), r["at"] or 0)
+                except ValueError:
+                    pass
+            return out
+    except sqlite3.Error:
+        return {}
+
+
+def season_put(db, tv, season, data):
+    with closing(db()) as con, con:
+        con.execute("INSERT OR REPLACE INTO net_season (tv, season, data, at) VALUES (?,?,?,?)",
+                    (str(tv), int(season), json.dumps(data), time.time()))
+
+
 def imdb_file_ok(path):
     """True when path is the IMDb ratings list (gzip, the right header)."""
     try:
@@ -459,6 +529,13 @@ def init_db(con):
     con.execute("""CREATE TABLE IF NOT EXISTS net_rating (
         kind TEXT NOT NULL, key TEXT NOT NULL, ref TEXT NOT NULL DEFAULT '', imdb TEXT NOT NULL DEFAULT '',
         score REAL, votes INTEGER, at REAL, PRIMARY KEY (kind, key))""")
+    # the one-line summary of a movie / series matched online (ref: the match it was fetched for)
+    con.execute("""CREATE TABLE IF NOT EXISTS net_info (
+        kind TEXT NOT NULL, key TEXT NOT NULL, ref TEXT NOT NULL DEFAULT '', overview TEXT NOT NULL DEFAULT '', at REAL,
+        PRIMARY KEY (kind, key))""")
+    # one season of a show on TMDB: {"<episode number>": {name, overview, still}}
+    con.execute("""CREATE TABLE IF NOT EXISTS net_season (
+        tv TEXT NOT NULL, season INTEGER NOT NULL, data TEXT NOT NULL DEFAULT '{}', at REAL, PRIMARY KEY (tv, season))""")
 
 
 def art_refs(db):

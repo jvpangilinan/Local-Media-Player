@@ -192,9 +192,21 @@ dt = {s["title"]: s for s in d["all_series"]}["Downtown"]
 assert "-" in dt["poster"].split("?v=")[1] and c.get(dt["poster"]).data == app.net_file("series", dt["id"]).read_bytes()
 
 # one time: a second pass has nothing to do and asks nothing
+import time  # noqa: E402
+
+
+def settle():                                          # summaries / ratings run in the background: let them finish
+    for _ in range(200):
+        if not app.INFO["running"] and not app.RATE["running"]:
+            return
+        time.sleep(0.05)
+
+
+settle()
 n_asked, n_pics = len(asked), len(pictures)
 assert app.movie_work() == [] and app.net_auto() is False
-assert len(asked) == n_asked and len(pictures) == n_pics
+settle()
+assert len(asked) == n_asked and len(pictures) == n_pics, (asked[n_asked:], pictures[n_pics:])
 
 # Needs review: your pick brings its poster
 mys = loose["Mystery Film"]

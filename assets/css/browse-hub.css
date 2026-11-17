@@ -107,6 +107,8 @@ body.ubh-on #ubh-az.has { display: flex; }
 #video-view .ubh-htitle::before { display: none !important; }
 #video-view .ubh-hmeta { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .6rem; font-family: var(--v-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(239, 236, 230, .8); margin-bottom: 1.2rem; }
 #video-view .ubh-hmeta i { font-style: normal; opacity: .5; }
+#video-view .ubh-hsum { max-width: 40rem; margin: -.4rem 0 1.2rem; font-size: .9rem; line-height: 1.45; color: rgba(239, 236, 230, .78);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 #video-view .ubh-hbtns { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 #video-view .ubh-hbtns button { display: inline-flex; align-items: center; gap: .55rem; height: 2.9rem; padding: 0 1.4rem; cursor: pointer; }
 #video-view .ubh-hposter { display: none; height: min(38vh, 22rem); aspect-ratio: 2 / 3; object-fit: cover; border-radius: 2px; cursor: pointer; box-shadow: 0 22px 60px -14px rgba(0, 0, 0, .9); outline: 1px solid var(--v-line2); }

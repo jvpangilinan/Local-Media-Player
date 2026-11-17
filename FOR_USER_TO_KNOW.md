@@ -57,6 +57,8 @@ It's a small fix (download the poster again when its file is missing). It's also
   The private library is never sent anywhere.
 - **Not sure which movie it is?** It goes to **Needs review** and you pick.
 - **No internet?** Nothing is saved; it tries again after the next scan.
+- **Summaries and episode stills** come from the same TMDB match: once per movie, show and season. An episode row
+  shows its official still, else a frame from the video. A wrong match fixed in Needs review fetches the right ones.
 - **Which picture a card shows** (the first one that exists):
   1. A thumbnail you picked yourself (hover a card > picture button)
   2. An image file next to the video with the same name, like `Dune (2021).jpg`

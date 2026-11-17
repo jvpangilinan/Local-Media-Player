@@ -220,6 +220,7 @@
             '<div class="text-accent ubh-hlab"><span></span>' + esc(label) + '</div>' +
             '<h2 class="ubh-htitle" data-title-id="' + f.id + '">' + esc(f.title) + '</h2>' +
             '<div class="ubh-hmeta">' + meta.join('<i>&middot;</i>') + '</div>' +
+            '<p class="ubh-hsum" data-sum-id="' + f.id + '" hidden></p>' +
             '<div class="ubh-hbtns"><button onclick="playVideo(\'' + f.id + '\')"><i class="fas fa-play"></i> ' + (f.progress ? 'Resume' : 'Play') + '</button>' +
             '<button data-act="roulette"><i class="fas fa-dice"></i> Roulette</button>' +
             '<button onclick="editTitle(event, \'' + f.id + '\')" title="Rename"><i class="fas fa-pen"></i></button></div></div>' +
@@ -519,6 +520,7 @@
         else html = ({ home: viewHome, movies: viewMovies, clips: viewClips, collections: viewCollections, series: viewSeries, folders: viewFolders }[S.tab] || viewHome)(m);
         body.classList.remove('ubh-skel');
         body.innerHTML = html;
+        if (window.fillSummaries) fillSummaries(body);
         paintHead(m);
         paintCount(); moreBtn(); markSel(); selBar();
         var sb = document.querySelector('.ubh-search'); if (sb) sb.classList.toggle('has', !!S.q);

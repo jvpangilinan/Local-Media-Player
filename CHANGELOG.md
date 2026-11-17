@@ -6,6 +6,14 @@ Font Awesome 6.4.0 and the Inter font are bundled in `vendor/`.
 
 **First time? Read `SETUP.txt`** (what to install: Python packages, libmpv-2.dll, ffmpeg, the subtitle models, yt-dlp).
 
+## V6: Summaries and episode pictures
+With **Look movies up online** on (and your TMDB key), ULTRON now also fetches the story, once per title:
+- **Banners** (Cinema and Home) show a two-line summary of the movie under its title. For an episode, it's the episode's own summary (or the show's).
+- **Series page:** the show's summary under its name, and under every episode its own one-line summary.
+- **Episode pictures:** each episode row shows the official still from TMDB instead of a frame from the video. No still online? The video frame stays. A picture next to the file still wins.
+- Episodes named only "S01E02" or "Episode 2" show their real name.
+- Asked once per movie, once per show and once per season, in the background after the poster lookup. Offline, it tries again after the next scan. Nothing for the private library is ever looked up.
+
 ## V6: One series from season folders
 Downloads often come as one folder per season: `Love Death and Robots S01\`, `Love.Death.and.Robots.S04.1080p.NF.WEB-DL...\`. These used to show as separate cards. Now they're **one series card** with a section per season, and no renaming is needed.
 - Episode titles are just the episode's name ("Cant Stop" instead of "Love Death and Robots S04E01 Cant Stop"), in episode order.

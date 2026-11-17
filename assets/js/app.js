@@ -493,17 +493,29 @@
                     <div class="relative z-10 w-full px-6 md:px-12 pb-14 pt-32 flex items-end justify-between gap-10">
                         <div class="max-w-[44rem]">
                             <div class="flex items-center gap-2 text-xs font-bold tracking-[0.25em] uppercase text-accent mb-4"><span class="h-px w-8 bg-accent"></span>${esc(label)}</div>
-                            <h1 class="font-black leading-[1.05] mb-${priv ? '7' : '4'} drop-shadow-lg line-clamp-3 break-words" style="font-size:clamp(1.75rem,3.4vw,4rem)" data-title-id="${f.id}">${esc(f.title)}</h1>${meta}
+                            <h1 class="font-black leading-[1.05] mb-${priv ? '7' : '4'} drop-shadow-lg line-clamp-3 break-words" style="font-size:clamp(1.75rem,3.4vw,4rem)" data-title-id="${f.id}">${esc(f.title)}</h1>${meta}${priv ? '' : `<p class="hero-sum text-sm md:text-base text-gray-200 max-w-2xl mb-6 line-clamp-2 drop-shadow" data-sum-id="${f.id}" hidden></p>`}
                             <div class="flex items-center gap-3">${buttons}
                             </div>
                         </div>
                         <img src="${img}" alt="" class="hero-poster hidden h-[46vh] aspect-[2/3] object-cover rounded-lg shadow-2xl ring-1 ring-white/10 cursor-pointer" onclick="playVideo('${f.id}')">
                     </div>
                 </section>`;
+            if (!priv) fillSummaries(hero);
         }
 
         // the big pick plays a muted preview when you rest the mouse on it (same idea as the small cards)
         let heroT = 0, heroV = null, heroSec = null;
+        const sumCache = new Map();                 // video id -> summary ('' = none)
+        function fillSummaries(root) {              // banners show the movie's / episode's summary, fetched for the one shown
+            (root || document).querySelectorAll('[data-sum-id]:not([data-sum-done])').forEach(el => {
+                el.setAttribute('data-sum-done', '1');
+                const id = el.getAttribute('data-sum-id');
+                const put = t => { if (t) { el.textContent = t; el.title = t; el.hidden = false; } };
+                if (sumCache.has(id)) return put(sumCache.get(id));
+                api('/api/info/' + id).then(d => { sumCache.set(id, (d && d.overview) || ''); put(sumCache.get(id)); }).catch(() => {});
+            });
+        }
+        window.fillSummaries = fillSummaries;
         function heroStop() {
             clearTimeout(heroT); heroT = 0;
             if (heroV) { heroV.pause(); heroV.removeAttribute('src'); heroV.remove(); heroV = null; }
@@ -761,7 +773,8 @@
                         ${e.progress ? `<div class="absolute bottom-0 inset-x-0 h-1 bg-white/25"><div class="h-full bg-accent" style="width:${Math.round(e.progress * 100)}%"></div></div>` : ''}
                     </div>
                     <div class="min-w-0 flex-1">
-                        <div class="font-semibold truncate" data-title-id="${e.id}">${esc(e.title)}</div>
+                        <div class="font-semibold truncate" data-title-id="${e.id}">${esc(e.title)}</div>${e.overview ? `
+                        <div class="text-xs text-gray-400 mt-1 line-clamp-2" title="${esc(e.overview)}">${esc(e.overview)}</div>` : ''}
                         <div class="text-xs text-gray-400 mt-1">${e.progress ? Math.round(e.progress * 100) + '% watched &middot; resume' : (e.view_count ? '<i class="fas fa-check text-accent mr-1"></i>Watched ' + e.view_count + 'x' : 'Not watched yet')}</div>
                     </div>
                     <button class="flex-none h-8 w-8 rounded-full bg-white/10 hover:bg-white hover:text-black flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all" title="Rename" onclick="editTitle(event, '${e.id}')"><i class="fas fa-pen"></i></button>
@@ -774,7 +787,8 @@
                     <button onclick="closeSeries()" class="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/60 hover:bg-white hover:text-black flex items-center justify-center transition-colors" title="Close"><i class="fas fa-xmark"></i></button>
                     <div class="absolute bottom-0 inset-x-0 p-8">
                         <div class="text-xs font-bold tracking-[0.25em] uppercase text-accent mb-2">${esc(d.genre)}</div>
-                        <h2 class="font-black leading-tight mb-4" style="font-size:clamp(1.8rem,3vw,3.2rem)">${esc(d.name)}</h2>
+                        <h2 class="font-black leading-tight mb-4" style="font-size:clamp(1.8rem,3vw,3.2rem)">${esc(d.name)}</h2>${d.overview ? `
+                        <p class="text-sm text-gray-300 max-w-2xl mb-4 line-clamp-2" title="${esc(d.overview)}">${esc(d.overview)}</p>` : ''}
                         <div class="flex flex-wrap items-center gap-3">
                             <button onclick="playVideo('${d.resume}')" class="bg-white text-black font-bold py-2.5 px-7 rounded-md flex items-center gap-2 hover:bg-white/80 transition-colors"><i class="fas fa-play"></i>${watched || (resumeEp && resumeEp.progress) ? 'Resume' : 'Play'}${resumeEp ? ' &middot; ' + esc(resumeEp.title).slice(0, 28) : ''}</button>
                             <button onclick="openAddModal('${scope}', ${JSON.stringify(d.genre).replace(/"/g, '&quot;')}, ${JSON.stringify(d.folder).replace(/"/g, '&quot;')}, [])" class="bg-gray-500/50 hover:bg-gray-500/30 backdrop-blur font-semibold py-2.5 px-5 rounded-md flex items-center gap-2 transition-colors"><i class="fas fa-upload"></i> Upload files</button>
