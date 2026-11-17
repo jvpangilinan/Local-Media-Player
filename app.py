@@ -6458,6 +6458,8 @@ def movie_work(redo=False):
         st = art.get((kind, key), ("",))[0]
         wants_art = bool(tv or year)
         need_art = wants_art and (not st or (redo and st != "ok"))
+        if tv and st == "none" and autogenre.series_query(title) != title:     # looked up once with "S01" in the name: try again
+            need_art = True
         # the first poster pass also gives "not found" items a second try with the better matching
         need_genre = key not in have[kind] or (need_art and key in weak[kind])
         if need_genre or need_art:

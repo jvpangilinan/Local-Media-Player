@@ -62,6 +62,9 @@ It's a small fix (download the poster again when its file is missing). It's also
   2. An image file next to the video with the same name, like `Dune (2021).jpg`
   3. The poster found online
   4. A picture taken from the video (needs ffmpeg)
+- **Series:** the folder name is what gets searched. Name it after the show (`Love Death and Robots`). A season tag
+  at the end (`S01`, `Season 1-3`, `Complete Series`) is ignored for the search, so `Love Death and Robots S01` works too.
+  Your own picture for a series: put `poster.jpg` (or `cover.jpg` / `folder.jpg`) inside the series folder.
 
 ---
 

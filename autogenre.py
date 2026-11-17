@@ -270,6 +270,20 @@ def _merge(a, b):
     return out[:3]
 
 
+SEASON_TAG = re.compile(r"[\s._-]+(?:S\d{1,2}(?:\s*-\s*S?\d{1,2})?|Season\s*\d{1,2}(?:\s*-\s*\d{1,2})?|Complete(?:\s+Series)?)\s*$", re.I)
+
+
+def series_query(name):
+    """A series folder name without its season tag, for the online search: 'Love Death and Robots S01' -> 'Love Death and
+    Robots', 'Dark Season 1-3' -> 'Dark'. TMDB finds nothing for the name with the tag."""
+    t = str(name or "")
+    while True:
+        u = SEASON_TAG.sub("", t).strip()
+        if not u or u == t:
+            return t.strip()
+        t = u
+
+
 def tmdb_lookup(title, year, key, tv=False):
     """The best matches for a library item, trying harder than one search: the year is taken out of the name, a search
     with the year that finds nothing sure is repeated without it, and a series folder that carries a year ('Bumblebee (2018)')
@@ -702,6 +716,8 @@ class Engine:
 
     def _movie(self, w, key):
         title, year, tv = w["title"], int(w.get("year") or 0), bool(w.get("tv"))
+        if tv:
+            title = series_query(title)
         kind = w.get("kind") or ("series" if tv else "video")
         qkey = "v2|%s|%s|%d" % ("tv" if tv else "movie", norm(title), year)
         cands = _cache_get(self.db, "tmdb", qkey)
