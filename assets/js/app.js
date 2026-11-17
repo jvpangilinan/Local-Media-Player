@@ -778,15 +778,15 @@
                     <div class="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/50 to-black/30"></div>
                     <button onclick="closeSeries()" class="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/60 hover:bg-white hover:text-black flex items-center justify-center transition-colors" title="Close"><i class="fas fa-xmark"></i></button>
                     <div class="absolute bottom-0 inset-x-0 p-8 flex items-end gap-6">
-                        ${f.own_poster ? `<img src="${esc(f.poster)}" alt="" class="hidden sm:block w-28 flex-none aspect-[2/3] object-cover rounded-md shadow-2xl ring-1 ring-white/10" onerror="this.remove()">` : ''}
+                        ${f.own_poster ? `<img src="${esc(f.poster)}" alt="" class="hidden sm:block flex-none aspect-[2/3] object-cover rounded-md shadow-2xl ring-1 ring-white/10" style="width:7rem" onerror="this.remove()">` : ''}
                         <div class="min-w-0">
                             <h2 class="font-black leading-tight mb-3 line-clamp-2" style="font-size:clamp(1.6rem,2.6vw,2.8rem)" data-title-id="${f.id}">${esc(f.title)}</h2>
-                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-300">${meta.join('<span class="opacity-50">&middot;</span>')}</div>
+                            <div class="text-sm text-gray-300" style="display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .7rem">${meta.join('<span style="opacity:.5">&middot;</span>')}</div>
                         </div>
                     </div>
                 </div>
-                <div class="px-8 pb-8 pt-3">
-                    <p id="mi-sum" class="text-gray-200 leading-relaxed max-w-3xl mb-6">&nbsp;</p>
+                <div style="padding:.9rem 2rem 2rem">
+                    <p id="mi-sum" class="text-gray-200 leading-relaxed" style="max-width:48rem;margin-bottom:1.5rem">&nbsp;</p>
                     <div class="flex flex-wrap items-center gap-3">
                         <button onclick="closeSeries(); playVideo('${f.id}')" class="bg-white text-black font-bold py-2.5 px-7 rounded-md flex items-center gap-2 hover:bg-white/80 transition-colors"><i class="fas fa-play"></i> ${f.progress ? 'Resume' : 'Play'}</button>
                         <button onclick="editTitle(event, '${f.id}')" class="bg-gray-500/50 hover:bg-gray-500/30 font-semibold py-2.5 px-4 rounded-md flex items-center gap-2 transition-colors" title="Rename"><i class="fas fa-pen"></i></button>
@@ -796,7 +796,7 @@
             $('series-modal').scrollTop = 0;
             const put = t => { const el = $('mi-sum'); if (!el) return;
                 if (t) el.textContent = t;
-                else { el.textContent = 'No summary yet. It comes with the online lookup (Settings > Smart genres and posters) once the movie is matched.'; el.className = 'text-sm text-gray-500 max-w-3xl mb-6'; } };
+                else { el.textContent = 'No summary yet. It comes with the online lookup (Settings > Smart genres and posters) once the movie is matched.'; el.className = 'text-sm text-gray-500'; } };
             if (sumCache.has(id)) put(sumCache.get(id));
             else api('/api/info/' + id).then(d => { sumCache.set(id, (d && d.overview) || ''); put(sumCache.get(id)); }).catch(() => put(''));
         }

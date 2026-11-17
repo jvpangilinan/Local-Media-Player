@@ -140,8 +140,9 @@ body.ubh-selecting #ubh-body .vcard.utile .ut-img { display: none !important; }
 .ut-menu i { width: 1rem; text-align: center; }
 
 /* ---------- about this movie (i): under the picture button, opens the movie's sheet ---------- */
-.utile .ut-info { position: absolute; z-index: 7; top: 2.6rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+.utile .ut-info { position: absolute; z-index: 7; top: .45rem; right: 2.5rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
+.utile .ut-cover:has(> .ut-edit) .ut-info { right: 4.55rem; }     /* third in the row: pencil, picture, i */
 .utile:hover .ut-info, .utile .ut-info:focus-visible { opacity: 1; }
 .utile .ut-info:hover { background: #fff; color: #000; }
 body.ubh-selecting #ubh-body .vcard.utile .ut-info { display: none !important; }
