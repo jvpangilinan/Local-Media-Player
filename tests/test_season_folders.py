@@ -1,4 +1,4 @@
-"""One folder per season ("Show S01/", "Show.S04.1080p.NF.WEB-DL-GRP/") makes ONE series with a section per season. Run:
+"""One folder per season ("Show S01/", "Show.S04.1080p.NF.WEB-DL-GRP/"): a card per season, episodes named by their own title. Run:
     python tests/test_season_folders.py
 Everything happens in a temp folder. Your real data and media are never touched."""
 import os, shutil, sys, tempfile, types
@@ -23,6 +23,7 @@ except ImportError:
     sys.modules["mutagen"].File = lambda *a, **k: None
     sys.modules["mutagen.flac"].Picture = object
 import app  # noqa: E402
+import autogenre  # noqa: E402
 
 assert Path(app.DATA_DIR).resolve().is_relative_to(tmp.resolve()), "test must not touch real data"
 app.init_db(); app.WINDOW = None
@@ -53,35 +54,11 @@ for f in files:
 
 app.scan_videos()
 ser = {s["name"]: s for s in app.LIB["series"].values()}
-assert set(ser) == {"Love Death and Robots", "Plain Show", "Other Show"}, list(ser)
-ldr = ser["Love Death and Robots"]
-eps = [app.LIB["videos"][e] for e in ldr["episodes"]]
-assert [(e["season"], e["title"]) for e in eps] == [
-    ("Season 1", "Sonnies Edge"), ("Season 1", "Three Robots"),
-    ("Season 4", "Cant Stop"), ("Season 4", "Close Encounters of the Mini Kind"), ("Season 4", "For He Can Creep")], eps
-assert len(ldr["folders"]) == 2 and ldr["art"] and ldr["art"].name == "poster.jpg"      # the poster from either season folder
-assert ser["Plain Show"]["episodes"] and not ser["Plain Show"].get("merged")
-other = [app.LIB["videos"][e] for e in ser["Other Show"]["episodes"]]
-assert other[0]["season"] == "Season 1"
-
-# the series page shows the seasons
-d = c.get("/api/series/" + ldr["id"]).get_json()
-assert [e["season"] for e in d["episodes"]][:3] == ["Season 1", "Season 1", "Season 4"], d
-
-# renaming keeps a folder per season
-r = c.post("/api/series/%s/rename" % ldr["id"], json={"name": "LDR"}, headers=H)
-assert r.status_code == 200, r.get_json()
-assert (v / "Movies/LDR Season 1/Love.Death.and.Robots.S01E01.Sonnies.Edge.1080p.mkv").is_file()
-assert (v / "Movies/LDR Season 4").is_dir() and not (v / "Movies" / s4).exists()
-app.scan_videos()
-again = app.LIB["series"][r.get_json()["id"]]
-assert again["name"] == "LDR" and len(again["episodes"]) == 5
-
-# auto-sort off: folders are left exactly as they are
-app.save_prefs({"auto_sort": False}) if hasattr(app, "save_prefs") else None
-if not app.get_prefs().get("auto_sort", True):
-    app.scan_videos()
-    assert {s["name"] for s in app.LIB["series"].values()} >= {"LDR Season 1", "LDR Season 4"}
+assert set(ser) == {"Love Death and Robots S01", "Love Death and Robots S04", "Plain Show", "Other Show"}, list(ser)
+s4eps = [app.LIB["videos"][e]["title"] for e in ser["Love Death and Robots S04"]["episodes"]]
+assert s4eps == ["Cant Stop", "Close Encounters of the Mini Kind", "For He Can Creep"], s4eps
+assert ser["Love Death and Robots S01"]["art"].name == "poster.jpg"
+assert autogenre.series_query("Love Death and Robots S04") == "Love Death and Robots"      # the poster search drops the tag
 
 shutil.rmtree(tmp, ignore_errors=True)
 print("season folders: OK")

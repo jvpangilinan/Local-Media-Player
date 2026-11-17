@@ -139,6 +139,13 @@ body.ubh-selecting #ubh-body .vcard.utile .ut-img { display: none !important; }
 .ut-menu button:disabled { opacity: .35; cursor: default; }
 .ut-menu i { width: 1rem; text-align: center; }
 
+/* ---------- about this movie (i): under the picture button, opens the movie's sheet ---------- */
+.utile .ut-info { position: absolute; z-index: 7; top: 2.6rem; right: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: #fff; font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
+.utile:hover .ut-info, .utile .ut-info:focus-visible { opacity: 1; }
+.utile .ut-info:hover { background: #fff; color: #000; }
+body.ubh-selecting #ubh-body .vcard.utile .ut-info { display: none !important; }
+
 /* ---------- favorites: a heart on the cover (always shown once hearted, otherwise on hover) ---------- */
 html body .utile .ut-fav { position: absolute; z-index: 7; top: .45rem; left: .45rem; width: 1.8rem; height: 1.8rem; display: flex; align-items: center; justify-content: center;
   border: 0; border-radius: 2px; background: rgba(0, 0, 0, .72); color: rgba(255, 255, 255, .8); font-size: .72rem; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s, color .2s; }

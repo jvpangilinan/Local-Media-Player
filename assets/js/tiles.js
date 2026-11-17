@@ -120,6 +120,10 @@
             b = document.createElement('button'); b.className = 'ut-fav'; b.type = 'button'; b.dataset.fk = t.kind; b.dataset.fkey = t.key;
             b.innerHTML = '<i class="fas fa-heart"></i>'; cover.appendChild(b);
         }
+        if (t.kind === 'video' && !cover.querySelector(':scope > .ut-info')) {       // what the movie is about
+            var ib = document.createElement('button'); ib.className = 'ut-info'; ib.type = 'button'; ib.dataset.iid = t.key; ib.title = 'About this movie';
+            ib.innerHTML = '<i class="fas fa-info"></i>'; cover.appendChild(ib);
+        }
         var on = isFav(t.kind, t.key);
         b.classList.toggle('on', on); card.classList.toggle('ut-faved', on);
         b.title = on ? 'Remove from Favorites' : 'Add to Favorites'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -219,6 +223,8 @@
     document.addEventListener('click', function (e) {
         var t = e.target;
         if (menu && !(t.closest && t.closest('.ut-menu'))) closeMenu();
+        var inf = t.closest && t.closest('.ut-info');
+        if (inf) { e.preventDefault(); e.stopPropagation(); if (window.openMovieInfo) openMovieInfo(inf.dataset.iid); return; }
         var fb = t.closest && t.closest('.ut-fav');
         if (fb) { e.preventDefault(); e.stopPropagation(); toggleFav(fb.dataset.fk, fb.dataset.fkey); return; }
         var btn = t.closest && t.closest('.ut-img'); if (!btn) return;

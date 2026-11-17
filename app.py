@@ -679,7 +679,7 @@ def movie_folder_main(s, found):
     """(movie video, title, year) when a series folder really holds ONE movie: a year in the folder name
     ('Finding Nemo (2003) (1080p BluRay x265 Tigole)') and one file directly inside it that is far bigger than the rest
     (featurettes, a sample). A real series has episodes of about the same size, so it never qualifies."""
-    if s["private"] or s.get("virtual") or s.get("merged") or s["genre"].lower() in EXTRAS_FOLDERS or s["folder"].name.lower().endswith(" - extras"):
+    if s["private"] or s.get("virtual") or s["genre"].lower() in EXTRAS_FOLDERS or s["folder"].name.lower().endswith(" - extras"):
         return None
     title, year = autogenre.query_parts(s["folder"].name)       # "Dinosaur (2000) + Extras (1080p ...)" -> ("Dinosaur", 2000)
     if not year:
@@ -766,17 +766,12 @@ def _scan_videos():
             continue
         v["root"] = not v["genre"]                              # loose in the video folder: the auto-sorter may group it
         if v["series"] and _auto and not v["season"]:
-            sf = season_folder(clean_junk(v["series"]))           # "Show S01/", "Show.S04.1080p.../": one series, a season each
-            if sf:
-                show, sn = sf
-                ep = episode_name(v["path"].stem)
-                if ep and (not sn or ep[0] == sn):
-                    sn = ep[0]
-                if sn:
-                    v.update(series_dir=v["series"], series=show, season="Season %d" % sn, merged=True,
-                             series_id=item_id(v["genre"] + "/" + show))
-                    if _clean and ep:
-                        v.update(title=ep[2], ep=(sn, ep[1]))
+            sf = season_folder(clean_junk(v["series"]))           # "Show S01/", "Show.S04.1080p.../": a card per season (kept apart
+            ep = episode_name(v["path"].stem) if sf else None     # on purpose), its episodes named by their own title, in order
+            if ep and (not sf[1] or ep[0] == sf[1]):
+                v["ep"] = (ep[0], ep[1])
+                if _clean:
+                    v["title"] = ep[2]
                     continue
         if v["series"]:
             if _clean and not v.get("virtual"):
@@ -824,9 +819,9 @@ def _scan_videos():
             continue
         root = video_root(v)[0]
         virt = bool(v.get("virtual"))
-        here = root if virt else root / v["genre"] / v.get("series_dir", v["series"])
-        s = series.setdefault(v["series_id"], {"id": v["series_id"], "name": v["series"] if (virt or v.get("merged")) else (clean_junk(v["series"]) if (_clean and not v["private"]) else pretty(v["series"])), "genre": v["genre"],
-                                                "private": v["private"], "folder": here, "virtual": virt, "merged": bool(v.get("merged")),
+        here = root if virt else root / v["genre"] / v["series"]
+        s = series.setdefault(v["series_id"], {"id": v["series_id"], "name": v["series"] if virt else (clean_junk(v["series"]) if (_clean and not v["private"]) else pretty(v["series"])), "genre": v["genre"],
+                                                "private": v["private"], "folder": here, "virtual": virt,
                                                 "episodes": [], "folders": []})
         s["episodes"].append(v)
         if here not in s["folders"]:                          # one per drive the series is spread over
@@ -5924,15 +5919,13 @@ def api_series_rename(sid):
     if s.get("virtual"):
         return jsonify({"error": "This series was sorted automatically from the file names. Make a folder for it to rename it."}), 400
     olds = s.get("folders") or [s["folder"]]             # a series spread over two drives has a folder on each
-    if s["name"] == name and (s.get("merged") or olds[0].name == name):
+    if olds[0].name == name:
         return jsonify({"id": sid, "name": name})
     prefix = "private/" if s["private"] else ""
     with LIB_LOCK:
         eps = [LIB["videos"][e] for e in s["episodes"] if e in LIB["videos"]]
-    target = {}                                           # old folder -> new folder name
+    target = {old: name for old in olds}                  # old folder -> new folder name
     for old in olds:
-        season = next((v["season"] for v in eps if s.get("merged") and v["path"].parent == old), "")
-        target[old] = (name + " " + season) if season else name      # season folders stay apart: "Name Season 4"
         new = old.parent / target[old]
         if new.exists() and new.name.lower() != old.name.lower():
             return jsonify({"error": "A series with that name already exists in this genre."}), 409

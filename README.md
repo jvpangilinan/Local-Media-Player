@@ -52,20 +52,17 @@
 
 ## V6: Summaries and episode pictures
 With **Look movies up online** on (and your TMDB key), ULTRON now also fetches the story, once per title:
+- **Every movie:** hover a movie card and press the **i** for its sheet: big picture, year, genre, IMDb rating, the full summary and Play.
 - **Banners** (Cinema and Home) show a two-line summary of the movie under its title. For an episode, it's the episode's own summary (or the show's).
 - **Series page:** the show's summary under its name, and under every episode its own one-line summary.
 - **Episode pictures:** each episode row shows the official still from TMDB instead of a frame from the video. No still online? The video frame stays. A picture next to the file still wins.
 - Episodes named only "S01E02" or "Episode 2" show their real name.
 - Asked once per movie, once per show and once per season, in the background after the poster lookup. Offline, it tries again after the next scan. Nothing for the private library is ever looked up.
 
-## V6: One series from season folders
-Downloads often come as one folder per season: `Love Death and Robots S01\`, `Love.Death.and.Robots.S04.1080p.NF.WEB-DL...\`. These used to show as separate cards. Now they're **one series card** with a section per season, and no renaming is needed.
+## V6: Season folders
+Downloads often come as one folder per season: `Love Death and Robots S01\`, `Love.Death.and.Robots.S04.1080p.NF.WEB-DL...\`. Each season stays **its own card**, and now:
 - Episode titles are just the episode's name ("Cant Stop" instead of "Love Death and Robots S04E01 Cant Stop"), in episode order.
-- The season folders can be in different places in the same genre, or on different drives.
-- Renaming the series renames each season folder to "New name Season N".
-- The online lookup ignores the season tag in a series name (`S01`, `Season 1-3`, `Complete Series`), so these get their poster now.
-- Watch progress is kept (each episode stays the same file). A cover you picked by hand for one of the old per-season cards needs picking again on the new card.
-- Follows the "Auto-sort movies" switch: turned off, every folder stays its own card.
+- The online lookup ignores the season tag in a series name (`S01`, `Season 1-3`, `Complete Series`), so every season card gets the show's poster.
 
 ## V6: More than one video or music folder
 Ran out of space on one drive? **Settings > Library > Add another folder** (under Video folder and under Music folder) adds a folder on another drive. Its videos and songs join the same library; nothing is copied or moved.

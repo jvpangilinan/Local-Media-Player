@@ -92,8 +92,8 @@ It's a small fix (download the poster again when its file is missing). It's also
 - **Cleans names:** drops junk like `1080p`, `BluRay`, `x265`, `YIFY` and finds the year.
 - **Groups things:** Iron Man 1, 2, 3 become one collection. `S01E02` or `1x02` files become a series.
   A folder with one movie plus extra videos is a movie, with the extras grouped as "Movie - Extras".
-  One folder per season (`Show S01\`, `Show.S04.1080p.WEB-DL...\`) becomes ONE series with a section per season,
-  episodes named by their own title ("Cant Stop"). Renaming it renames each folder to "Name Season N".
+  One folder per season (`Show S01\`, `Show.S04.1080p.WEB-DL...\`) stays a card per season, its episodes named by
+  their own title ("Cant Stop").
 - **Your folders win:** `videos\Action\Heat.mkv` sits on the Action shelf. `videos\Comedy\The Office\...` is a series.
 - **Catch-all folders** (`Movies`, `Downloads`, `New`, or loose in the videos folder): movies there go onto your genre
   shelves, using the genres from the online lookup. A sequel joins the rest of its films, animated films go where you
