@@ -246,13 +246,15 @@ window.addEventListener('wheel', function (e) { if (typeof window.__pxWheel === 
         <div id="p-top" class="p-ui absolute top-0 inset-x-0 z-10 px-6 pt-5 pb-20 flex items-start justify-between" style="background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent)">
             <div class="flex items-center gap-2"><button onclick="closePlayer()" class="p-pill"><i class="fas fa-arrow-left"></i> Back</button>
                 <button onclick="enterMini()" class="p-pill" title="Pop out into a small floating window that stays on top (I)"><i class="fas fa-down-left-and-up-right-to-center"></i> Mini player</button></div>
-            <div class="flex items-center gap-3 min-w-0 ml-6">
-                <button id="start-over" onclick="startOver()" class="hidden p-pill !py-1.5 text-xs"><i class="fas fa-rotate-left"></i> Start over</button>
+            <div class="flex flex-nowrap items-center gap-3 min-w-0 ml-6">
+                <button id="start-over" onclick="startOver()" class="hidden p-pill !py-1.5 text-xs flex-none"><i class="fas fa-rotate-left"></i> Start over</button>
                 <div class="min-w-0 text-right">
                     <div id="player-sub" class="text-xs text-gray-300 truncate"></div>
-                    <div id="player-title" class="font-bold truncate"></div>
+                    <div class="flex flex-nowrap items-center justify-end gap-2 min-w-0">
+                        <div id="player-title" class="font-bold truncate min-w-0"></div>
+                        <button onclick="editTitle(event, playingId)" class="p-btn !h-8 !min-w-8 !w-8 flex-none bg-white/10 text-xs" title="Rename"><i class="fas fa-pen"></i></button>
+                    </div>
                 </div>
-                <button onclick="editTitle(event, playingId)" class="p-btn !h-9 !min-w-9 bg-white/10 text-xs" title="Rename"><i class="fas fa-pen"></i></button>
             </div>
         </div>
 
