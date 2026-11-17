@@ -648,11 +648,38 @@ def scan_videos():
         return _scan_videos()
 
 
+SEASON_NUM_RE = re.compile(r"[\s._-]*(?:S|Season\s*)(\d{1,2})\s*", re.I)
+EPISODE_TAG_RE = re.compile(r"(?i)(?:^|[\s._-])S(\d{1,2})[\s._-]?E(\d{1,3})(?=$|[\s._-])")
+
+
+def season_folder(name):
+    """A series folder named for one season of a show -> (show, season number or 0), else None.
+    'Love Death and Robots S04' -> ('Love Death and Robots', 4); 'Dark Season 1-3' -> ('Dark', 0)."""
+    show = autogenre.series_query(name)
+    if not show or show == name.strip():
+        return None
+    m = SEASON_NUM_RE.fullmatch(name.strip()[len(show):])
+    return show, (int(m.group(1)) if m else 0)
+
+
+def episode_name(stem):
+    """'Love.Death.and.Robots.S04E01.Cant.Stop.1080p.NF.WEB-DL' -> (4, 1, 'Cant Stop'); None without an SxxEyy tag."""
+    m = EPISODE_TAG_RE.search(stem)
+    if not m:
+        return None
+    sn, en = int(m.group(1)), int(m.group(2))
+    rest = stem[m.end():].strip(" -._")
+    if " " not in rest:
+        rest = rest.replace(".", " ")
+    name = clean_junk("X " + rest)[2:].strip(" -._") if rest else ""     # "X ": a name that is only junk comes out empty
+    return sn, en, name or "Episode %d" % en
+
+
 def movie_folder_main(s, found):
     """(movie video, title, year) when a series folder really holds ONE movie: a year in the folder name
     ('Finding Nemo (2003) (1080p BluRay x265 Tigole)') and one file directly inside it that is far bigger than the rest
     (featurettes, a sample). A real series has episodes of about the same size, so it never qualifies."""
-    if s["private"] or s.get("virtual") or s["genre"].lower() in EXTRAS_FOLDERS or s["folder"].name.lower().endswith(" - extras"):
+    if s["private"] or s.get("virtual") or s.get("merged") or s["genre"].lower() in EXTRAS_FOLDERS or s["folder"].name.lower().endswith(" - extras"):
         return None
     title, year = autogenre.query_parts(s["folder"].name)       # "Dinosaur (2000) + Extras (1080p ...)" -> ("Dinosaur", 2000)
     if not year:
@@ -738,6 +765,19 @@ def _scan_videos():
         if v["private"]:
             continue
         v["root"] = not v["genre"]                              # loose in the video folder: the auto-sorter may group it
+        if v["series"] and _auto and not v["season"]:
+            sf = season_folder(clean_junk(v["series"]))           # "Show S01/", "Show.S04.1080p.../": one series, a season each
+            if sf:
+                show, sn = sf
+                ep = episode_name(v["path"].stem)
+                if ep and (not sn or ep[0] == sn):
+                    sn = ep[0]
+                if sn:
+                    v.update(series_dir=v["series"], series=show, season="Season %d" % sn, merged=True,
+                             series_id=item_id(v["genre"] + "/" + show))
+                    if _clean and ep:
+                        v.update(title=ep[2], ep=(sn, ep[1]))
+                    continue
         if v["series"]:
             if _clean and not v.get("virtual"):
                 v["title"] = clean_junk(re.sub(r"^\d{3} - ", "", v["path"].stem))     # episodes: junk goes, numbers and years stay
@@ -784,17 +824,17 @@ def _scan_videos():
             continue
         root = video_root(v)[0]
         virt = bool(v.get("virtual"))
-        s = series.setdefault(v["series_id"], {"id": v["series_id"], "name": v["series"] if virt else (clean_junk(v["series"]) if (_clean and not v["private"]) else pretty(v["series"])), "genre": v["genre"],
-                                                "private": v["private"], "folder": root if virt else root / v["genre"] / v["series"],
-                                                "virtual": virt, "episodes": [], "folders": []})
+        here = root if virt else root / v["genre"] / v.get("series_dir", v["series"])
+        s = series.setdefault(v["series_id"], {"id": v["series_id"], "name": v["series"] if (virt or v.get("merged")) else (clean_junk(v["series"]) if (_clean and not v["private"]) else pretty(v["series"])), "genre": v["genre"],
+                                                "private": v["private"], "folder": here, "virtual": virt, "merged": bool(v.get("merged")),
+                                                "episodes": [], "folders": []})
         s["episodes"].append(v)
-        here = root if virt else root / v["genre"] / v["series"]
         if here not in s["folders"]:                          # one per drive the series is spread over
             s["folders"].append(here)
     for s in series.values():
-        s["episodes"].sort(key=(lambda e: e.get("ep") or (0, 0)) if s.get("virtual") else (lambda e: (natkey(e["season"]), natkey(e["path"].name))))
+        s["episodes"].sort(key=(lambda e: e.get("ep") or (0, 0)) if s.get("virtual") else (lambda e: (natkey(e["season"]), e.get("ep") or (0, 0), natkey(e["path"].name))))
         s["episodes"] = [e["id"] for e in s["episodes"]]
-        s["art"] = pick_image(side.get(dir_key(s["folder"])), series_art_names(s))
+        s["art"] = next((a for a in (pick_image(side.get(dir_key(f)), series_art_names(s)) for f in s["folders"] or [s["folder"]]) if a), None)
     for sid, s in list(series.items()):                       # "Cars (2006) (1080p ... Tigole)/" is one movie (plus featurettes), not a series
         hit = movie_folder_main(s, found)
         if not hit:
@@ -5874,18 +5914,23 @@ def api_series_rename(sid):
     if s.get("virtual"):
         return jsonify({"error": "This series was sorted automatically from the file names. Make a folder for it to rename it."}), 400
     olds = s.get("folders") or [s["folder"]]             # a series spread over two drives has a folder on each
-    if olds[0].name == name:
+    if s["name"] == name and (s.get("merged") or olds[0].name == name):
         return jsonify({"id": sid, "name": name})
-    for old in olds:
-        new = old.parent / name
-        if new.exists() and new.name.lower() != old.name.lower():
-            return jsonify({"error": "A series with that name already exists in this genre."}), 409
     prefix = "private/" if s["private"] else ""
     with LIB_LOCK:
         eps = [LIB["videos"][e] for e in s["episodes"] if e in LIB["videos"]]
+    target = {}                                           # old folder -> new folder name
+    for old in olds:
+        season = next((v["season"] for v in eps if s.get("merged") and v["path"].parent == old), "")
+        target[old] = (name + " " + season) if season else name      # season folders stay apart: "Name Season 4"
+        new = old.parent / target[old]
+        if new.exists() and new.name.lower() != old.name.lower():
+            return jsonify({"error": "A series with that name already exists in this genre."}), 409
     pairs = []
     for old in olds:
-        new = old.parent / name
+        new = old.parent / target[old]
+        if new == old:
+            continue
         try:
             os.rename(old, new)
         except OSError as e:

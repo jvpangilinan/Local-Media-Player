@@ -50,6 +50,15 @@
 # What's new
 
 
+## V6: One series from season folders
+Downloads often come as one folder per season: `Love Death and Robots S01\`, `Love.Death.and.Robots.S04.1080p.NF.WEB-DL...\`. These used to show as separate cards. Now they're **one series card** with a section per season, and no renaming is needed.
+- Episode titles are just the episode's name ("Cant Stop" instead of "Love Death and Robots S04E01 Cant Stop"), in episode order.
+- The season folders can be in different places in the same genre, or on different drives.
+- Renaming the series renames each season folder to "New name Season N".
+- The online lookup ignores the season tag in a series name (`S01`, `Season 1-3`, `Complete Series`), so these get their poster now.
+- Watch progress is kept (each episode stays the same file). A cover you picked by hand for one of the old per-season cards needs picking again on the new card.
+- Follows the "Auto-sort movies" switch: turned off, every folder stays its own card.
+
 ## V6: More than one video or music folder
 Ran out of space on one drive? **Settings > Library > Add another folder** (under Video folder and under Music folder) adds a folder on another drive. Its videos and songs join the same library; nothing is copied or moved.
 - Lay it out like your main folder: `D:\Movies\Action\Heat.mkv` sits on the Action shelf with the Action movies from your main drive. A series can be spread over drives (season 1 on one, season 2 on another) and is still one series.
